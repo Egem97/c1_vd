@@ -8,7 +8,7 @@ from views.visitas_childs import vd_childs
         
 home = [st.Page(page = index,title="Home",icon = ":material/home:")]
 
-visitas = [st.Page(page = vd_childs,title="Visitas Niños",icon = ":material/home:")]
+visitas = [st.Page(page = vd_childs,title="Georeferencias Niños",icon = ":material/home:")]
 
 #monitores = [
 #    st.Page("./views/monitores/pages/monitorAbastecimiento.py",title="Monitor Abastecimiento",icon = ":material/inventory:",),

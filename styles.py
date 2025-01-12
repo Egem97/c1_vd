@@ -15,6 +15,9 @@ def styles(pt = 3):
                 [data-testid="stHeader"]{
                     height: 2.5rem;
                 }
+                div[data-baseweb="select"] span {
+                    font-size: 11px !important; /* Cambia el tamaño de la fuente */
+                }
                 
         </style>
     """%(pt), unsafe_allow_html=True)
