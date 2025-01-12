@@ -1,9 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import folium #Librería de mapas en Python
-from streamlit_folium import st_folium #Widget de Streamlit para mostrar los mapas
-from folium.plugins import MarkerCluster #Plugin para agrupar marcadores
 from styles import styles
 from utils.cache_handler import fetch_vd_childs
 
