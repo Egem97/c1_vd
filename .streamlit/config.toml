@@ -3,4 +3,4 @@ developmentMode = false
 
 [server]
 maxMessageSize = 100000000
-port = 8500
+port = 8080
