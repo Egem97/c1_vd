@@ -2,14 +2,12 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from styles import styles
-from utils.cache_handler import fetch_vd_childs
+from utils.cache_handler import fetch_vd_gestantes
 
-def geo_childs():
+def geo_gestantes():
     styles(2)
-    
-    df = fetch_vd_childs()
+    df = fetch_vd_gestantes()
     dff = df[df["Dispositivo Intervención"]=="MOVIL"]
-    
     eess = list(dff["Establecimiento de Salud"].unique())
     year = list(dff["Año"].unique())
     month = list(dff["Mes"].unique())
@@ -17,7 +15,7 @@ def geo_childs():
     longitud_name = "Longitud Intervención"
     col_filt = st.columns([3,6,1,1])
     with col_filt[0]:
-        st.title("Georef a Niños")
+        st.title("Georef a Gestantes")
     with col_filt[1]:
         eess_selected = st.multiselect("Establecimientos de Salud",eess,placeholder="Escoja un Establecimiento de Salud")
         if len(eess_selected) > 0:
@@ -29,7 +27,6 @@ def geo_childs():
         month_selected = st.selectbox("Mes",month)
         dff = dff[dff["Mes"]==month_selected]
     
-    #st.write(dff.shape)
     
     tab1,tab2,=st.tabs(['Mapa','Datos'])
     with tab1:    
@@ -41,22 +38,20 @@ def geo_childs():
                 dff = dff[dff["Actores Sociales"] == as_selected]
         
         with col_filt_map[1]:
-            doc_input = st.text_input("Buscar por Doc Niño")
+            doc_input = st.text_input("Buscar por Doc Gestante")
             if len(doc_input) == 8 :
-                dff = dff[dff["Número de Documento de Niño"] == doc_input]
-
+                dff = dff[dff["Número de Documento"] == doc_input]
         with col_filt_map[2]:  
             parMapa = st.selectbox('Tipo Mapa',options=["open-street-map", "carto-positron","carto-darkmatter"])          
             
         with col_filt_map[3]:
-            st.metric("N° de Georreferencias",dff.shape[0]) 
             
-
+            st.metric("N° de Georreferencias",dff.shape[0])
         
         fig = px.scatter_mapbox(
             dff,lat=latitud_name,lon=longitud_name, 
             color="Establecimiento de Salud", hover_name="Actores Sociales",
-            hover_data=["Número de Documento de Niño","Fecha Intervención"],
+            hover_data=["Número de Documento","Fecha Intervención"],
             zoom=14,
             height=600,
             #color_continuous_scale=px.colors.cyclical.IceFire
@@ -74,11 +69,10 @@ def geo_childs():
         ))
         map_ = st.plotly_chart(fig, on_select="rerun")
         try:
-            st.dataframe(dff[dff["Número de Documento de Niño"]==map_["selection"]["points"][0]["customdata"][0]])
+            st.dataframe(dff[dff["Número de Documento"]==map_["selection"]["points"][0]["customdata"][0]])
         except:
-            st.warning("Seleccione Niño Georreferenciado")
+            st.warning("Seleccione Gestante Georreferenciado")
         
     with tab2:
-        st.dataframe(dff,use_container_width=True)
-        #st.dataframe(dff)
-    
+        
+        st.dataframe(dff,use_container_width=True,hide_index=True)

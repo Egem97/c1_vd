@@ -380,3 +380,10 @@ def test(dataframe, col_name):
     choicelist_1 =['ARANJUEZ','EL BOSQUE','LOS JARDINES','LOS GRANADOS "SAGRADO CORAZON"','SAN MARTIN DE PORRES','PESQUEDA III','CLUB DE LEONES','CENTRO DE SALUD LA UNION','LIBERTAD','PESQUEDA II']
     return np.select(condlist,choicelist_1,default='No Especificado')
     
+def mes_short(x):
+    dict_mes = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Set',10:'Oct',11:'Nov',12:'Dic'}
+    return dict_mes[x] 
+
+def mestext_short(x):
+    dict_mes = {'Ene':1,'Feb':2,'Mar':3,'Abr':4,'May':5,'Jun':6,'Jul':7,'Ago':8,'Set':9,'Oct':10,'Nov':11,'Dic':12}
+    return dict_mes[x] 
