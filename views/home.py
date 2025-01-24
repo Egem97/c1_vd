@@ -1,19 +1,44 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 from styles import styles
-from utils.cache_handler import fetch_carga_childs,fetch_vd_childs
-from utils.helpers import *
+from utils.cache_handler import *
 
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode 
 
 def index():
     styles(1)
+    st.title("Home")
+    fecha_actual = datetime.now()
     carga_df = fetch_carga_childs()
     vd_df = fetch_vd_childs()
-    carga_df['Mes_'] = carga_df.apply(lambda x: mes_short(x['Mes']),axis=1) 
+    padron_df = fetch_padron()
+    gestantes_vd_df = fetch_vd_gestantes()
+    gestantes_carga_df = fetch_carga_gestantes()
+    carga_df = carga_df[(carga_df["Año"] == fecha_actual.year)&(carga_df["Mes"] == fecha_actual.month)]
+    gestantes_carga_df["Mes"] = gestantes_carga_df["Mes"].astype(int)
+    print(gestantes_carga_df.info())
+    print(type(fecha_actual.year),type(fecha_actual.month))
+    gestantes_carga_df = gestantes_carga_df[(gestantes_carga_df["Año"] == str(fecha_actual.year))&(gestantes_carga_df["Mes"] == fecha_actual.month)]
+    st.text("Carga Niños (total visitas)")
+    st.write(carga_df["Total de Intervenciones"].sum())
+    #st.dataframe(gestantes_carga_df)
+    st.text("Fecha de Ultima Visita(Niño)")
+    st.write(vd_df["Fecha Intervención"].max())
+    st.text("Fecha de Ultima Creacion de Registro Padrón Nominal")
+    st.write(padron_df["FECHA CREACION DE REGISTRO"].max())
+    st.text("Fecha de Ultima Visita(Gestante)")
+    
+    st.write(gestantes_vd_df["Fecha Intervención"].max())
+    st.text("Carga Gestantes (total visitas)")
+    st.write(gestantes_carga_df["Total de Intervenciones"].sum())
+
+
+
+"""
+carga_df['Mes_'] = carga_df.apply(lambda x: mes_short(x['Mes']),axis=1) 
     VD_ALL = carga_df.groupby(["Año","Mes","Mes_"])[["Total de visitas completas para la edad","Total de VD presenciales Realizadas","Total de VD presenciales Válidas","Total de VD presencial Válidas WEB","Total de VD presencial Válidas MOVIL"]].sum().reset_index()
-    #VD_ALL["Valla mínima Georeferencias (73%)"] = round(VD_ALL["Total de VD presenciales Realizadas"] * 0.73,0)
-    #VD_ALL["% Georeferencias"] = round((VD_ALL["Total de VD presencial Válidas MOVIL"]/VD_ALL["Total de VD presenciales Realizadas"])*100,2)
+   
     cargados_mes = carga_df.groupby(["Año","Mes","Mes_"])[["Rango de Edad"]].count().reset_index()
     cargados_mes = cargados_mes.rename(columns= {"Rango de Edad":"Niños Programados"})
     #NO ENCONTRADOS
@@ -37,8 +62,7 @@ def index():
     join_df = join_df.rename(columns= {"Mes__x":"Mes_"})
     print(join_df.info())
     print(noencon_df.info())
-    #st.dataframe(join_df)
-    #st.dataframe(noencon_df)
+
     ## TABLA + no encontrados
     join_noen_df = pd.merge(join_df, noencon_df, left_on=["Año","Mes"], right_on=["Año","Mes_"], how='left')
     join_noen_df= join_noen_df.drop(["Mes__y","Mes_y"], axis=1)
@@ -52,7 +76,8 @@ def index():
     AgGrid(join_rech_df, # Dataframe a mostrar
             #height=900, # Altura de la tabla
             width='100%', # Ancho de la tabla
-            #theme='alpine'
+            
     )
-    #st.dataframe(join_rech_df)
+"""
+  
     

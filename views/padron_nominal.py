@@ -11,6 +11,7 @@ def dash_padron():
     df = fetch_padron()
     df["Documento"]= df["Documento"].astype(str)
     df['EESS'] = df['EESS'].fillna("NO ESPECIFICADO")
+    df["NUMERO DE CELULAR"] = df["NUMERO DE CELULAR"].str.strip()
     #df['FECHA DE MODIFICACIÓN DEL REGISTRO'] = df['FECHA DE MODIFICACIÓN DEL REGISTRO'].dt.date
     
     
@@ -32,6 +33,7 @@ def dash_padron():
         select_entidad  = st.multiselect("Establecimiento de Salud Atención:", eess_list, key="select3", placeholder="Seleccione EESS")
         if select_entidad != None and len(select_entidad) > 0:
             df = df[df["EESS"].isin(select_entidad)]
+    
     #FECHA DE MODIFICACIÓN DEL REGISTRO
     #dff = df[(df["FECHA DE MODIFICACIÓN DEL REGISTRO"]>=fecha_inicio)&(df["FECHA DE MODIFICACIÓN DEL REGISTRO"]<=fecha_fin)]
     duplicados_df = df[df.duplicated(subset=["Documento"], keep=False)]
@@ -39,15 +41,24 @@ def dash_padron():
     num_rows_ = df.shape[0]
     sin_ejevial_df = df[df['EJE VIAL'] == " "]
     sin_ref_df = df[df['REFERENCIA DE DIRECCION'].isnull()]
+    
+    childs_transito_df = df[df['Tipo_file'] == "Activos Transito"]
+    
+    childs_transito = (childs_transito_df["Tipo_file"] == "Activos Transito").sum()
+    #Tipo_file
     #count_entidad_muni = (df["ENTIDAD"] == "MUNICIPIO").sum()
     count_entidad_muni = df[(df["ENTIDAD"] == "MUNICIPIO") & (df["EJE VIAL"] != " ") & (df["REFERENCIA DE DIRECCION"].notna())]
-    
-    col_metric = st.columns([2,2,2,2,2])    
+    sin_cel_df = df[df["NUMERO DE CELULAR"]==""]
+    sin_cel = (df["NUMERO DE CELULAR"]=="").sum()
+
+    col_metric = st.columns(6)   
     col_metric[0].metric("N° Registros",num_rows_,border=True)
     col_metric[1].metric("N° Duplicados",rows_dup,border=True)
     col_metric[2].metric("N° SIN EJE VIAL",sin_ejevial_df.shape[0],border=True)
     col_metric[3].metric("N° SIN REFERENCIA",sin_ref_df.shape[0],border=True)
-    col_metric[4].metric("Porcentaje de Actualizaciones",f"{(round((count_entidad_muni.shape[0]/num_rows_)*100,1))}%",border=True)
+    #col_metric[4].metric("Porcentaje de Actualizaciones",f"{(round((count_entidad_muni.shape[0]/num_rows_)*100,1))}%",border=True)
+    col_metric[4].metric("N° Niños Transito",childs_transito,border=True)
+    col_metric[5].metric("N° SIN CELULAR",sin_cel,border=True)
 
     bar_d = df.groupby(["ENTIDAD"])[["CÓDIGO DE PADRON"]].count().reset_index()
     bar_d = bar_d.rename(columns = {"CÓDIGO DE PADRON":"Registros"})
@@ -101,6 +112,12 @@ def dash_padron():
 
     with st.expander("Descargas"):
         st.download_button(
+                label="Descargar Padron Nominal",
+                data=convert_excel_df(df),
+                file_name=f"padron.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        st.download_button(
                 label="Descargar Duplicados",
                 data=convert_excel_df(duplicados_df),
                 file_name=f"padron_duplicados.xlsx",
@@ -122,5 +139,17 @@ def dash_padron():
                 label="Descargar Actualizados Muni",
                 data=convert_excel_df(count_entidad_muni),
                 file_name=f"padron_actualizados_municipio.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        st.download_button(
+                label="Descargar Niños Transito",
+                data=convert_excel_df(childs_transito_df),
+                file_name=f"padron_niños_transito.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        st.download_button(
+                label="Descargar Sin Celular",
+                data=convert_excel_df(sin_cel_df),
+                file_name=f"padron_sin_cel.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )

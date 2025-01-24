@@ -4,6 +4,7 @@ from views.home import index
 from views.visitas_childs import geo_childs
 from views.visitas_gestantes import geo_gestantes
 from views.padron_nominal import dash_padron
+from views.actualizaciones_padron import dash_padron_modreg
 from views.indicadores_childs import indicadores_childs
 from views.indicadores_gestantes import indicadores_gestantes
 #if 'key' not in st.session_state:
@@ -17,7 +18,8 @@ visitas = [
     st.Page(page = geo_gestantes,title="Georeferencias Gestantes",icon = ":material/home:"),
 ]
 padron = [
-    st.Page(page = dash_padron,title="Actualizaciones Padrón",icon = ":material/home:"),
+    st.Page(page = dash_padron,title="Padrón Nominal",icon = ":material/home:"),
+    st.Page(page = dash_padron_modreg,title="Actualización Padrón",icon = ":material/home:"),
 ]
 
 indicadores = [
