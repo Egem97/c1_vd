@@ -393,3 +393,16 @@ def validar_primer_digito_cel(x):
     return True
   else:
     return False
+  
+def estado_visitas_completas(x,y,estado):
+    if estado == "No Encontrado" or estado == "Rechazado":
+        return f"Visita Niño:{estado}"
+    else:
+
+        if x == y:
+            return "Visitas Completas"
+        elif x > y:
+            res = x-y
+            return f"Visitas Incompletas(faltantes:{res})"
+        elif y > x:
+            return "Visitas Completas (exedido)"

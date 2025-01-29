@@ -1,8 +1,8 @@
 import streamlit as st
 
 from views.home import index
-from views.visitas_childs import geo_childs
-from views.visitas_gestantes import geo_gestantes
+from views.visitas_childs import geo_childs,childs_status_vd
+from views.visitas_gestantes import geo_gestantes,gestantes_status_vd
 from views.padron_nominal import dash_padron
 from views.actualizaciones_padron import dash_padron_modreg
 from views.indicadores_childs import indicadores_childs
@@ -22,9 +22,14 @@ padron = [
     st.Page(page = dash_padron_modreg,title="Actualización Padrón",icon = ":material/home:"),
 ]
 
+c1 = [
+    st.Page(page = childs_status_vd,title="Indicador 1.2",icon = ":material/home:"),
+    st.Page(page = gestantes_status_vd,title="Indicador 1.3",icon = ":material/home:"),
+]
+
 indicadores = [
-    st.Page(page = indicadores_childs,title="Indicador 1.2",icon = ":material/home:"),
-    st.Page(page = indicadores_gestantes,title="Indicador 1.3",icon = ":material/home:"),
+    st.Page(page = indicadores_childs,title="Niños",icon = ":material/home:"),
+    st.Page(page = indicadores_gestantes,title="Gestantes",icon = ":material/home:"),
 ]
 
 #monitores = [
@@ -38,5 +43,6 @@ def pages():
     page_dict["Home"] = home
     page_dict["Geo"] = visitas
     page_dict["Padron N"] = padron
-    page_dict["Indicadores C1"] = indicadores
+    page_dict["Visitas C1"] = c1
+    page_dict["C1 Prueba"] = indicadores
     return page_dict

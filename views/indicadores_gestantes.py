@@ -22,7 +22,7 @@ def indicadores_gestantes():
         
     with columns_row1[2]:
         select_mes  = st.selectbox("Mes:", ["Ene"], key="select2")
-
+    
     if select_mes == "Ene":
         select_year_verifi = str(int(select_year) - 1)
         select_mes_verifi = mes_short(12)
