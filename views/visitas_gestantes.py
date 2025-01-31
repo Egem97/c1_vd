@@ -16,7 +16,7 @@ def gestantes_status_vd():
     carga_df["Mes"] = carga_df["Mes"].astype(int)
     padron_df = fetch_padron()
     gestantes = pd.read_parquet('datos_gestantes.parquet', engine='pyarrow')
-
+    
     eess = list(carga_df["Establecimiento de Salud"].unique())
 
 
@@ -44,7 +44,7 @@ def gestantes_status_vd():
 
     carga_filt_df = carga_df[(carga_df['Año']==str(select_year))&(carga_df['Mes']==mestext_short(select_mes))]
     actvd_filt_df_last = vd_df[(vd_df['Año']==str(select_year))&(vd_df['Mes']==select_mes)]  
-    actvd_filt_df = vd_df[(vd_df['Año']==str(select_year_verifi))&(vd_df['Mes']==select_mes_verifi)]  
+    #actvd_filt_df = vd_df[(vd_df['Año']==str(select_year_verifi))&(vd_df['Mes']==select_mes_verifi)]  
     #totales
     num_carga = carga_filt_df.shape[0]
     num_visitas = carga_filt_df["Total de Intervenciones"].sum()
@@ -60,18 +60,52 @@ def gestantes_status_vd():
     metric_col = st.columns(7)
     metric_col[0].metric("Gestantes Cargadas",num_carga,f"Con Visita {num_gestantes_vd}({porcentaje_gestante_visita})",border=True)
     metric_col[1].metric("Total de Visitas",num_visitas,f"Visitas Válidas: {num_visitas_validas}",border=True)
-    metric_col[2].metric("Visitas Movil",num_vd_movil,"-",border=True)#,f"Visitas Válidas: {num_visitas_validas}"
-    gestantes_unicas_vd.columns = ["Doc_Ultimo_Mes","Actor Social Ultimo Mes","Estado_Visita_Ult","count"]
-    gestantes_unicas_vd = gestantes_unicas_vd[["Doc_Ultimo_Mes","Actor Social Ultimo Mes","Estado_Visita_Ult"]]
-    dataframe_pn = padron_df[[
-        'Tipo_file', 'Documento', 'Tipo de Documento','DATOS NIÑO PADRON','CELULAR2_PADRON','SEXO',
-        'FECHA DE NACIMIENTO', 'EJE VIAL', 'DIRECCION PADRON','REFERENCIA DE DIRECCION','MENOR VISITADO',
-        'EESS NACIMIENTO','EESS', 'FRECUENCIA DE ATENCION', 'EESS ADSCRIPCIÓN','TIPO DE DOCUMENTO DE LA MADRE',
-        'NUMERO DE DOCUMENTO  DE LA MADRE','DATOS MADRE PADRON','TIPO DE DOCUMENTO DEL JEFE DE FAMILIA',
-        'NUMERO DE DOCUMENTO DEL JEFE DE FAMILIA','DATOS JEFE PADRON','ENTIDAD','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA','NUMERO DE CELULAR', 'CELULAR_CORREO',
+    #metric_col[2].metric("Visitas Movil",num_vd_movil,"-",border=True)#,f"Visitas Válidas: {num_visitas_validas}"
+    gestantes_unicas_vd.columns = ["Doc_gestante","Actor Social Ultimo Mes","Etapa","Número Visitas"]
+    gestantes_unicas_vd = gestantes_unicas_vd[["Doc_gestante","Etapa","Número Visitas"]]
+    
+    #st.write(gestantes_unicas_vd.shape[0])
+    prioridad = {'DNI': 1, 'CUI': 2, 'CNV': 3}
+    padron_df['Prioridad'] = padron_df['Tipo de Documento'].map(prioridad)
+    padron_df = padron_df.sort_values(by=['Documento', 'Prioridad'])
+    padron_df = padron_df.drop_duplicates(subset='Documento', keep='first')
+    padron_df = padron_df.drop(columns=['Prioridad'])
+    padron_df["EDAD_MESES"] = padron_df["FECHA DE NACIMIENTO"].apply(lambda x: (fecha_actual.year - x.year) * 12 + (fecha_actual.month - x.month))
+    padron_df = padron_df[[
+        'NUMERO DE DOCUMENTO  DE LA MADRE',"Documento","DATOS NIÑO PADRON","DATOS MADRE PADRON","ENTIDAD","Tipo_file","FECHA DE NACIMIENTO","DIRECCION PADRON","EESS","EDAD_MESES"
     ]]
-    #oin_df = pd.merge(carga_filt_df, dataframe_pn, left_on='Número de Documento', right_on='Documento', how='left')
-    st.dataframe(carga_filt_df)
+    padron_df = padron_df[padron_df["EDAD_MESES"]<= 12]
+    gest_dff = pd.merge(carga_filt_df, padron_df, left_on='Número de Documento', right_on='NUMERO DE DOCUMENTO  DE LA MADRE', how='left')
+    gest_dff["Estado Gestante"] = gest_dff.apply(lambda x:validar_vd_gestante(x['Total de VD presenciales Válidas']),axis=1)
+    gest_dff['ESTADO_NACIMIENTO'] = gest_dff['FECHA DE NACIMIENTO'].apply(
+        lambda fecha: 'SIN DATO' if pd.isna(fecha) 
+        else 'MES PRESENTE' if (fecha.year == fecha_actual.year and fecha.month == fecha_actual.month) 
+        else 'MESES PASADOS'
+    )
+    
+    gestantes_join_df = pd.merge(gest_dff, gestantes_unicas_vd, left_on='Número de Documento', right_on='Doc_gestante', how='left')
+    vd_completa_gestante_df = gestantes_join_df[gestantes_join_df["Estado Gestante"]=="Visita Completa"]
+
+    con_visita_cel = gestantes_join_df[(gestantes_join_df["Total de Intervenciones"]!=0)&(gestantes_join_df["Celular de la Madre"].notna())]
+    num_con_visita_cel = con_visita_cel.shape[0]
+    percent_reg_tel = round((con_visita_cel.shape[0]/num_con_visita_cel)*100,2)
+
+    num_ges_result = vd_completa_gestante_df.shape[0]
+    total_visitas_validas_movil = vd_completa_gestante_df["Total de VD presencial Válidas MOVIL"].sum()
+    percent_vd_completas_movil = round((total_visitas_validas_movil/num_vd_movil)*100,2)
+    percent_vd_movil_validate = round((total_visitas_validas_movil/num_visitas)*100,2)
+    total_meta_vd = round(num_visitas_validas*0.75)
+    total_faltante_vd_meta = total_meta_vd-total_visitas_validas_movil
+
+    percent_total_vd_12 = round((num_ges_result/(num_carga))*100,2)
+
+
+    metric_col[2].metric("Visitas Movil",num_vd_movil,f"VD Completas:{total_visitas_validas_movil}({percent_vd_completas_movil}%)",border=True)
+    metric_col[3].metric("Visitas Completas - Movil",total_visitas_validas_movil,f"Meta (75%): {total_meta_vd}",border=True)
+    metric_col[4].metric("% VD Georreferenciadas",f"{percent_vd_movil_validate}%",f"VD Faltantes {total_faltante_vd_meta}",border=True)#
+    metric_col[5].metric("% Registros Telefonicos",f"{percent_reg_tel}%",f"-",border=True)
+    metric_col[6].metric("% Niños Oportunos y Completos",f"{percent_total_vd_12}%",f"Positivos:{num_ges_result}",border=True)#,f"Positivos:{num_ninos_result} Excluidos:{num_excluyen_childs}"
+    st.dataframe(gestantes_join_df)
 
 
 

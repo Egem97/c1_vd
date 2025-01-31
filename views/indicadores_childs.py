@@ -11,7 +11,7 @@ def indicadores_childs():
     carga_df = fetch_carga_childs()
     vd_df = fetch_vd_childs()
     columns_row1 = st.columns([3,4,4])
-    columns_row1[0].title("Indicadores 1.2")
+    columns_row1[0].title("Niños")
     with columns_row1[1]:
         select_year  = st.selectbox("Año:", ["2025"], key="select1")
         
@@ -47,6 +47,7 @@ def indicadores_childs():
     cel_mal_reg = (df_con_num_cel['Celular de la madre2']==False).sum()
     con_num_cel = df_con_num_cel["Celular de la madre"].count()
     porcentaje_celular = f"{round(((con_num_cel-cel_mal_reg)/num_carga)*100,2)}%"
+    
     metric_col = st.columns(6)
     metric_col[0].metric("N° Cargados",num_carga,"-",border=True)
     metric_col[1].metric("N° Total Niños Visitados",num_childs_visitados,porcentaje_niños_visitados,border=True)

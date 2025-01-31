@@ -406,3 +406,9 @@ def estado_visitas_completas(x,y,estado):
             return f"Visitas Incompletas(faltantes:{res})"
         elif y > x:
             return "Visitas Completas (exedido)"
+
+def validar_vd_gestante(x):
+    if x > 1:
+        return "Visita Completa"
+    else:
+        return "Visita Incompleta"

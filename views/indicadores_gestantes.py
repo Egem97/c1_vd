@@ -16,7 +16,7 @@ def indicadores_gestantes():
     padron_df = fetch_padron()
     gestantes = pd.read_parquet('datos_gestantes.parquet', engine='pyarrow')
     columns_row1 = st.columns([3,4,4])
-    columns_row1[0].title("Indicadores 1.3")
+    columns_row1[0].title("Gestantes")
     with columns_row1[1]:
         select_year  = st.selectbox("Año:", ["2025"], key="select1")
         
@@ -44,6 +44,7 @@ def indicadores_gestantes():
     col_metric = st.columns(4)
     col_metric[0].metric(f"Gestantes Cargadas", num_carga_ges)
     col_metric[1].metric(f"N° Visitas Realizadas Válidas", num_visitas_ges)
+    
     vd_ref = actvd_filt_df.groupby(["Número de Documento","Actores Sociales","Etapa"])[["Año"]].count().reset_index()
     vd_ref_2 = vd_ref.sort_values(by='Etapa', key=lambda x: x.isin(['No Encontrado', 'Rechazado']))
     vd_ref_2 = vd_ref_2.drop_duplicates(subset='Número de Documento', keep='first')
