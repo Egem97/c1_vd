@@ -17,8 +17,7 @@ def index():
     gestantes_carga_df = fetch_carga_gestantes()
     carga_df = carga_df[(carga_df["Año"] == fecha_actual.year)&(carga_df["Mes"] == fecha_actual.month)]
     gestantes_carga_df["Mes"] = gestantes_carga_df["Mes"].astype(int)
-    print(gestantes_carga_df.info())
-    print(type(fecha_actual.year),type(fecha_actual.month))
+    st.dataframe(carga_df)
     gestantes_carga_df = gestantes_carga_df[(gestantes_carga_df["Año"] == str(fecha_actual.year))&(gestantes_carga_df["Mes"] == fecha_actual.month)]
     st.text("Carga Niños (total visitas)")
     st.write(carga_df["Total de Intervenciones"].sum())

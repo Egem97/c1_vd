@@ -29,12 +29,13 @@ def childs_status_vd():
     
     
 
-
+    datos_ninos_df = datos_ninos_df[datos_ninos_df["Periodo"]==f"{select_year} - {select_mes}"]
     carga_filt_df = carga_df[(carga_df['Año']==int(select_year))&(carga_df['Mes']==int(mestext_short(select_mes)))]
     actvd_filt_df = actvd_df[(actvd_df['Año']==select_year)&(actvd_df['Mes']==select_mes)]
     niños_unicos_vd = childs_unicos_visitados(actvd_filt_df,'Número de Documento de Niño',"ALL CHILDS W DUPLICADOS")
     
     ##
+    
     num_carga = carga_filt_df.shape[0]
     num_visitas = carga_filt_df["Total de Intervenciones"].sum()
     num_visitas_validas = carga_filt_df["Total de VD presenciales Válidas"].sum()
@@ -207,14 +208,35 @@ def childs_status_vd():
     fig_estado_vd_child.update_layout(xaxis=dict(title=dict(text="Niños")),font=dict(size=14))
     fig_estado_vd_child.update_layout(margin=dict(t=30, b=20))
     #
+    #Estado Niño
+    no_encontrados_df = dataframe_[dataframe_["Estado Niño"]=="No Encontrado"]
+    no_encontrados_df = no_encontrados_df.groupby(["Establecimiento de Salud"])[["Estado Niño"]].count().sort_values("Estado Niño").reset_index()
+    no_encontrados_df = no_encontrados_df.rename(columns=  {"Estado Niño":"Registros"})
+    fig_eess_count_noencon = px.bar(no_encontrados_df, x="Registros", y="Establecimiento de Salud",
+                                    text="Registros", orientation='h',title = "Niños No Encontrados por Establecimiento de Salud")
+    fig_eess_count_noencon.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig_eess_count_noencon.update_layout(xaxis=dict(title=dict(text="Número de Niños No Encontrados")),font=dict(size=16))
+    #rechazado
+    rechazado_df = dataframe_[dataframe_["Estado Niño"]=="Rechazado"]
+    rechazado_df = rechazado_df.groupby(["Establecimiento de Salud"])[["Estado Niño"]].count().sort_values("Estado Niño").reset_index()
+    rechazado_df = rechazado_df.rename(columns=  {"Estado Niño":"Registros"})
+    fig_eess_count_rechazado = px.bar(rechazado_df, x="Registros", y="Establecimiento de Salud",
+                                    text="Registros", orientation='h',title = "Niños Rechazados por Establecimiento de Salud")
+    fig_eess_count_rechazado.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig_eess_count_rechazado.update_layout(xaxis=dict(title=dict(text="Número de Niños Rechazados")),font=dict(size=16))
+    
     columnas_add = st.columns(2)
     with columnas_add[0]:
-        tab1_carga, tab2_carga = st.tabs(["Niños Cargados", "Visitas"])
+        tab1_carga, tab2_carga,tab3_carga,tab4_carga = st.tabs(["Niños Cargados", "Visitas","No Encontrados","Rechazados"])
         with tab1_carga:
             st.plotly_chart(fig_eess_count)
             
         with tab2_carga:
             st.plotly_chart(fig_eess_top_visitas)
+        with tab3_carga:
+            st.plotly_chart(fig_eess_count_noencon)
+        with tab4_carga:
+            st.plotly_chart(fig_eess_count_rechazado)
     with columnas_add[1]:
         tab1_carga, tab2_carga = st.tabs(["Visitas Registrados MOVIL", "Visitas Registrados WEB"])
         with tab1_carga:
@@ -230,6 +252,9 @@ def childs_status_vd():
     columnas[1].plotly_chart(fig_entidad_child)
     #columnas[2].text("Estado Actual de las Visitas")
     columnas[2].plotly_chart(fig_estado_vd_child)
+    """
+    con la linea podemos hacer corte del mes
+    """
     
     st.dataframe(dataframe_ )
     with st.expander("Descargas"):
@@ -239,6 +264,7 @@ def childs_status_vd():
                 file_name=f"EstadoVisitas_{select_year}_{select_mes}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
+
 def geo_childs():
     styles(2)
     

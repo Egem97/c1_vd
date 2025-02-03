@@ -15,7 +15,7 @@ def gestantes_status_vd():
     carga_df = fetch_carga_gestantes()
     carga_df["Mes"] = carga_df["Mes"].astype(int)
     padron_df = fetch_padron()
-    gestantes = pd.read_parquet('datos_gestantes.parquet', engine='pyarrow')
+    
     
     eess = list(carga_df["Establecimiento de Salud"].unique())
 
@@ -44,6 +44,8 @@ def gestantes_status_vd():
 
     carga_filt_df = carga_df[(carga_df['Año']==str(select_year))&(carga_df['Mes']==mestext_short(select_mes))]
     actvd_filt_df_last = vd_df[(vd_df['Año']==str(select_year))&(vd_df['Mes']==select_mes)]  
+
+    
     #actvd_filt_df = vd_df[(vd_df['Año']==str(select_year_verifi))&(vd_df['Mes']==select_mes_verifi)]  
     #totales
     num_carga = carga_filt_df.shape[0]
@@ -64,26 +66,34 @@ def gestantes_status_vd():
     gestantes_unicas_vd.columns = ["Doc_gestante","Actor Social Ultimo Mes","Etapa","Número Visitas"]
     gestantes_unicas_vd = gestantes_unicas_vd[["Doc_gestante","Etapa","Número Visitas"]]
     
-    #st.write(gestantes_unicas_vd.shape[0])
-    prioridad = {'DNI': 1, 'CUI': 2, 'CNV': 3}
-    padron_df['Prioridad'] = padron_df['Tipo de Documento'].map(prioridad)
-    padron_df = padron_df.sort_values(by=['Documento', 'Prioridad'])
-    padron_df = padron_df.drop_duplicates(subset='Documento', keep='first')
-    padron_df = padron_df.drop(columns=['Prioridad'])
-    padron_df["EDAD_MESES"] = padron_df["FECHA DE NACIMIENTO"].apply(lambda x: (fecha_actual.year - x.year) * 12 + (fecha_actual.month - x.month))
-    padron_df = padron_df[[
-        'NUMERO DE DOCUMENTO  DE LA MADRE',"Documento","DATOS NIÑO PADRON","DATOS MADRE PADRON","ENTIDAD","Tipo_file","FECHA DE NACIMIENTO","DIRECCION PADRON","EESS","EDAD_MESES"
-    ]]
-    padron_df = padron_df[padron_df["EDAD_MESES"]<= 12]
-    gest_dff = pd.merge(carga_filt_df, padron_df, left_on='Número de Documento', right_on='NUMERO DE DOCUMENTO  DE LA MADRE', how='left')
+    try:
+        puerperas_df=pd.read_parquet(f'./data/puerperas/puerperas_verificadas_{select_mes}.parquet', engine='pyarrow')
+        puerperas_df = puerperas_df[['Número de Documento','FECHA DE NACIMIENTO','EDAD_MESES']]
+        gest_dff = pd.merge(carga_filt_df, puerperas_df, left_on='Número de Documento', right_on='Número de Documento', how='left')
+    except:
+        prioridad = {'DNI': 1, 'CUI': 2, 'CNV': 3}
+        padron_df['Prioridad'] = padron_df['Tipo de Documento'].map(prioridad)
+        padron_df = padron_df.sort_values(by=['Documento', 'Prioridad'])
+        padron_df = padron_df.drop_duplicates(subset='Documento', keep='first')
+        padron_df = padron_df.drop(columns=['Prioridad'])
+        padron_df["EDAD_MESES"] = padron_df["FECHA DE NACIMIENTO"].apply(lambda x: (fecha_actual.year - x.year) * 12 + (fecha_actual.month - x.month))
+        padron_df = padron_df[[
+            'NUMERO DE DOCUMENTO  DE LA MADRE',"Documento","DATOS NIÑO PADRON","FECHA DE NACIMIENTO","DIRECCION PADRON","EESS","EDAD_MESES"
+        ]]
+        padron_df = padron_df[padron_df["EDAD_MESES"]<= 12]
+        gest_dff = pd.merge(carga_filt_df, padron_df, left_on='Número de Documento', right_on='NUMERO DE DOCUMENTO  DE LA MADRE', how='left')
+    
     gest_dff["Estado Gestante"] = gest_dff.apply(lambda x:validar_vd_gestante(x['Total de VD presenciales Válidas']),axis=1)
     gest_dff['ESTADO_NACIMIENTO'] = gest_dff['FECHA DE NACIMIENTO'].apply(
         lambda fecha: 'SIN DATO' if pd.isna(fecha) 
-        else 'MES PRESENTE' if (fecha.year == fecha_actual.year and fecha.month == fecha_actual.month) 
+        else 'MES PRESENTE' if (fecha.year == fecha_actual and fecha.month == fecha_actual.month) 
         else 'MESES PASADOS'
     )
-    
+    gest_dff = gest_dff.rename(columns={"FECHA DE NACIMIENTO":"Fecha Nacimiento Hijo","EDAD_MESES":"Edad en Meses Hijo"})
     gestantes_join_df = pd.merge(gest_dff, gestantes_unicas_vd, left_on='Número de Documento', right_on='Doc_gestante', how='left')
+    num_puerperas = (gestantes_join_df["Fecha Nacimiento Hijo"].notna()).sum()
+    
+    
     vd_completa_gestante_df = gestantes_join_df[gestantes_join_df["Estado Gestante"]=="Visita Completa"]
 
     con_visita_cel = gestantes_join_df[(gestantes_join_df["Total de Intervenciones"]!=0)&(gestantes_join_df["Celular de la Madre"].notna())]
@@ -106,6 +116,19 @@ def gestantes_status_vd():
     metric_col[5].metric("% Registros Telefonicos",f"{percent_reg_tel}%",f"-",border=True)
     metric_col[6].metric("% Niños Oportunos y Completos",f"{percent_total_vd_12}%",f"Positivos:{num_ges_result}",border=True)#,f"Positivos:{num_ninos_result} Excluidos:{num_excluyen_childs}"
     st.dataframe(gestantes_join_df)
+    st.warning(f'Número de Puerperas {num_puerperas}', icon="⚠️")
+    #df.to_parquet('.\\data\\carga_nino.parquet', engine='pyarrow', index=False)
+    """
+    CORTE CADA PERIODO CERRADO DE EVALIACION DEL MES
+    gestantes_join_df.to_parquet(".\\data\\1.3\\indicador_gestantes_enero.parquet")
+    """
+    with st.expander("Descargas"):
+        st.download_button(
+                label="Descargar Reporte Gestantes",
+                data=convert_excel_df(gestantes_join_df),
+                file_name=f"gestantes_reporte_{select_mes}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 
 
@@ -145,7 +168,7 @@ def geo_gestantes():
     
     tab1,tab2,=st.tabs(['Mapa','Datos'])
     with tab1:    
-        #
+        #l.ye
         col_filt_map = st.columns([3,3,3,3])
         with col_filt_map[0]:
             as_selected = st.selectbox('Actor Social',options=sorted(list(dff["Actores Sociales"].unique())),placeholder="Escoja un actor social",index=None) 

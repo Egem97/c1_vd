@@ -7,6 +7,7 @@ from views.padron_nominal import dash_padron
 from views.actualizaciones_padron import dash_padron_modreg
 from views.indicadores_childs import indicadores_childs
 from views.indicadores_gestantes import indicadores_gestantes
+from views.revision_asignacion import asignacion_mes
 #if 'key' not in st.session_state:
 #    with open("config.yaml", "r") as f:
 #        config = yaml.safe_load(f)
@@ -28,6 +29,7 @@ c1 = [
 ]
 
 indicadores = [
+    st.Page(page = asignacion_mes,title="Asignación Mes",icon = ":material/home:"),
     st.Page(page = indicadores_childs,title="Niños",icon = ":material/home:"),
     st.Page(page = indicadores_gestantes,title="Gestantes",icon = ":material/home:"),
 ]
@@ -44,5 +46,5 @@ def pages():
     page_dict["Geo"] = visitas
     page_dict["Padron N"] = padron
     page_dict["Visitas C1"] = c1
-    page_dict["C1 Prueba"] = indicadores
+    page_dict["C1 Estatus"] = indicadores
     return page_dict
