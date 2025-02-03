@@ -6,13 +6,14 @@ from styles import styles
 from utils.cache_handler import *
 from utils.helpers import *
 from utils.functions_data import childs_unicos_visitados
+from utils.cache_handler import * 
 
 def asignacion_mes():
     styles(2)
     
-    carga_niño_df = pd.read_parquet("C:\\Proyectos\\C1VD\\data\\carga_nino.parquet")#fetch_carga_childs()
+    carga_niño_df = fetch_carga_childs()#fetch_carga_childs()
     
-    carga_gestante_df = pd.read_parquet("C:\\Proyectos\\C1VD\\data\\carga_gestantes.parquet")#fetch_carga_gestantes()
+    carga_gestante_df = fetch_carga_gestantes()
     
     carga_gestante_df["Mes"] = carga_gestante_df["Mes"].astype(int)
     eess = list(carga_niño_df["Establecimiento de Salud"].unique())
