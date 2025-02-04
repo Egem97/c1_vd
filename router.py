@@ -8,6 +8,7 @@ from views.actualizaciones_padron import dash_padron_modreg
 from views.indicadores_childs import indicadores_childs
 from views.indicadores_gestantes import indicadores_gestantes
 from views.revision_asignacion import asignacion_mes
+from views.sectorizacion import sectorizacion_helper
 #if 'key' not in st.session_state:
 #    with open("config.yaml", "r") as f:
 #        config = yaml.safe_load(f)
@@ -34,6 +35,10 @@ indicadores = [
     st.Page(page = indicadores_gestantes,title="Gestantes",icon = ":material/home:"),
 ]
 
+sectorizacion = [
+    st.Page(page = sectorizacion_helper,title="Sectorización Help",icon = ":material/home:"),
+    
+]
 #monitores = [
 #    st.Page("./views/monitores/pages/monitorAbastecimiento.py",title="Monitor Abastecimiento",icon = ":material/inventory:",),
     
@@ -47,4 +52,5 @@ def pages():
     page_dict["Padron N"] = padron
     page_dict["Visitas C1"] = c1
     page_dict["C1 Estatus"] = indicadores
+    page_dict["Helpers"] = sectorizacion
     return page_dict

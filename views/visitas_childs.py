@@ -256,6 +256,7 @@ def childs_status_vd():
     con la linea podemos hacer corte del mes
     """
     
+    
     st.dataframe(dataframe_ )
     with st.expander("Descargas"):
         st.download_button(
