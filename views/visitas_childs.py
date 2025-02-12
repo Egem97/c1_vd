@@ -37,6 +37,8 @@ def childs_status_vd():
     ##
     
     num_carga = carga_filt_df.shape[0]
+    num_visitas_programadas = carga_filt_df["Total de visitas completas para la edad"].sum()
+    #st.write(num_visitas_programadas)
     num_visitas = carga_filt_df["Total de Intervenciones"].sum()
     num_visitas_validas = carga_filt_df["Total de VD presenciales Válidas"].sum()
     num_child_vd = niños_unicos_vd.shape[0]
@@ -45,7 +47,7 @@ def childs_status_vd():
     #CARDS
     metric_col = st.columns(7)
     metric_col[0].metric("Niños Cargados",num_carga,f"Con Visita {num_child_vd}({porcentaje_child_visita})",border=True)
-    metric_col[1].metric("Total de Visitas",num_visitas,f"Visitas Válidas: {num_visitas_validas}",border=True)
+    metric_col[1].metric("Total de Visitas",num_visitas,f"VD Programadas: {num_visitas_programadas}",border=True)
     #metric_col[2].metric("N° Visitas Realizadas Válidas",num_vd_actu,f"Visitas observadas {visitas_invalidas_sistema}",border=True)
     #metric_col[3].metric("N° Visitas Realizadas MOVIL",num_vd_movil,"-",border=True)
     #metric_col[4].metric("% Registros por Movil",f"{round((num_vd_movil/num_vd_actu)*100,2)}%","-",border=True)
@@ -126,9 +128,11 @@ def childs_status_vd():
     vd_geo_percent_df = dataframe_[(dataframe_["Estado Visitas"]=="Visitas Completas")]#&(dataframe_["Celular Madre"]!=0)
     num_ninos_result = vd_geo_percent_df.shape[0]
     total_vd_movil_completas = vd_geo_percent_df["Total de VD presencial Válidas MOVIL"].sum()
-    total_meta_vd = round(num_visitas_validas*0.75)
+    #total_meta_vd = round(num_visitas_validas*0.75)
+    total_meta_vd = round(num_visitas_programadas*0.75)
+    #num_visitas_programadas
     total_faltante_vd_meta = total_meta_vd-total_vd_movil_completas
-    percent_vd_movil_validate = round((total_vd_movil_completas/num_visitas_validas)*100,2)
+    percent_vd_movil_validate = round((total_vd_movil_completas/num_visitas_programadas)*100,2)
     percent_vd_completas_movil = round((total_vd_movil_completas/num_vd_movil)*100,2)
     
     ###

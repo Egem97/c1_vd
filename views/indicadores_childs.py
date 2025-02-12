@@ -16,7 +16,7 @@ def indicadores_childs():
         select_year  = st.selectbox("Año:", ["2025"], key="select1")
         
     with columns_row1[2]:
-        select_mes  = st.selectbox("Mes:", ["Ene"], key="select2")
+        select_mes  = st.selectbox("Mes:", ["Ene","Feb"], key="select2",index=True)
     vd_df = vd_df[(vd_df["Año"]==select_year)&(vd_df["Mes"]==select_mes)]#=
     
 

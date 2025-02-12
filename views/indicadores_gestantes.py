@@ -21,7 +21,7 @@ def indicadores_gestantes():
         select_year  = st.selectbox("Año:", ["2025"], key="select1")
         
     with columns_row1[2]:
-        select_mes  = st.selectbox("Mes:", ["Ene"], key="select2")
+        select_mes  = st.selectbox("Mes:", ["Ene","Feb"], key="select2",index=True)
     
     if select_mes == "Ene":
         select_year_verifi = str(int(select_year) - 1)
