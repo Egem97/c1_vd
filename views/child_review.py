@@ -179,9 +179,11 @@ def review_child():
                 st.text_input("Establecimiento de Nacimiento",list(dataframe_["EESS NACIMIENTO"])[0],disabled=True )
                 st.text_input("Establecimiento de Ultima Atención",list(dataframe_["EESS ULTIMA ATENCION(P)"])[0],disabled=True )
                 st.text_input("Establecimiento de ADSCRIPCIÓN",list(dataframe_["EESS ADSCRIPCIÓN"])[0],disabled=True )
-                st.text_input("Establecimiento ULTIMA ATENCION C1",f"{list(dataframe_["EESS ULTIMA ATENCION"])[0]} - {list(dataframe_["Fecha Ultima Atención"])[0]}",disabled=True )
+                st.text_input("Establecimiento ULTIMA ATENCION C1",list(dataframe_["EESS ULTIMA ATENCION"])[0],disabled=True )
+                st.text_input("Fecha Ultima Atención C1",list(dataframe_["Fecha Ultima Atención"])[0],disabled=True )
+               
                 #FRECUENCIA DE ATENCION
-                st.text_input("Frecuencia de Atención Padrón",f"{list(dataframe_["FRECUENCIA DE ATENCION"])[0]}",disabled=True )
+                st.text_input("Frecuencia de Atención Padrón",list(dataframe_["FRECUENCIA DE ATENCION"])[0],disabled=True )
                 st.markdown('</div>', unsafe_allow_html=True)
         with cols_info[3]:
             with st.container(border=True):
