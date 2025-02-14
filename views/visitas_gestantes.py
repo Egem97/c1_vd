@@ -49,6 +49,8 @@ def gestantes_status_vd():
     #actvd_filt_df = vd_df[(vd_df['Año']==str(select_year_verifi))&(vd_df['Mes']==select_mes_verifi)]  
     #totales
     num_carga = carga_filt_df.shape[0]
+    num_visitas_programadas = carga_filt_df["Total de visitas completas para la edad"].sum()
+    #st.write(carga_filt_df["Total de visitas completas para la edad"].sum())
     num_visitas = carga_filt_df["Total de Intervenciones"].sum()
     num_visitas_validas = carga_filt_df["Total de VD presenciales Válidas"].sum()
     gestantes_unicas_vd = gestantes_unicas_visitados(actvd_filt_df_last,'Número de Documento',"ALL GESTANTE W DUPLICADOS")
@@ -60,8 +62,8 @@ def gestantes_status_vd():
     
     #metricas cards
     metric_col = st.columns(7)
-    metric_col[0].metric("Gestantes Cargadas",num_carga,f"Con Visita {num_gestantes_vd}({porcentaje_gestante_visita})",border=True)
-    metric_col[1].metric("Total de Visitas",num_visitas,f"Visitas Válidas: {num_visitas_validas}",border=True)
+    metric_col[0].metric("Gestantes Cargadas",num_carga,f"Con Visita {num_gestantes_vd}({num_carga-num_gestantes_vd})",border=True)
+    metric_col[1].metric("Total de Visitas",num_visitas,f"VD Programadas: {num_visitas_programadas}",border=True)
     #metric_col[2].metric("Visitas Movil",num_vd_movil,"-",border=True)#,f"Visitas Válidas: {num_visitas_validas}"
     gestantes_unicas_vd.columns = ["Doc_gestante","Actor Social Ultimo Mes","Etapa","Número Visitas"]
     gestantes_unicas_vd = gestantes_unicas_vd[["Doc_gestante","Etapa","Número Visitas"]]
@@ -103,8 +105,8 @@ def gestantes_status_vd():
     num_ges_result = vd_completa_gestante_df.shape[0]
     total_visitas_validas_movil = vd_completa_gestante_df["Total de VD presencial Válidas MOVIL"].sum()
     percent_vd_completas_movil = round((total_visitas_validas_movil/num_vd_movil)*100,2)
-    percent_vd_movil_validate = round((total_visitas_validas_movil/num_visitas)*100,2)
-    total_meta_vd = round(num_visitas_validas*0.75)
+    percent_vd_movil_validate = round((total_visitas_validas_movil/num_visitas_programadas)*100,2)
+    total_meta_vd = round(num_visitas_programadas*0.75)
     total_faltante_vd_meta = total_meta_vd-total_visitas_validas_movil
 
     percent_total_vd_12 = round((num_ges_result/(num_carga))*100,2)

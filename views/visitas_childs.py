@@ -46,7 +46,7 @@ def childs_status_vd():
     porcentaje_child_visita = f"{round((num_child_vd/num_carga)*100,2)}%"
     #CARDS
     metric_col = st.columns(7)
-    metric_col[0].metric("Niños Cargados",num_carga,f"Con Visita {num_child_vd}({porcentaje_child_visita})",border=True)
+    metric_col[0].metric("Niños Cargados",num_carga,f"Con Visita {num_child_vd}({num_carga-num_child_vd})",border=True)
     metric_col[1].metric("Total de Visitas",num_visitas,f"VD Programadas: {num_visitas_programadas}",border=True)
     #metric_col[2].metric("N° Visitas Realizadas Válidas",num_vd_actu,f"Visitas observadas {visitas_invalidas_sistema}",border=True)
     #metric_col[3].metric("N° Visitas Realizadas MOVIL",num_vd_movil,"-",border=True)

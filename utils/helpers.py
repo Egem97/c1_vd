@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from io import BytesIO
+from dateutil.relativedelta import relativedelta
 
 @st.cache_data
 def convert_excel_df(df):
@@ -412,3 +413,12 @@ def validar_vd_gestante(x):
         return "Visita Completa"
     else:
         return "Visita Incompleta"
+    
+def calcular_edad(fecha_nacimiento):
+    hoy = pd.to_datetime('today')
+    diferencia = relativedelta(hoy, fecha_nacimiento)
+    return f"{diferencia.years} año(s), {diferencia.months} mes(es)"
+
+def calcular_edad_anios(fecha_nacimiento):
+    hoy = pd.to_datetime('today')
+    return relativedelta(hoy, fecha_nacimiento).years

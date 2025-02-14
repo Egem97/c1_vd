@@ -19,5 +19,6 @@ def styles(pt = 3):
                     font-size: 11px !important; /* Cambia el tamaño de la fuente */
                 }
                 
+                
         </style>
     """%(pt), unsafe_allow_html=True)
