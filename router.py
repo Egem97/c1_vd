@@ -10,6 +10,7 @@ from views.indicadores_gestantes import indicadores_gestantes
 from views.revision_asignacion import asignacion_mes
 from views.sectorizacion import sectorizacion_helper
 from views.child_review import review_child
+from views.actores_sociales import as_vd
 #if 'key' not in st.session_state:
 #    with open("config.yaml", "r") as f:
 #        config = yaml.safe_load(f)
@@ -32,6 +33,7 @@ c1 = [
 
 indicadores = [
     st.Page(page = asignacion_mes,title="Asignación Mes",icon = ":material/home:"),
+    st.Page(page = as_vd,title="Actores Sociales",icon = ":material/home:"),
     st.Page(page = indicadores_childs,title="Niños",icon = ":material/home:"),
     st.Page(page = indicadores_gestantes,title="Gestantes",icon = ":material/home:"),
 ]

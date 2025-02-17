@@ -228,7 +228,35 @@ def childs_status_vd():
                                     text="Registros", orientation='h',title = "Niños Rechazados por Establecimiento de Salud")
     fig_eess_count_rechazado.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
     fig_eess_count_rechazado.update_layout(xaxis=dict(title=dict(text="Número de Niños Rechazados")),font=dict(size=16))
+
     
+    sinvd_df = dataframe_[dataframe_["Estado Niño"]==f"Sin Visita ({select_mes})"]
+    sinvd_df = sinvd_df.groupby(["Establecimiento de Salud"])[["Estado Niño"]].count().sort_values("Estado Niño").reset_index()
+    sinvd_df = sinvd_df.rename(columns=  {"Estado Niño":"Niños"})
+
+    fig_eess_sinvd = px.bar(sinvd_df, x="Niños", y="Establecimiento de Salud",
+                                    text="Niños", orientation='h',title = "Niños sin Visita por Establecimiento")
+    fig_eess_sinvd.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig_eess_sinvd.update_layout(xaxis=dict(title=dict(text="Número de Niños")),font=dict(size=16))
+
+    child_transito_df = dataframe_[dataframe_["Tipo Registro Padrón Nominal"]=="Activos Transito"]
+    child_transito_df = child_transito_df.groupby(["Establecimiento de Salud"])[["Tipo Registro Padrón Nominal"]].count().sort_values("Tipo Registro Padrón Nominal").reset_index()
+    child_transito_df = child_transito_df.rename(columns=  {"Tipo Registro Padrón Nominal":"Niños"})
+
+    fig_eess_transito = px.bar(child_transito_df, x="Niños", y="Establecimiento de Salud",
+                                    text="Niños", orientation='h',title = "Niños Transito por Establecimiento")
+    fig_eess_transito.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig_eess_transito.update_layout(xaxis=dict(title=dict(text="Número de Niños")),font=dict(size=16))
+
+    child_deri_df = dataframe_[dataframe_["Tipo Registro Padrón Nominal"]=="En Otro Padrón Nominal"]
+    child_deri_df = child_deri_df.groupby(["Establecimiento de Salud"])[["Tipo Registro Padrón Nominal"]].count().sort_values("Tipo Registro Padrón Nominal").reset_index()
+    child_deri_df = child_deri_df.rename(columns=  {"Tipo Registro Padrón Nominal":"Niños"})
+
+    fig_eess_derivados = px.bar(child_deri_df, x="Niños", y="Establecimiento de Salud",
+                                    text="Niños", orientation='h',title = "Niños En otro Distrito Padrón por Establecimiento")
+    fig_eess_derivados.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig_eess_derivados.update_layout(xaxis=dict(title=dict(text="Número de Niños")),font=dict(size=16))
+
     columnas_add = st.columns(2)
     with columnas_add[0]:
         tab1_carga, tab2_carga,tab3_carga,tab4_carga = st.tabs(["Niños Cargados", "Visitas","No Encontrados","Rechazados"])
@@ -242,12 +270,18 @@ def childs_status_vd():
         with tab4_carga:
             st.plotly_chart(fig_eess_count_rechazado)
     with columnas_add[1]:
-        tab1_carga, tab2_carga = st.tabs(["Visitas Registrados MOVIL", "Visitas Registrados WEB"])
+        tab1_carga, tab2_carga,tab3_carga,tab4_carga,tab5_carga = st.tabs(["Visitas Registrados MOVIL", "Visitas Registrados WEB","Niños Faltantes","Niños Transito","Niños Otro Padrón"])
         with tab1_carga:
             st.plotly_chart(fig_eess_top_visitas_movil)
         with tab2_carga:
             st.plotly_chart(fig_eess_top_visitas_web)
-
+        with tab3_carga:
+            st.plotly_chart(fig_eess_sinvd)
+        with tab4_carga:
+            st.plotly_chart(fig_eess_transito)
+        
+        with tab5_carga:
+            st.plotly_chart(fig_eess_derivados)
 
     columnas = st.columns(3)
     #columnas[0].text("Estado Actual Niños Visitados")
