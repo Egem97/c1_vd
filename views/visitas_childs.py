@@ -5,6 +5,7 @@ from styles import styles
 from utils.cache_handler import fetch_vd_childs,fetch_carga_childs,fetch_padron
 from utils.helpers import *
 from utils.functions_data import childs_unicos_visitados
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 def childs_status_vd():
     styles(2)
@@ -124,6 +125,44 @@ def childs_status_vd():
     dataframe_['Estado Visitas'] =  dataframe_.apply(lambda x: estado_visitas_completas(x['N° Visitas Completas'], x['Total de VD presenciales Válidas'],x['Estado Niño']),axis=1)#.apply(lambda x: completar_names_col(x['DATOS NIÑO PADRON'], x['Niño']),axis=1)
     dataframe_['Estado Niño'] = dataframe_['Estado Niño'].fillna(f"Sin Visita ({select_mes})")
     dataframe_['USUARIO QUE MODIFICA'] = dataframe_['USUARIO QUE MODIFICA'].fillna(f"Usuario no definido")
+
+    ######################## FALTANTES
+    dataframe_efec = dataframe_[dataframe_["Estado Niño"].isin(["Visita Domiciliaria (6 a 12 Meses)","Visita Domiciliaria (1 a 5 meses)"])]
+    vd_programadas_df = dataframe_.groupby(["Establecimiento de Salud"])[["N° Visitas Completas"]].sum().sort_values("N° Visitas Completas",ascending=False).reset_index()#,"Total de VD presencial Válidas WEB",
+    vd_movil_df = dataframe_efec.groupby(["Establecimiento de Salud"])[["Total de VD presencial Válidas MOVIL"]].sum().reset_index()
+    proyectado_dff = pd.merge(vd_programadas_df, vd_movil_df, left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+    proyectado_dff["Valla 75% Georref"] = round(proyectado_dff["N° Visitas Completas"]*0.75)
+    proyectado_dff["Visitas Faltantes"] = proyectado_dff["Valla 75% Georref"] - proyectado_dff["Total de VD presencial Válidas MOVIL"]
+    visitas_for_completar_df = dataframe_efec[dataframe_efec["Estado Visitas"]!="Visitas Completas"]
+    visitas_for_completar_df["Visitas Proyectadas"] = visitas_for_completar_df["N° Visitas Completas"] - visitas_for_completar_df["Total de VD presenciales Válidas"]
+    vd_completar_df = visitas_for_completar_df.groupby(["Establecimiento de Salud"])[["Visitas Proyectadas"]].sum().reset_index()
+    
+    proyectado_dff = pd.merge(proyectado_dff, vd_completar_df, left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+
+    total_row = pd.DataFrame({
+        "Establecimiento de Salud": ["TOTAL"],  # Nombre de la fila
+        "N° Visitas Completas": [proyectado_dff["N° Visitas Completas"].sum()],
+        
+        "Total de VD presencial Válidas MOVIL": [proyectado_dff["Total de VD presencial Válidas MOVIL"].sum()],
+        "Valla 75% Georref": [proyectado_dff["Valla 75% Georref"].sum()],
+        "Visitas Faltantes": [proyectado_dff["Visitas Faltantes"].sum()],
+        "Visitas Proyectadas": [proyectado_dff["Visitas Proyectadas"].sum()],
+
+    })
+    proyectado_dff = pd.concat([proyectado_dff, total_row], ignore_index=True)
+    def estado_proyectado(vd_faltantes,proyectado):
+        if vd_faltantes<proyectado:
+            return "OK"
+        else:
+            return "EN RIESGO"
+    
+    proyectado_dff['Estado'] = proyectado_dff.apply(lambda x: estado_proyectado(x['Visitas Faltantes'], x['Visitas Proyectadas']),axis=1)
+    #####################
+    #df_con_num_cel = (ene25_carga_df[ene25_carga_df["Celular de la madre"]!=0])
+    df_con_num_cel = (dataframe_[dataframe_["Celular Madre"]!=0])
+    df_con_num_cel["Celular Madre"] = df_con_num_cel["Celular Madre"].astype(str)
+    cel_duplicados_df = df_con_num_cel[df_con_num_cel.duplicated(subset=["Celular Madre"], keep=False)]
+    #st.dataframe(cel_duplicados_df)
     #PROCENTAJE
     vd_geo_percent_df = dataframe_[(dataframe_["Estado Visitas"]=="Visitas Completas")]#&(dataframe_["Celular Madre"]!=0)
     num_ninos_result = vd_geo_percent_df.shape[0]
@@ -293,14 +332,37 @@ def childs_status_vd():
     """
     con la linea podemos hacer corte del mes
     """
+    gb = GridOptionsBuilder.from_dataframe(proyectado_dff)
+    gb.configure_default_column(cellStyle={'fontSize': '20px'}) 
+    grid_options = gb.build()
     
     
-    st.dataframe(dataframe_ )
+    grid_response = AgGrid(proyectado_dff, # Dataframe a mostrar
+                            gridOptions=grid_options,
+                            enable_enterprise_modules=False,
+                            #theme='alpine',  # Cambiar tema si se desea ('streamlit', 'light', 'dark', 'alpine', etc.)
+                            update_mode='MODEL_CHANGED',
+                            fit_columns_on_grid_load=True,
+                        
+    )
+    #st.dataframe(proyectado_dff)
     with st.expander("Descargas"):
         st.download_button(
                 label="Descargar Reporte",
                 data=convert_excel_df(dataframe_),
                 file_name=f"EstadoVisitas_{select_year}_{select_mes}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        st.download_button(
+                label="Descargar Meta Visitas",
+                data=convert_excel_df(proyectado_dff),
+                file_name=f"VD_GEO_REF_{select_year}_{select_mes}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        st.download_button(
+                label="Descargar Reporte Duplicados",
+                data=convert_excel_df(cel_duplicados_df),
+                file_name=f"Duplicados_{select_year}_{select_mes}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
@@ -382,3 +444,4 @@ def geo_childs():
         st.dataframe(dff,use_container_width=True)
         #st.dataframe(dff)
     
+

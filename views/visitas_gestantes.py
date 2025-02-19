@@ -87,12 +87,12 @@ def gestantes_status_vd():
     
     gest_dff["Estado Gestante"] = gest_dff.apply(lambda x:validar_vd_gestante(x['Total de VD presenciales Válidas']),axis=1)
     gest_dff['ESTADO_NACIMIENTO'] = gest_dff['FECHA DE NACIMIENTO'].apply(
-        lambda fecha: 'SIN DATO' if pd.isna(fecha) 
-        else 'MES PRESENTE' if (fecha.year == fecha_actual and fecha.month == fecha_actual.month) 
-        else 'MESES PASADOS'
+        lambda fecha: 'GESTANTE' if pd.isna(fecha) 
+        else 'PUERPERA'
     )
     gest_dff = gest_dff.rename(columns={"FECHA DE NACIMIENTO":"Fecha Nacimiento Hijo","EDAD_MESES":"Edad en Meses Hijo"})
     gestantes_join_df = pd.merge(gest_dff, gestantes_unicas_vd, left_on='Número de Documento', right_on='Doc_gestante', how='left')
+    gestantes_join_df["Etapa"] = gestantes_join_df["Etapa"].fillna("No Visitadas")
     num_puerperas = (gestantes_join_df["Fecha Nacimiento Hijo"].notna()).sum()
     
     
@@ -117,7 +117,70 @@ def gestantes_status_vd():
     metric_col[4].metric("% VD Georreferenciadas",f"{percent_vd_movil_validate}%",f"VD Faltantes {total_faltante_vd_meta}",border=True)#
     metric_col[5].metric("% Registros Telefonicos",f"{percent_reg_tel}%",f"-",border=True)
     metric_col[6].metric("% Niños Oportunos y Completos",f"{percent_total_vd_12}%",f"Positivos:{num_ges_result}",border=True)#,f"Positivos:{num_ninos_result} Excluidos:{num_excluyen_childs}"
-    st.dataframe(gestantes_join_df)
+    
+
+    
+    #CARGA GESTANTES
+    eess_top_cargados = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Número de Documento']].count().sort_values("Número de Documento").reset_index()
+    eess_top_cargados = eess_top_cargados.rename(columns=  {"Número de Documento":"Registros"})
+    fig_eess_count = px.bar(eess_top_cargados, x="Registros", y="Establecimiento de Salud",
+                                    text="Registros", orientation='h',title = "Gestantes Asignadas por Establecimiento de Salud")
+    fig_eess_count.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig_eess_count.update_layout(xaxis=dict(title=dict(text="Número de Gestantes Cargadas")),font=dict(size=16))
+    
+    #VISITAS GESTANTES
+    eess_top_visitas = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Total de VD presenciales Válidas']].sum().sort_values(["Total de VD presenciales Válidas"]).reset_index()
+    eess_top_visitas = eess_top_visitas.rename(columns=  {"Total de VD presenciales Válidas":"Visitas"})
+    fig_eess_top_visitas = px.bar(eess_top_visitas, x="Visitas", y="Establecimiento de Salud",
+                                    text="Visitas", orientation='h',title = "Gestantes Visitadas por Establecimiento de Salud")
+    fig_eess_top_visitas.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig_eess_top_visitas.update_layout(xaxis=dict(title=dict(text="Número de Visitas")),font=dict(size=16))
+    
+    #DOCUMENTO DE IDENTIDAD
+    tipodoc_ges_df = gestantes_join_df.groupby(['Tipo de Documento'])[['Número de Documento']].count().sort_values("Número de Documento").reset_index()
+    tipodoc_ges_df = tipodoc_ges_df.rename(columns=  {"Número de Documento":"Gestantes"})
+
+    fig_tipodoct_ges = px.pie(tipodoc_ges_df, values='Gestantes', names='Tipo de Documento',
+                        title='Tipo de Documento de Gestantes')
+    fig_tipodoct_ges.update_traces(textposition='inside', textinfo='percent+label+value',insidetextfont=dict(size=18))
+    # SI ES PUERPERA
+    estado_puerpera_df = gestantes_join_df.groupby(['ESTADO_NACIMIENTO'])[['Número de Documento']].count().sort_values("Número de Documento").reset_index()
+    estado_puerpera_df = estado_puerpera_df.rename(columns=  {"Número de Documento":"Gestantes"})
+    fig_puerpera_ges = px.pie(estado_puerpera_df, values='Gestantes', names='ESTADO_NACIMIENTO',
+                        title='Estado Puerperas')
+    fig_puerpera_ges.update_traces(textposition='inside', textinfo='percent+label+value',insidetextfont=dict(size=18))
+    #ETAPA DE VSITA GESTANTE
+    etapa_vd_gestante = gestantes_join_df.groupby(['Etapa'])[['Número de Documento']].count().sort_values("Número de Documento").reset_index()
+    etapa_vd_gestante = etapa_vd_gestante.rename(columns=  {"Número de Documento":"Gestantes","Etapa":"Etapa Visita"})
+    fig_etapa_vd = px.pie(etapa_vd_gestante, values='Gestantes', names='Etapa Visita',
+                        title='Estado de Visitas de Gestantes')
+    fig_etapa_vd.update_traces(textposition='inside', textinfo='percent+label+value',insidetextfont=dict(size=18))
+    #contrastando
+    etapavd_estado_df = gestantes_join_df.groupby(['Etapa','ESTADO_NACIMIENTO'])[['Número de Documento']].count().sort_values("Número de Documento").reset_index()
+    
+    fig_etapavd_estado_df = px.bar(etapavd_estado_df, x="Etapa", y="Número de Documento",color = "ESTADO_NACIMIENTO",
+                                    text="Número de Documento", orientation='v',title = "Número de Puerperas por Etapa de Visita Gestante")
+    fig_etapavd_estado_df.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig_etapavd_estado_df.update_layout(xaxis=dict(title=dict(text="Etapa de Visitas")),yaxis=dict(title=dict(text="Número de Gestantes")),font=dict(size=16))
+
+    columnas_add = st.columns(2)
+    with columnas_add[0]:
+        tab1_carga, tab2_carga = st.tabs(["Cargados", "Visitas"])
+        with tab1_carga:
+            st.plotly_chart(fig_eess_count)
+        with tab2_carga:
+            st.plotly_chart(fig_eess_top_visitas)
+    with columnas_add[1]:
+        st.plotly_chart(fig_etapavd_estado_df)
+
+    columnas_two= st.columns(3)
+    with columnas_two[0]:
+        st.plotly_chart(fig_tipodoct_ges)
+    with columnas_two[1]:
+        st.plotly_chart(fig_puerpera_ges)
+    with columnas_two[2]:
+        st.plotly_chart(fig_etapa_vd)
+
     st.warning(f'Número de Puerperas {num_puerperas}', icon="⚠️")
     #df.to_parquet('.\\data\\carga_nino.parquet', engine='pyarrow', index=False)
     """
