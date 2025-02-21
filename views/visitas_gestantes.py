@@ -45,7 +45,9 @@ def gestantes_status_vd():
     carga_filt_df = carga_df[(carga_df['Año']==str(select_year))&(carga_df['Mes']==mestext_short(select_mes))]
     actvd_filt_df_last = vd_df[(vd_df['Año']==str(select_year))&(vd_df['Mes']==select_mes)]  
 
-    
+    #ESTO VALIDA ERRORES DEL EXCEL DE DETALLE GESTANTE
+    carga_filt_df["Total de Intervenciones"] = carga_filt_df["Total de VD presencial Válidas WEB"] + carga_filt_df["Total de VD presencial Válidas MOVIL"]
+    carga_filt_df["Total de VD presenciales Válidas"] = carga_filt_df["Total de VD presencial Válidas WEB"] + carga_filt_df["Total de VD presencial Válidas MOVIL"]
     #actvd_filt_df = vd_df[(vd_df['Año']==str(select_year_verifi))&(vd_df['Mes']==select_mes_verifi)]  
     #totales
     num_carga = carga_filt_df.shape[0]
@@ -98,9 +100,9 @@ def gestantes_status_vd():
     
     vd_completa_gestante_df = gestantes_join_df[gestantes_join_df["Estado Gestante"]=="Visita Completa"]
 
-    con_visita_cel = gestantes_join_df[(gestantes_join_df["Total de Intervenciones"]!=0)&(gestantes_join_df["Celular de la Madre"].notna())]
-    num_con_visita_cel = con_visita_cel.shape[0]
-    percent_reg_tel = round((con_visita_cel.shape[0]/num_con_visita_cel)*100,2)
+    con_visita_cel = gestantes_join_df[(gestantes_join_df["Celular de la Madre"].notna())]
+    #num_con_visita_cel = con_visita_cel.shape[0]
+    percent_reg_tel = round((con_visita_cel.shape[0]/num_carga)*100,2)
 
     num_ges_result = vd_completa_gestante_df.shape[0]
     total_visitas_validas_movil = vd_completa_gestante_df["Total de VD presencial Válidas MOVIL"].sum()
@@ -135,7 +137,21 @@ def gestantes_status_vd():
                                     text="Visitas", orientation='h',title = "Gestantes Visitadas por Establecimiento de Salud")
     fig_eess_top_visitas.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
     fig_eess_top_visitas.update_layout(xaxis=dict(title=dict(text="Número de Visitas")),font=dict(size=16))
-    
+    #VISITAS MOVIL
+    eess_top_visitas_movil = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Total de VD presencial Válidas MOVIL']].sum().sort_values(["Total de VD presencial Válidas MOVIL"]).reset_index()
+    eess_top_visitas_movil = eess_top_visitas_movil.rename(columns=  {"Total de VD presencial Válidas MOVIL":"Visitas"})
+    fig_eess_top_visitas_movil = px.bar(eess_top_visitas_movil, x="Visitas", y="Establecimiento de Salud",
+                                    text="Visitas", orientation='h',title = "Gestantes con VD MOVIL por Establecimiento de Salud")
+    fig_eess_top_visitas_movil.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig_eess_top_visitas_movil.update_layout(xaxis=dict(title=dict(text="Número de Visitas")),font=dict(size=16))
+
+    #VISITAS WEB
+    eess_top_visitas_web = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Total de VD presencial Válidas WEB']].sum().sort_values(["Total de VD presencial Válidas WEB"]).reset_index()
+    eess_top_visitas_web = eess_top_visitas_web.rename(columns=  {"Total de VD presencial Válidas WEB":"Visitas"})
+    fig_eess_top_visitas_web = px.bar(eess_top_visitas_web, x="Visitas", y="Establecimiento de Salud",
+                                    text="Visitas", orientation='h',title = "Gestantes con VD WEB por Establecimiento de Salud")
+    fig_eess_top_visitas_web.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig_eess_top_visitas_web.update_layout(xaxis=dict(title=dict(text="Número de Visitas")),font=dict(size=16))
     #DOCUMENTO DE IDENTIDAD
     tipodoc_ges_df = gestantes_join_df.groupby(['Tipo de Documento'])[['Número de Documento']].count().sort_values("Número de Documento").reset_index()
     tipodoc_ges_df = tipodoc_ges_df.rename(columns=  {"Número de Documento":"Gestantes"})
@@ -165,11 +181,15 @@ def gestantes_status_vd():
 
     columnas_add = st.columns(2)
     with columnas_add[0]:
-        tab1_carga, tab2_carga = st.tabs(["Cargados", "Visitas"])
+        tab1_carga, tab2_carga ,tab_vdmovil,tab_vdweb= st.tabs(["Cargados", "Visitas Totales","Visitas MOVIL","Visitas WEB"])
         with tab1_carga:
             st.plotly_chart(fig_eess_count)
         with tab2_carga:
             st.plotly_chart(fig_eess_top_visitas)
+        with tab_vdmovil:
+            st.plotly_chart(fig_eess_top_visitas_movil)
+        with tab_vdweb:
+            st.plotly_chart(fig_eess_top_visitas_web)
     with columnas_add[1]:
         st.plotly_chart(fig_etapavd_estado_df)
 

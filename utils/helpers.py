@@ -422,3 +422,9 @@ def calcular_edad(fecha_nacimiento):
 def calcular_edad_anios(fecha_nacimiento):
     hoy = pd.to_datetime('today')
     return relativedelta(hoy, fecha_nacimiento).years
+
+def estado_proyectado(vd_faltantes,proyectado):
+        if vd_faltantes<proyectado:
+            return "OK"
+        else:
+            return "EN RIESGO"

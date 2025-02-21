@@ -129,8 +129,17 @@ def childs_status_vd():
     ######################## FALTANTES
     dataframe_efec = dataframe_[dataframe_["Estado Niño"].isin(["Visita Domiciliaria (6 a 12 Meses)","Visita Domiciliaria (1 a 5 meses)"])]
     vd_programadas_df = dataframe_.groupby(["Establecimiento de Salud"])[["N° Visitas Completas"]].sum().sort_values("N° Visitas Completas",ascending=False).reset_index()#,"Total de VD presencial Válidas WEB",
+    child_programados_df = dataframe_.groupby(["Establecimiento de Salud"])[["N° Visitas Completas"]].count().sort_values("N° Visitas Completas",ascending=False).reset_index()
+    child_programados_df = child_programados_df.rename(columns=  {"N° Visitas Completas":"Niños Programados"})
+
     vd_movil_df = dataframe_efec.groupby(["Establecimiento de Salud"])[["Total de VD presencial Válidas MOVIL"]].sum().reset_index()
-    proyectado_dff = pd.merge(vd_programadas_df, vd_movil_df, left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+    childs_encontrados_df = dataframe_efec.groupby(["Establecimiento de Salud"])[["Estado Niño"]].count().reset_index()
+    childs_encontrados_df = childs_encontrados_df.rename(columns=  {"Estado Niño":"Niños Encontrados"})
+    proyectado_dff = pd.merge(child_programados_df,vd_programadas_df , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+
+    proyectado_dff = pd.merge(proyectado_dff, childs_encontrados_df, left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+    proyectado_dff = pd.merge(proyectado_dff, vd_movil_df, left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+
     proyectado_dff["Valla 75% Georref"] = round(proyectado_dff["N° Visitas Completas"]*0.75)
     proyectado_dff["Visitas Faltantes"] = proyectado_dff["Valla 75% Georref"] - proyectado_dff["Total de VD presencial Válidas MOVIL"]
     visitas_for_completar_df = dataframe_efec[dataframe_efec["Estado Visitas"]!="Visitas Completas"]
@@ -139,24 +148,41 @@ def childs_status_vd():
     
     proyectado_dff = pd.merge(proyectado_dff, vd_completar_df, left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
 
+    proyectado_dff["Tolerancia Visitas WEB"] = proyectado_dff["Visitas Proyectadas"] - proyectado_dff["Visitas Faltantes"]
+    proyectado_dff["Tolerancia Niños WEB"] = (proyectado_dff["Tolerancia Visitas WEB"]/3).round()
     total_row = pd.DataFrame({
         "Establecimiento de Salud": ["TOTAL"],  # Nombre de la fila
+        "Niños Programados":proyectado_dff["Niños Programados"].sum(),
+        "Niños Encontrados":proyectado_dff["Niños Encontrados"].sum(),
         "N° Visitas Completas": [proyectado_dff["N° Visitas Completas"].sum()],
         
         "Total de VD presencial Válidas MOVIL": [proyectado_dff["Total de VD presencial Válidas MOVIL"].sum()],
         "Valla 75% Georref": [proyectado_dff["Valla 75% Georref"].sum()],
         "Visitas Faltantes": [proyectado_dff["Visitas Faltantes"].sum()],
         "Visitas Proyectadas": [proyectado_dff["Visitas Proyectadas"].sum()],
+        "Tolerancia Visitas WEB": [proyectado_dff["Tolerancia Visitas WEB"].sum()],
+        "Tolerancia Niños WEB": [proyectado_dff["Tolerancia Niños WEB"].sum()],
 
     })
     proyectado_dff = pd.concat([proyectado_dff, total_row], ignore_index=True)
-    def estado_proyectado(vd_faltantes,proyectado):
-        if vd_faltantes<proyectado:
-            return "OK"
-        else:
-            return "EN RIESGO"
+    
     
     proyectado_dff['Estado'] = proyectado_dff.apply(lambda x: estado_proyectado(x['Visitas Faltantes'], x['Visitas Proyectadas']),axis=1)
+    proyectado_dff.columns = ['Establecimiento de Salud', 'Niños Programados', 'Visitas Programadas',
+       'Niños Encontrados', 'Visitas Realizadas MOVIL GEO',
+       'Valla Visitas GEO 75%', 'Visitas Faltantes Valla GEO', 'Visitas GEO Proyectadas',
+       'Tolerancia Visitas WEB', 'Tolerancia Niños WEB', 'Estado']
+    
+    proyectado_dff["% Actual GEO"] = round((proyectado_dff["Visitas Realizadas MOVIL GEO"] / proyectado_dff["Visitas Programadas"])*100,1)
+    proyectado_dff = proyectado_dff[
+        ['Establecimiento de Salud', 'Niños Programados', 'Visitas Programadas',
+       'Niños Encontrados', 'Visitas Realizadas MOVIL GEO','% Actual GEO', 'Valla Visitas GEO 75%', 
+       'Visitas Faltantes Valla GEO', 'Visitas GEO Proyectadas',
+       'Tolerancia Visitas WEB', 'Tolerancia Niños WEB', 'Estado',
+       ]
+    ]
+    proyectado_dff['% Actual GEO'] = proyectado_dff['% Actual GEO'].astype(str)
+    proyectado_dff['% Actual GEO'] = proyectado_dff['% Actual GEO']+"%"
     #####################
     #df_con_num_cel = (ene25_carga_df[ene25_carga_df["Celular de la madre"]!=0])
     df_con_num_cel = (dataframe_[dataframe_["Celular Madre"]!=0])
@@ -181,10 +207,10 @@ def childs_status_vd():
     except:
         num_excluyen_childs = 0
 
-    con_visita_cel = dataframe_[(dataframe_["Total de Intervenciones"]!=0)]
-    num_con_visita_cel = con_visita_cel.shape[0]
-    con_celular = (con_visita_cel["Celular Madre"]!=0).sum()
-    percent_reg_tel = round((con_celular/num_con_visita_cel)*100,2)
+    #con_visita_cel = dataframe_[(dataframe_["Total de Intervenciones"]!=0)]
+    #num_con_visita_cel = con_visita_cel.shape[0]
+    con_celular = (dataframe_["Celular Madre"]!=0).sum()
+    percent_reg_tel = round((con_celular/num_carga)*100,2)
     percent_total_vd_12 = round((num_ninos_result/(num_carga-num_excluyen_childs))*100,2)
     ##
     
@@ -192,7 +218,7 @@ def childs_status_vd():
     metric_col[2].metric("Visitas Movil",num_vd_movil,f"VD Completas:{total_vd_movil_completas}({percent_vd_completas_movil}%)",border=True)
     metric_col[3].metric("Visitas Completas - Movil",total_vd_movil_completas,f"Meta (75%): {total_meta_vd}",border=True)
     metric_col[4].metric("% VD Georreferenciadas",f"{percent_vd_movil_validate}%",f"VD Faltantes {total_faltante_vd_meta}",border=True)
-    metric_col[5].metric("% Registros Telefonicos",f"{percent_reg_tel}%",f"Sin celular : {num_con_visita_cel-con_celular}",border=True)
+    metric_col[5].metric("% Registros Telefonicos",f"{percent_reg_tel}%",f"Sin celular : {num_carga-con_celular}",border=True)
     metric_col[6].metric("% Niños Oportunos y Completos",f"{percent_total_vd_12}%",f"Positivos:{num_ninos_result} Excluidos:{num_excluyen_childs}",border=True)
 
     eess_top_cargados = dataframe_.groupby(['Establecimiento de Salud'])[['Número de Documento']].count().sort_values("Número de Documento").reset_index()
@@ -296,6 +322,17 @@ def childs_status_vd():
     fig_eess_derivados.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
     fig_eess_derivados.update_layout(xaxis=dict(title=dict(text="Número de Niños")),font=dict(size=16))
 
+    #ver globalmente EL ESTADO DE LOS TRANSITOS Y EN OTRO DISTRITO
+    registro_padron_df = dataframe_[dataframe_["Tipo Registro Padrón Nominal"].isin(["Activos Transito","En Otro Padrón Nominal"])]
+    registro_padron_group_df = registro_padron_df.groupby(["Estado Niño","Tipo Registro Padrón Nominal"])[["Número de Documento"]].count().reset_index()
+    registro_padron_group_df = registro_padron_group_df.rename(columns=  {"Número de Documento":"Niños"})
+
+    fig_reg_padron = px.bar(registro_padron_group_df, x="Estado Niño", y="Niños",color = "Tipo Registro Padrón Nominal",
+                                    text="Niños", orientation='v',title = "Niños Derivados y Transitos por Estado de Visita",barmode='group',)
+    fig_reg_padron.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig_reg_padron.update_layout(xaxis=dict(title=dict(text="Estado de Visita de los Niños")),yaxis=dict(title=dict(text="Número de Niños")),font=dict(size=16))
+    
+
     columnas_add = st.columns(2)
     with columnas_add[0]:
         tab1_carga, tab2_carga,tab3_carga,tab4_carga = st.tabs(["Niños Cargados", "Visitas","No Encontrados","Rechazados"])
@@ -322,13 +359,25 @@ def childs_status_vd():
         with tab5_carga:
             st.plotly_chart(fig_eess_derivados)
 
-    columnas = st.columns(3)
+    columnas = st.columns(2)
     #columnas[0].text("Estado Actual Niños Visitados")
-    columnas[0].plotly_chart(fig_estado_child)
+    with columnas[0]:
+        tab_estado1, tab_estado2 = st.tabs(["Estado de Niños", "Estado de Visitas"])
+        with tab_estado1:
+            st.plotly_chart(fig_estado_child)
+        with tab_estado2:
+            st.plotly_chart(fig_estado_vd_child)
+            
     #columnas[1].text("Entidad que Actualiza Padrón")
-    columnas[1].plotly_chart(fig_entidad_child)
+    with columnas[1]:
+            tab_estado1, tab_estado2 = st.tabs(["Estado Visitas Transito - Derivados", "Estado de Visitas Actualizaciones Padrón"])
+            with tab_estado1:
+                st.plotly_chart(fig_reg_padron)
+            with tab_estado2:
+                st.plotly_chart(fig_entidad_child)
+            #
     #columnas[2].text("Estado Actual de las Visitas")
-    columnas[2].plotly_chart(fig_estado_vd_child)
+    
     """
     con la linea podemos hacer corte del mes
     """
