@@ -11,6 +11,7 @@ from views.revision_asignacion import asignacion_mes
 from views.sectorizacion import sectorizacion_helper
 from views.child_review import review_child
 from views.actores_sociales import as_vd
+from views.helper_actividad_gestante import pivot_actividad_gestante,pivot_actividad_childs
 #if 'key' not in st.session_state:
 #    with open("config.yaml", "r") as f:
 #        config = yaml.safe_load(f)
@@ -41,6 +42,8 @@ indicadores = [
 helpers = [
     st.Page(page = sectorizacion_helper,title="Sectorización Help",icon = ":material/home:"),
     st.Page(page = review_child,title="Niño Revisión",icon = ":material/home:"),
+    st.Page(page = pivot_actividad_childs,title="Generar Reporte Niño",icon = ":material/home:"),
+    st.Page(page = pivot_actividad_gestante,title="Pivot VD Gestante",icon = ":material/home:"),
 ]
 #monitores = [
 #    st.Page("./views/monitores/pages/monitorAbastecimiento.py",title="Monitor Abastecimiento",icon = ":material/inventory:",),

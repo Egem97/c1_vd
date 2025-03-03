@@ -315,15 +315,21 @@ def gestantes_status_vd():
                         
     )
     #df.to_parquet('.\\data\\carga_nino.parquet', engine='pyarrow', index=False)
-    """
-    CORTE CADA PERIODO CERRADO DE EVALIACION DEL MES
-    gestantes_join_df.to_parquet(".\\data\\1.3\\indicador_gestantes_enero.parquet")
-    """
+    
+    #CORTE CADA PERIODO CERRADO DE EVALIACION DEL MES
+    #gestantes_join_df.to_parquet(".\\data\\1.3\\indicador_gestantes_febrero.parquet")
+    
     with st.expander("Descargas"):
         st.download_button(
                 label="Descargar Reporte Gestantes",
                 data=convert_excel_df(gestantes_join_df),
                 file_name=f"gestantes_reporte_{select_mes}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        st.download_button(
+                label="Descargar GEOS",
+                data=convert_excel_df(gestantes_tabla_df),
+                file_name=f"gestantes_GEO_{select_mes}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
         st.download_button(
@@ -408,7 +414,7 @@ def geo_gestantes():
             xanchor="right",
             x=1
         ))
-        map_ = st.plotly_chart(fig, on_select="rerun")
+        map_ = st.plotly_chart(fig, on_select="rerun",theme=None)
         try:
             st.dataframe(dff[dff["Número de Documento"]==map_["selection"]["points"][0]["customdata"][0]])
         except:

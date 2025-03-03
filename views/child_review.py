@@ -196,8 +196,9 @@ def review_child():
                 
                 st.markdown('</div>', unsafe_allow_html=True)
         only_doc_df = actvd_df[actvd_df["Número de Documento de Niño"]==doc]
+        #st.dataframe(only_doc_df)
         
-        only_doc_df = only_doc_df[["Establecimiento de Salud","Número de Documento de Niño","Año","Mes","Etapa","Celular de la Madre","Dirección"]]
+        only_doc_df = only_doc_df[["Establecimiento de Salud","Actores Sociales","Número de Documento de Niño","Año","Mes","Etapa","Fecha Intervención","Celular de la Madre","Dirección"]]
         only_doc_df["Celular de la Madre"] = only_doc_df["Celular de la Madre"].astype(float)
         #st.dataframe(only_doc_df)
         gb = GridOptionsBuilder.from_dataframe(only_doc_df)

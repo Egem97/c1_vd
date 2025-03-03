@@ -15,13 +15,14 @@ def childs_status_vd():
     datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
     eess = list(carga_df["Establecimiento de Salud"].unique())
     eess.remove(None)
+    MESES = ["Ene","Feb","Mar"]
     columns_row1 = st.columns([3,2,2,4])
     columns_row1[0].title("Visitas a Niños")
     with columns_row1[1]:
         select_year  = st.selectbox("Año:", ["2025"], key="select1")
         
     with columns_row1[2]:
-        select_mes  = st.selectbox("Mes:", ["Ene","Feb"], key="select2",index=True)
+        select_mes  = st.selectbox("Mes:",MESES , key="select2",index=len(MESES) - 1)
     with columns_row1[3]:
         select_eess  = st.multiselect("Establecimiento de Salud:", eess, key="select3",placeholder="Seleccione EESS")
         if len(select_eess)> 0:    
@@ -126,6 +127,8 @@ def childs_status_vd():
     dataframe_['Estado Niño'] = dataframe_['Estado Niño'].fillna(f"Sin Visita ({select_mes})")
     dataframe_['USUARIO QUE MODIFICA'] = dataframe_['USUARIO QUE MODIFICA'].fillna(f"Usuario no definido")
 
+    #add prueba
+    #dataframe_['Edad'] = dataframe_['Fecha de Nacimiento'].apply(calcular_edad)
     ######################## FALTANTES
     dataframe_efec = dataframe_[dataframe_["Estado Niño"].isin(["Visita Domiciliaria (6 a 12 Meses)","Visita Domiciliaria (1 a 5 meses)"])]
     vd_programadas_df = dataframe_.groupby(["Establecimiento de Salud"])[["N° Visitas Completas"]].sum().sort_values("N° Visitas Completas",ascending=False).reset_index()#,"Total de VD presencial Válidas WEB",
@@ -211,7 +214,7 @@ def childs_status_vd():
     #num_con_visita_cel = con_visita_cel.shape[0]
     con_celular = (dataframe_["Celular Madre"]!=0).sum()
     percent_reg_tel = round((con_celular/num_carga)*100,2)
-    percent_total_vd_12 = round((num_ninos_result/(num_carga-num_excluyen_childs))*100,2)
+    percent_total_vd_12 = round((num_ninos_result/(num_carga))*100,2)
     ##
     
     #retomar metrics 
@@ -219,7 +222,7 @@ def childs_status_vd():
     metric_col[3].metric("Visitas Completas - Movil",total_vd_movil_completas,f"Meta (75%): {total_meta_vd}",border=True)
     metric_col[4].metric("% VD Georreferenciadas",f"{percent_vd_movil_validate}%",f"VD Faltantes {total_faltante_vd_meta}",border=True)
     metric_col[5].metric("% Registros Telefonicos",f"{percent_reg_tel}%",f"Sin celular : {num_carga-con_celular}",border=True)
-    metric_col[6].metric("% Niños Oportunos y Completos",f"{percent_total_vd_12}%",f"Positivos:{num_ninos_result} Excluidos:{num_excluyen_childs}",border=True)
+    metric_col[6].metric("% Niños Oportunos y Completos",f"{percent_total_vd_12}%",f"Positivos:{num_ninos_result}",border=True)
 
     eess_top_cargados = dataframe_.groupby(['Establecimiento de Salud'])[['Número de Documento']].count().sort_values("Número de Documento").reset_index()
     eess_top_cargados = eess_top_cargados.rename(columns=  {"Número de Documento":"Registros"})
@@ -483,7 +486,7 @@ def geo_childs():
             xanchor="right",
             x=1
         ))
-        map_ = st.plotly_chart(fig, on_select="rerun")
+        map_ = st.plotly_chart(fig, on_select="rerun",theme=None)
         try:
             st.dataframe(dff[dff["Número de Documento de Niño"]==map_["selection"]["points"][0]["customdata"][0]])
         except:
