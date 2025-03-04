@@ -16,6 +16,8 @@ def gestantes_status_vd():
     vd_df["Año"] = vd_df["Año"].astype(str)
     carga_df = fetch_carga_gestantes()
     carga_df["Mes"] = carga_df["Mes"].astype(int)
+    carga_df["Establecimiento de Salud"] = carga_df["Establecimiento de Salud"].fillna("Sin Asignar")
+
     padron_df = fetch_padron()
     
     
