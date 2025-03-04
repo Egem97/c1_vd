@@ -20,7 +20,7 @@ def gestantes_status_vd():
     
     
     eess = list(carga_df["Establecimiento de Salud"].unique())
-
+    MESES = ["Ene","Feb","Mar"]
 
     columns_row1 = st.columns([3,2,2,4])
     columns_row1[0].title("Visitas a Gestantes")
@@ -28,7 +28,7 @@ def gestantes_status_vd():
         select_year  = st.selectbox("Año:", ["2025"], key="select1")
         
     with columns_row1[2]:
-        select_mes  = st.selectbox("Mes:", ["Ene","Feb","Mar"], key="select2",index=True)
+        select_mes  = st.selectbox("Mes:", MESES, key="select2",index=len(MESES) - 1)
     with columns_row1[3]:
         select_eess  = st.multiselect("Establecimiento de Salud:", eess, key="select3",placeholder="Seleccione EESS")
         
