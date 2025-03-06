@@ -5,16 +5,9 @@ import datetime
 from styles import styles
 from dateutil.relativedelta import relativedelta
 from utils.cache_handler import fetch_padron
-from utils.helpers import convert_excel_df
+from utils.helpers import *
 
-def calcular_edad(fecha_nacimiento):
-    hoy = pd.to_datetime('today')
-    diferencia = relativedelta(hoy, fecha_nacimiento)
-    return f"{diferencia.years} año(s), {diferencia.months} mes(es)"
 
-def calcular_edad_anios(fecha_nacimiento):
-    hoy = pd.to_datetime('today')
-    return relativedelta(hoy, fecha_nacimiento).years
 
 def dash_padron_modreg():
     styles(2)

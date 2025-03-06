@@ -12,6 +12,8 @@ from views.sectorizacion import sectorizacion_helper
 from views.child_review import review_child
 from views.actores_sociales import as_vd
 from views.helper_actividad_gestante import pivot_actividad_gestante,pivot_actividad_childs
+from views.transitos_padron import analisis_transitos
+from views.edad_padron import edades_padron
 #if 'key' not in st.session_state:
 #    with open("config.yaml", "r") as f:
 #        config = yaml.safe_load(f)
@@ -25,6 +27,8 @@ visitas = [
 padron = [
     st.Page(page = dash_padron,title="Padrón Nominal",icon = ":material/home:"),
     st.Page(page = dash_padron_modreg,title="Actualización Padrón",icon = ":material/home:"),
+    st.Page(page = analisis_transitos,title="Niños Transito",icon = ":material/home:"),
+    st.Page(page = edades_padron,title="Edades Padrón",icon = ":material/home:"),
 ]
 
 c1 = [
@@ -35,15 +39,15 @@ c1 = [
 indicadores = [
     st.Page(page = asignacion_mes,title="Asignación Mes",icon = ":material/home:"),
     st.Page(page = as_vd,title="Actores Sociales",icon = ":material/home:"),
-    st.Page(page = indicadores_childs,title="Niños",icon = ":material/home:"),
-    st.Page(page = indicadores_gestantes,title="Gestantes",icon = ":material/home:"),
+    #st.Page(page = indicadores_childs,title="Niños",icon = ":material/home:"),
+    #st.Page(page = indicadores_gestantes,title="Gestantes",icon = ":material/home:"),
 ]
 
 helpers = [
     st.Page(page = sectorizacion_helper,title="Sectorización Help",icon = ":material/home:"),
     st.Page(page = review_child,title="Niño Revisión",icon = ":material/home:"),
     st.Page(page = pivot_actividad_childs,title="Generar Reporte Niño",icon = ":material/home:"),
-    st.Page(page = pivot_actividad_gestante,title="Pivot VD Gestante",icon = ":material/home:"),
+    #st.Page(page = pivot_actividad_gestante,title="Pivot VD Gestante",icon = ":material/home:"),
 ]
 #monitores = [
 #    st.Page("./views/monitores/pages/monitorAbastecimiento.py",title="Monitor Abastecimiento",icon = ":material/inventory:",),
