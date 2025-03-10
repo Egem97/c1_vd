@@ -14,6 +14,7 @@ from views.actores_sociales import as_vd
 from views.helper_actividad_gestante import pivot_actividad_gestante,pivot_actividad_childs
 from views.transitos_padron import analisis_transitos
 from views.edad_padron import edades_padron
+from views.seguimiento_childs import geo_vd_childs
 #if 'key' not in st.session_state:
 #    with open("config.yaml", "r") as f:
 #        config = yaml.safe_load(f)
@@ -23,6 +24,7 @@ home = [st.Page(page = index,title="Home",icon = ":material/home:")]
 visitas = [
     st.Page(page = geo_childs,title="Georeferencias Niños",icon = ":material/home:"),
     st.Page(page = geo_gestantes,title="Georeferencias Gestantes",icon = ":material/home:"),
+    st.Page(page = geo_vd_childs,title="Seguimiento Geo Niños",icon = ":material/home:"),
 ]
 padron = [
     st.Page(page = dash_padron,title="Padrón Nominal",icon = ":material/home:"),

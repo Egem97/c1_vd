@@ -33,7 +33,7 @@ def review_child():
     carga_df = fetch_carga_childs()
     padron_df = fetch_padron()
     datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
-
+    MESES = ["Ene","Feb","Mar"]
     
     cols = st.columns([3,2,2,3])
     with cols[0]:
@@ -42,7 +42,7 @@ def review_child():
         select_year  = st.selectbox("Año:", ["2025"], key="select1")
         
     with cols[2]:
-        select_mes  = st.selectbox("Mes:", ["Ene","Feb"], key="select2",index=True)
+        select_mes  = st.selectbox("Mes:", MESES, key="select2",index=len(MESES) - 1)
     with cols[3]:
         doc = st.text_input("Ingrese Documento")
     

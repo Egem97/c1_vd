@@ -62,12 +62,14 @@ def childs_status_vd():
     actvd_filt_df.columns = ["Doc_Ultimo_Mes","Actor Social Ultimo Mes","Estado_Visita_Ult","count"]
     actvd_filt_df = actvd_filt_df[["Doc_Ultimo_Mes","Actor Social Ultimo Mes","Estado_Visita_Ult"]]
     
+    
     dataframe_pn = padron_df[[
         'Tipo_file', 'Documento', 'Tipo de Documento','DATOS NIÑO PADRON','CELULAR2_PADRON','SEXO',
         'FECHA DE NACIMIENTO', 'EJE VIAL', 'DIRECCION PADRON','REFERENCIA DE DIRECCION','MENOR VISITADO',
         'EESS NACIMIENTO','EESS', 'FRECUENCIA DE ATENCION', 'EESS ADSCRIPCIÓN','TIPO DE DOCUMENTO DE LA MADRE',
         'NUMERO DE DOCUMENTO  DE LA MADRE','DATOS MADRE PADRON','TIPO DE DOCUMENTO DEL JEFE DE FAMILIA',
         'NUMERO DE DOCUMENTO DEL JEFE DE FAMILIA','DATOS JEFE PADRON','ENTIDAD','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA','NUMERO DE CELULAR', 'CELULAR_CORREO',
+        'TIPO DE SEGURO'
     ]]
             #JOIN
     join_df = pd.merge(carga_filt_df, dataframe_pn, left_on='Número de Documento del niño', right_on='Documento', how='left')
@@ -81,7 +83,18 @@ def childs_status_vd():
     del join_df , actvd_filt_df
     dataframe_['Pre Asignación'] = test(dataframe_,"Dirección")
     dataframe_['Pre Asignación_Padron'] = test(dataframe_,"DIRECCION PADRON")
-    
+    reemplazo = {
+        "0": "NINGUNO",
+        "1": "SIS",
+        "2": "ESSALUD",
+        "3": "SANIDAD",
+        "4": "PRIVADO"
+    }
+    dataframe_["TIPO DE SEGURO"] = dataframe_["TIPO DE SEGURO"].fillna("SIN DATOS").apply(
+        lambda x: "SIN DATOS" if x == "SIN DATOS" else 
+              ", ".join([reemplazo.get(num.strip(), num.strip()) 
+                         for num in x.split(",") if num.strip()])
+    )
             
     dataframe_ = pd.merge(dataframe_, datos_ninos_df, left_on='Número de Documento del niño', right_on='Documento_c1', how='left')
     dataframe_['DATOS NIÑO PADRON'] = dataframe_.apply(lambda x: completar_names_col(x['DATOS NIÑO PADRON'], x['Niño']),axis=1)
@@ -105,7 +118,7 @@ def childs_status_vd():
             'MENOR VISITADO', 'DIRECCION PADRON','REFERENCIA DE DIRECCION','Dirección', 'TIPO DE DOCUMENTO DE LA MADRE','NUMERO DE DOCUMENTO  DE LA MADRE',
             'DNI de la madre','DATOS MADRE PADRON','NUMERO DE DOCUMENTO DEL JEFE DE FAMILIA','DATOS JEFE PADRON','Celular de la madre','NUMERO DE CELULAR','CELULAR2_PADRON',
             'EESS NACIMIENTO', 'EESS','FRECUENCIA DE ATENCION', 'EESS ADSCRIPCIÓN',
-            'EESS_C1', 'Fecha_ult_at_c1','Zona', 'Manzana', 'Sector','Tipo_file','ENTIDAD','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA','Estado_Visita_Ult', 'Mes', 'Año'
+            'EESS_C1', 'Fecha_ult_at_c1','Zona', 'Manzana', 'Sector','TIPO DE SEGURO','Tipo_file','ENTIDAD','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA','Estado_Visita_Ult', 'Mes', 'Año'
             ]
     dataframe_ = dataframe_[cols]
     dataframe_.columns = ['Establecimiento de Salud',
@@ -120,7 +133,7 @@ def childs_status_vd():
                 'Número Doc Jefe Familia(P)', 'Datos Jefe Famlia(P)',
                 'Celular Madre', 'Celular(P)', 'Celular2(P)',
                 'EESS NACIMIENTO', 'EESS ULTIMA ATENCION(P)', 'FRECUENCIA DE ATENCION', 'EESS ADSCRIPCIÓN',
-                'EESS ULTIMA ATENCION', 'Fecha Ultima Atención', 'Zona', 'Manzana', 'Sector', 'Tipo Registro Padrón Nominal',
+                'EESS ULTIMA ATENCION', 'Fecha Ultima Atención', 'Zona', 'Manzana', 'Sector','Tipo de Seguro', 'Tipo Registro Padrón Nominal',
                 'Entidad Actualiza','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA', 'Estado Niño', 'Mes', 'Año'
             ]
     dataframe_['Estado Visitas'] =  dataframe_.apply(lambda x: estado_visitas_completas(x['N° Visitas Completas'], x['Total de VD presenciales Válidas'],x['Estado Niño']),axis=1)#.apply(lambda x: completar_names_col(x['DATOS NIÑO PADRON'], x['Niño']),axis=1)
@@ -335,7 +348,20 @@ def childs_status_vd():
     fig_reg_padron.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
     fig_reg_padron.update_layout(xaxis=dict(title=dict(text="Estado de Visita de los Niños")),yaxis=dict(title=dict(text="Número de Niños")),font=dict(size=16))
     
-
+    tipo_seguro_df = dataframe_.groupby(["Establecimiento de Salud","Tipo de Seguro"])[["Número de Documento"]].count().sort_values("Número de Documento").reset_index()
+    tipo_seguro_df = tipo_seguro_df.rename(columns=  {"Número de Documento":"Niños"})
+    fig_tipo_seguro = px.bar(tipo_seguro_df, x="Niños", y="Establecimiento de Salud",color = "Tipo de Seguro",
+                                    text="Niños", orientation='h',title = "Tipo de Seguro por Establicimiento de salud",barmode='stack',)
+    fig_tipo_seguro.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig_tipo_seguro.update_layout(xaxis=dict(title=dict(text="Número de Niños")),yaxis=dict(title=dict(text="Establecimiento de Salud")),font=dict(size=14))
+    
+    tipo_seguro_all_df = dataframe_.groupby(["Tipo de Seguro"])[["Número de Documento"]].count().sort_values("Número de Documento").reset_index()
+    tipo_seguro_all_df = tipo_seguro_all_df.rename(columns=  {"Número de Documento":"Niños"})
+    
+    fig_seguro_all = px.pie(tipo_seguro_all_df, values='Niños', names='Tipo de Seguro',
+                        title='Tipo de Seguro')
+    fig_seguro_all.update_traces(textposition='inside', textinfo='percent+label+value',insidetextfont=dict(size=18))
+    ####
     columnas_add = st.columns(2)
     with columnas_add[0]:
         tab1_carga, tab2_carga,tab3_carga,tab4_carga = st.tabs(["Niños Cargados", "Visitas","No Encontrados","Rechazados"])
@@ -380,7 +406,11 @@ def childs_status_vd():
                 st.plotly_chart(fig_entidad_child)
             #
     #columnas[2].text("Estado Actual de las Visitas")
-    
+    columnas_last = st.columns([8,4])
+    with columnas_last[0]:
+        st.plotly_chart(fig_tipo_seguro)
+    with columnas_last[1]:
+        st.plotly_chart(fig_seguro_all)
     """
     con la linea podemos hacer corte del mes
     """
