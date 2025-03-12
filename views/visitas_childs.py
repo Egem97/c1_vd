@@ -311,8 +311,8 @@ def childs_status_vd():
     fig_eess_count_rechazado.update_layout(xaxis=dict(title=dict(text="Número de Niños Rechazados")),font=dict(size=16))
 
     
-    sinvd_df = dataframe_[dataframe_["Estado Niño"]==f"Sin Visita ({select_mes})"]
-    sinvd_df = sinvd_df.groupby(["Establecimiento de Salud"])[["Estado Niño"]].count().sort_values("Estado Niño").reset_index()
+    sinvd_dff = dataframe_[dataframe_["Estado Niño"]==f"Sin Visita ({select_mes})"]
+    sinvd_df = sinvd_dff.groupby(["Establecimiento de Salud"])[["Estado Niño"]].count().sort_values("Estado Niño").reset_index()
     sinvd_df = sinvd_df.rename(columns=  {"Estado Niño":"Niños"})
 
     fig_eess_sinvd = px.bar(sinvd_df, x="Niños", y="Establecimiento de Salud",
@@ -427,6 +427,7 @@ def childs_status_vd():
                             fit_columns_on_grid_load=True,
                         
     )
+    
     #st.dataframe(proyectado_dff)
     with st.expander("Descargas"):
         st.download_button(

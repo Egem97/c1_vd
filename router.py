@@ -15,6 +15,8 @@ from views.helper_actividad_gestante import pivot_actividad_gestante,pivot_activ
 from views.transitos_padron import analisis_transitos
 from views.edad_padron import edades_padron
 from views.seguimiento_childs import geo_vd_childs
+from views.nacidos_padron import nacimientos_padron
+from views.revision_2024 import status24
 #if 'key' not in st.session_state:
 #    with open("config.yaml", "r") as f:
 #        config = yaml.safe_load(f)
@@ -31,16 +33,19 @@ padron = [
     st.Page(page = dash_padron_modreg,title="Actualización Padrón",icon = ":material/home:"),
     st.Page(page = analisis_transitos,title="Niños Transito",icon = ":material/home:"),
     st.Page(page = edades_padron,title="Edades Padrón",icon = ":material/home:"),
+    st.Page(page = nacimientos_padron,title="Nacimientos",icon = ":material/home:"),
 ]
 
 c1 = [
     st.Page(page = childs_status_vd,title="Indicador 1.2",icon = ":material/home:"),
     st.Page(page = gestantes_status_vd,title="Indicador 1.3",icon = ":material/home:"),
+    
 ]
 
 indicadores = [
     st.Page(page = asignacion_mes,title="Asignación Mes",icon = ":material/home:"),
     st.Page(page = as_vd,title="Actores Sociales",icon = ":material/home:"),
+    st.Page(page = status24,title="Revisión 2024",icon = ":material/home:"),
     #st.Page(page = indicadores_childs,title="Niños",icon = ":material/home:"),
     #st.Page(page = indicadores_gestantes,title="Gestantes",icon = ":material/home:"),
 ]
