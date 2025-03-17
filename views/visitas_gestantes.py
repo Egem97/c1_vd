@@ -242,10 +242,13 @@ def gestantes_status_vd():
     puerperas_eess_df = gestantes_join_df[gestantes_join_df["ESTADO_NACIMIENTO"]=="PUERPERA"]
     puerperas_dff=puerperas_eess_df.groupby(['Establecimiento de Salud'])[['Número de Documento']].count().sort_values("Número de Documento",ascending=False).reset_index()
     puerperas_dff = puerperas_dff.rename(columns=  {"Número de Documento":"Gestantes Puerperas"})
-
+   
+    
     gestantes_tabla_df = pd.merge(gestantes_tabla_df,puerperas_dff , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+    gestantes_tabla_df["Gestantes Puerperas"] = gestantes_tabla_df["Gestantes Puerperas"].fillna(0)
     gestantes_tabla_df['Establecimiento de Salud'] = gestantes_tabla_df['Establecimiento de Salud'].str[11:]
     gestantes_tabla_df["Visitas Programadas sin Puerperas"] = gestantes_tabla_df["Visitas Programadas"] - (gestantes_tabla_df["Gestantes Puerperas"]*2)
+    
     #TEST
     #st.dataframe(vd_df)
     actvd_last_df = actvd_filt_df_last[actvd_filt_df_last["Dispositivo Intervención"]=="MOVIL"]
