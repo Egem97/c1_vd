@@ -160,10 +160,11 @@ def childs_status_vd():
     proyectado_dff["Visitas Faltantes"] = proyectado_dff["Valla 75% Georref"] - proyectado_dff["Total de VD presencial Válidas MOVIL"]
     visitas_for_completar_df = dataframe_efec[dataframe_efec["Estado Visitas"]!="Visitas Completas"]
     visitas_for_completar_df["Visitas Proyectadas"] = visitas_for_completar_df["N° Visitas Completas"] - visitas_for_completar_df["Total de VD presenciales Válidas"]
+    
     vd_completar_df = visitas_for_completar_df.groupby(["Establecimiento de Salud"])[["Visitas Proyectadas"]].sum().reset_index()
     
     proyectado_dff = pd.merge(proyectado_dff, vd_completar_df, left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
-
+    proyectado_dff["Visitas Proyectadas"] = proyectado_dff["Visitas Proyectadas"].fillna(0)
     proyectado_dff["Tolerancia Visitas WEB"] = proyectado_dff["Visitas Proyectadas"] - proyectado_dff["Visitas Faltantes"]
     proyectado_dff["Tolerancia Niños WEB"] = (proyectado_dff["Tolerancia Visitas WEB"]/3).round()
     total_row = pd.DataFrame({
