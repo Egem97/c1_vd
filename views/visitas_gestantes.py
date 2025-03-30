@@ -98,7 +98,8 @@ def gestantes_status_vd():
     if len(archivos_parquet)>0:
         puerperas_add_df = pd.concat([pd.read_parquet(os.path.join(f'./data/puerperas/{select_mes}', archivo)) for archivo in archivos_parquet], ignore_index=True)
         #puerperas_add_df = puerperas_add_df.rename(columns={'FECHA DE NACIMIENTO': 'ESTADO_NACIMIENTO'})
-        #st.dataframe(puerperas_add)
+        #st.write(puerperas_add_df.shape)
+        #st.dataframe(puerperas_add_df)
         #gest_dff['EDAD_MESES'] = gest_dff['Número de Documento'].map(puerperas_add_df.set_index('Número de Documento')['EDAD_MESES'])
         gest_dff['EDAD_MESES'] = gest_dff.apply(
             lambda row: puerperas_add_df.loc[puerperas_add_df['Número de Documento'] == row['Número de Documento'], 'EDAD_MESES'].values[0] 
