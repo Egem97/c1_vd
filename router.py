@@ -19,6 +19,7 @@ from views.nacidos_padron import nacimientos_padron
 from views.revision_2024 import status24
 from views.testing import status24_nominal
 from views.testing_gestantes import status24_nominal_ges
+from views.no_cargados_childs import periodo_excluyentes
 #if 'key' not in st.session_state:
 #    with open("config.yaml", "r") as f:
 #        config = yaml.safe_load(f)
@@ -47,9 +48,10 @@ c1 = [
 indicadores = [
     st.Page(page = asignacion_mes,title="Asignación Mes",icon = ":material/home:"),
     st.Page(page = as_vd,title="Actores Sociales",icon = ":material/home:"),
-    st.Page(page = status24,title="Revisión 2024",icon = ":material/home:"),
-    st.Page(page = status24_nominal,title="Revisión Niños24",icon = ":material/home:"),
-    st.Page(page = status24_nominal_ges,title="Revisión Gestantes24",icon = ":material/home:"),
+    st.Page(page = periodo_excluyentes,title="No Cargados Periodo",icon = ":material/home:"),
+    #st.Page(page = status24,title="Revisión 2024",icon = ":material/home:"),
+    #st.Page(page = status24_nominal,title="Revisión Niños24",icon = ":material/home:"),
+    #st.Page(page = status24_nominal_ges,title="Revisión Gestantes24",icon = ":material/home:"),
     #st.Page(page = indicadores_childs,title="Niños",icon = ":material/home:"),
     #st.Page(page = indicadores_gestantes,title="Gestantes",icon = ":material/home:"),
 ]

@@ -18,7 +18,7 @@ def asignacion_mes():
     carga_gestante_df["Mes"] = carga_gestante_df["Mes"].astype(int)
     eess = list(carga_niño_df["Establecimiento de Salud"].unique())
     eess.remove(None)
-    MESES = ["Ene","Feb","Mar"]
+    MESES = ["Ene","Feb","Mar","Abr"]
     carga_niño_df["Establecimiento de Salud"] = carga_niño_df["Establecimiento de Salud"].fillna("Sin Asignar")
     carga_gestante_df["Establecimiento de Salud"] = carga_gestante_df["Establecimiento de Salud"].fillna("Sin Asignar")
     columns_row1 = st.columns([3,2,2,4])

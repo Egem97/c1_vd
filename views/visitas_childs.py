@@ -141,7 +141,7 @@ def childs_status_vd():
     dataframe_['USUARIO QUE MODIFICA'] = dataframe_['USUARIO QUE MODIFICA'].fillna(f"Usuario no definido")
 
     #add prueba
-    #dataframe_['Edad'] = dataframe_['Fecha de Nacimiento'].apply(calcular_edad)
+    dataframe_['Edad'] = dataframe_['Fecha de Nacimiento'].apply(calcular_edad)
     ######################## FALTANTES
     dataframe_efec = dataframe_[dataframe_["Estado Niño"].isin(["Visita Domiciliaria (6 a 12 Meses)","Visita Domiciliaria (1 a 5 meses)"])]
     vd_programadas_df = dataframe_.groupby(["Establecimiento de Salud"])[["N° Visitas Completas"]].sum().sort_values("N° Visitas Completas",ascending=False).reset_index()#,"Total de VD presencial Válidas WEB",
