@@ -22,7 +22,7 @@ def gestantes_status_vd():
     
     
     eess = list(carga_df["Establecimiento de Salud"].unique())
-    MESES = ["Ene","Feb","Mar"]
+    MESES = ["Ene","Feb","Mar","Abr"]
 
     columns_row1 = st.columns([3,2,2,4])
     columns_row1[0].title("Visitas a Gestantes")

@@ -15,7 +15,7 @@ def childs_status_vd():
     datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
     eess = list(carga_df["Establecimiento de Salud"].unique())
     eess.remove(None)
-    MESES = ["Ene","Feb","Mar"]
+    MESES = ["Ene","Feb","Mar","Abr"]
     columns_row1 = st.columns([3,2,2,4])
     columns_row1[0].title("Visitas a Niños")
     with columns_row1[1]:

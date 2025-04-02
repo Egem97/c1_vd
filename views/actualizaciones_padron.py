@@ -53,9 +53,14 @@ def dash_padron_modreg():
             df = df[df["USUARIO QUE MODIFICA"].isin(select_usuario)]
     
     agree = st.checkbox("SIN NO ENCONTRADOS")
-
+    ejevial_empty = st.checkbox("SIN EJE VIAL")
+    
     if agree:
-        df = df[df["¿MENOR ENCONTRADO?"]!="NO"]
+        df = df[(df["¿MENOR ENCONTRADO?"]!="NO")]
+    
+    if ejevial_empty:
+        df = df[(df["EJE VIAL"]!=" ")]
+        
     num_rows = df.shape[0]
     st.write(num_rows)
     df['EDAD FORMATO'] = df['FECHA DE NACIMIENTO'].apply(calcular_edad)

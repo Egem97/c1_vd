@@ -20,6 +20,7 @@ from views.revision_2024 import status24
 from views.testing import status24_nominal
 from views.testing_gestantes import status24_nominal_ges
 from views.no_cargados_childs import periodo_excluyentes
+from views.padron.revision_padron import revision_padron
 #if 'key' not in st.session_state:
 #    with open("config.yaml", "r") as f:
 #        config = yaml.safe_load(f)
@@ -37,6 +38,7 @@ padron = [
     st.Page(page = analisis_transitos,title="Niños Transito",icon = ":material/home:"),
     st.Page(page = edades_padron,title="Edades Padrón",icon = ":material/home:"),
     st.Page(page = nacimientos_padron,title="Nacimientos",icon = ":material/home:"),
+    st.Page(page = revision_padron,title="EESS",icon = ":material/home:"),
 ]
 
 c1 = [
