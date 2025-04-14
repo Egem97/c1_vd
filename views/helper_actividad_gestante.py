@@ -21,19 +21,21 @@ def pivot_actividad_gestante():
         st.write(dataframe.shape[0])
         st.write(dataframe)
         print(dataframe.columns)
-        dff = dataframe.groupby(["Número de Documento","Etapa","Distrito","Establecimiento de Salud"])[["UBIGEO"]].count().reset_index()
+        dff = dataframe.groupby(["Número de Documento","Etapa","Distrito","Provincia","Establecimiento de Salud"])[["UBIGEO"]].count().reset_index()
         dff['Etapa'] = dff['Etapa'].replace({
         'Visita Domiciliaria (Adulta)': 'Visita Domiciliaria',
         'Visita Domiciliaria (Adolescente)': 'Visita Domiciliaria'
         })
         df_pivot = dff.pivot_table(
-            index=["Distrito","Establecimiento de Salud","Número de Documento"], 
+            index=["Distrito","Provincia","Establecimiento de Salud","Número de Documento"], 
             columns='Etapa', 
             values='UBIGEO',
             aggfunc="sum", 
             fill_value=0
         )
         df_pivot = df_pivot.reset_index()
+        #st.write(df_pivot.shape[0])
+        #st.dataframe(df_pivot)
         def new_col(vd_noen,vd_encontrada,vd_rechazo):
             if vd_rechazo == 0:
                 if vd_noen > 0 or vd_encontrada > 0 :

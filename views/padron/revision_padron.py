@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import datetime
 import plotly.graph_objects as go
+from io import BytesIO
 from styles import styles
 from utils.cache_handler import fetch_padron
 from utils.helpers import *
@@ -19,6 +20,27 @@ def revision_padron():
     
     fecha_maxima = df["FECHA DE MODIFICACIÓN DEL REGISTRO"].max().strftime("%Y-%m-%d")
     edades_list = df["EDAD"].unique()
+    
+    
+    df = df[[  
+            'CÓDIGO DE PADRON', 'CNV', 'CUI', 'DNI',  'DATOS NIÑO PADRON', 'SEXO',
+            'FECHA DE NACIMIENTO', 'EJE VIAL', 'DIRECCION PADRON',
+            'REFERENCIA DE DIRECCION','MENOR VISITADO', '¿MENOR ENCONTRADO?', 'FECHA DE VISITA',
+            'FUENTE DE DATOS', 'FECHA DE FUENTE DE DATOS', 'EESS NACIMIENTO',
+            'EESS', 'FRECUENCIA DE ATENCION', 'EESS ADSCRIPCIÓN', 'TIPO DE SEGURO',
+            'TIPO DE DOCUMENTO DE LA MADRE',
+            'NUMERO DE DOCUMENTO  DE LA MADRE','DATOS MADRE PADRON',
+            'NUMERO DE CELULAR', 'CELULAR_CORREO', 'GRADO DE LA MADRE',
+            'LENGUA DE LA MADRE','TIPO DE DOCUMENTO DEL JEFE DE FAMILIA',
+            'NUMERO DE DOCUMENTO DEL JEFE DE FAMILIA','DATOS JEFE PADRON',
+            'FECHA DE MODIFICACIÓN DEL REGISTRO', 'USUARIO QUE MODIFICA', 'ENTIDAD',
+            'TIPO REGISTRO', 'Tipo_file', 'Tipo de Documento',
+            'EDAD', 'EDAD MESES']
+        ]
+    print(df.info())
+    
+    
+    
     col_filt = st.columns([3,3,2,3])
     
     with col_filt[0]:
@@ -34,6 +56,21 @@ def revision_padron():
         select_edadmes  = st.multiselect("Edad Mes:", edad_meses_list, key="select12", placeholder="Seleccione Mes")
         if len(select_edadmes) > 0:
             df = df[df["EDAD MESES"].isin(select_edadmes)]
+    def actualizacion_col(entidad,usuario,fecha_mod):
+        try:
+            year_mod = fecha_mod.year
+        except:
+            year_mod = 2000
+        
+        if (usuario == "18215881" or usuario == "SERVICIO DNI ESTADO") and entidad =="MUNICIPIO":
+            if year_mod == 2025:
+                return f"ACTUALIZADO MUNICIPIO ({year_mod})"
+            else:
+                return f"ACTUALIZADO MUNICIPIO ({year_mod})"
+        else:
+            return "SIN ACTUALIZACIÓN"
+    
+    df["Estado"] = df.apply(lambda x: actualizacion_col(x['ENTIDAD'], x['USUARIO QUE MODIFICA'],x['FECHA DE MODIFICACIÓN DEL REGISTRO']),axis=1)
     
     
     total = df.shape[0]
@@ -133,12 +170,70 @@ def revision_padron():
         
         st.plotly_chart(fig_eess_other)
     
+    df = df.rename(columns={
+        "EESS":"Establecimiento de Salud Atención",
+        "Tipo_file":"Tipo Registro",
+        'EDAD':"Edad", 
+        'EDAD MESES':"Edad Meses"
+    })
+    resumen_dff = df.groupby(["Establecimiento de Salud Atención","Estado"])[["Tipo Registro"]].count().reset_index()
+    resumen_dff = resumen_dff[resumen_dff["Establecimiento de Salud Atención"].isin(EESS_MICRORED)]
+    df_pivot = resumen_dff.pivot_table(index='Establecimiento de Salud Atención', columns='Estado', values='Tipo Registro', aggfunc='sum', fill_value=0)
+    df_pivot = df_pivot.reset_index()
+    st.dataframe(df_pivot)
+    #'ARANJUEZ'
+    aranjuez_datahomo_df =  df[df["Establecimiento de Salud Atención"]=="ARANJUEZ"]
+    #,'CLUB DE LEONES'
+    club_datahomo_df =  df[df["Establecimiento de Salud Atención"]=="CLUB DE LEONES"]
+    #,'DE ESPECIALIDADES BASICAS LA NORIA',
+    noria_datahomo_df =  df[df["Establecimiento de Salud Atención"]=="DE ESPECIALIDADES BASICAS LA NORIA"]
+    #'EL BOSQUE'
+    bosque_datahomo_df =  df[df["Establecimiento de Salud Atención"]=="EL BOSQUE"]
+    #,'LA UNION'
+    union_datahomo_df =  df[df["Establecimiento de Salud Atención"]=="LA UNION"]
+    #,'LIBERTAD'
+    libertad_datahomo_df =  df[df["Establecimiento de Salud Atención"]=="LIBERTAD"]
+    #,'LOS GRANADOS "SAGRADO CORAZON"'
+    granados_datahomo_df =  df[df["Establecimiento de Salud Atención"]=='LOS GRANADOS "SAGRADO CORAZON"']
+    #,'LOS JARDINES'
+    jardines_datahomo_df =  df[df["Establecimiento de Salud Atención"]=="LOS JARDINES"]
+    #,'PESQUEDA II'
+    pesqueda2_datahomo_df =  df[df["Establecimiento de Salud Atención"]=="PESQUEDA II"]
+    #,'PESQUEDA III'
+    pesqueda3_datahomo_df =  df[df["Establecimiento de Salud Atención"]=="PESQUEDA III"]
+    #,'SAN MARTIN DE PORRES'
+    sanmartin_datahomo_df =  df[df["Establecimiento de Salud Atención"]=="SAN MARTIN DE PORRES"]
+    
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df_pivot.to_excel(writer, sheet_name='Resumen', index=False)
+        aranjuez_datahomo_df.to_excel(writer, sheet_name='ARANJUEZ', index=False)
+        club_datahomo_df.to_excel(writer, sheet_name='CLUB DE LEONES', index=False)
+        noria_datahomo_df.to_excel(writer, sheet_name='NORIA', index=False)
+        bosque_datahomo_df.to_excel(writer, sheet_name='EL BOSQUE', index=False)
+        union_datahomo_df.to_excel(writer, sheet_name='LA UNION', index=False)
+        libertad_datahomo_df.to_excel(writer, sheet_name='LIBERTAD', index=False)
+        granados_datahomo_df.to_excel(writer, sheet_name='SAGRADO CORAZON', index=False)
+        jardines_datahomo_df.to_excel(writer, sheet_name='LOS JARDINES', index=False)
+        pesqueda2_datahomo_df.to_excel(writer, sheet_name='PESQUEDA II', index=False)
+        pesqueda3_datahomo_df.to_excel(writer, sheet_name='PESQUEDA III', index=False)
+        sanmartin_datahomo_df.to_excel(writer, sheet_name='SAN MARTIN DE PORRES', index=False)
+    output.seek(0)
+    
+    
+    st.download_button(
+        label="📥 Descargar Actualizados",
+        data=output,
+        file_name=f"padron_actualizados.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
     st.download_button(
         label="📥 Descargar Padrón Nominal",
         data=convert_excel_df(df),
         file_name=f"padron_trujillo.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+    
     #st.dataframe(df) 
     #prioridad = {'DNI': 1, 'CUI': 2, 'CNV': 3}
     #df['Prioridad'] = df['Tipo de Documento'].map(prioridad)

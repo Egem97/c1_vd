@@ -62,10 +62,10 @@ def childs_status_vd():
     actvd_filt_df.columns = ["Doc_Ultimo_Mes","Actor Social Ultimo Mes","Estado_Visita_Ult","count"]
     actvd_filt_df = actvd_filt_df[["Doc_Ultimo_Mes","Actor Social Ultimo Mes","Estado_Visita_Ult"]]
     
-    
+    print(padron_df.columns)
     dataframe_pn = padron_df[[
         'Tipo_file', 'Documento', 'Tipo de Documento','DATOS NIÑO PADRON','CELULAR2_PADRON','SEXO',
-        'FECHA DE NACIMIENTO', 'EJE VIAL', 'DIRECCION PADRON','REFERENCIA DE DIRECCION','MENOR VISITADO',
+        'FECHA DE NACIMIENTO', 'EJE VIAL', 'DIRECCION PADRON','REFERENCIA DE DIRECCION','MENOR VISITADO','¿MENOR ENCONTRADO?',
         'EESS NACIMIENTO','EESS', 'FRECUENCIA DE ATENCION', 'EESS ADSCRIPCIÓN','TIPO DE DOCUMENTO DE LA MADRE',
         'NUMERO DE DOCUMENTO  DE LA MADRE','DATOS MADRE PADRON','TIPO DE DOCUMENTO DEL JEFE DE FAMILIA',
         'NUMERO DE DOCUMENTO DEL JEFE DE FAMILIA','DATOS JEFE PADRON','ENTIDAD','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA','NUMERO DE CELULAR', 'CELULAR_CORREO',
@@ -115,7 +115,7 @@ def childs_status_vd():
     cols = [
             'Establecimiento de Salud','Nombres del Actor Social','Tipo de Documento del niño','Tipo de Documento','Número de Documento del niño',
              'DATOS NIÑO PADRON','Fecha de Nacimiento','Rango de Edad','Total de visitas completas para la edad','Total de Intervenciones','Total de VD presenciales Válidas','Total de VD presencial Válidas WEB','Total de VD presencial Válidas MOVIL',
-            'MENOR VISITADO', 'DIRECCION PADRON','REFERENCIA DE DIRECCION','Dirección', 'TIPO DE DOCUMENTO DE LA MADRE','NUMERO DE DOCUMENTO  DE LA MADRE',
+            'MENOR VISITADO','¿MENOR ENCONTRADO?', 'DIRECCION PADRON','REFERENCIA DE DIRECCION','Dirección', 'TIPO DE DOCUMENTO DE LA MADRE','NUMERO DE DOCUMENTO  DE LA MADRE',
             'DNI de la madre','DATOS MADRE PADRON','NUMERO DE DOCUMENTO DEL JEFE DE FAMILIA','DATOS JEFE PADRON','Celular de la madre','NUMERO DE CELULAR','CELULAR2_PADRON',
             'EESS NACIMIENTO', 'EESS','FRECUENCIA DE ATENCION', 'EESS ADSCRIPCIÓN',
             'EESS_C1', 'Fecha_ult_at_c1','Zona', 'Manzana', 'Sector','TIPO DE SEGURO','Tipo_file','ENTIDAD','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA','Estado_Visita_Ult', 'Mes', 'Año'
@@ -126,7 +126,7 @@ def childs_status_vd():
                 'Tipo Documento(P)', 'Número de Documento',
                 'Datos del niño', 'Fecha de Nacimiento', 'Rango de Edad',
                 'N° Visitas Completas', 'Total de Intervenciones','Total de VD presenciales Válidas','Total de VD presencial Válidas WEB','Total de VD presencial Válidas MOVIL',
-                'MENOR VISITADO',
+                'MENOR VISITADO','¿MENOR ENCONTRADO?',
                 'Dirección(P)', 'Referencia Dirección(P)', 'Dirección Compromiso 1',
                 'Tipo Documento Madre(P)', 'Número Doc Madre(P)',
                 'Número Doc Madre', 'Datos Madre(P)',

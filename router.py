@@ -21,6 +21,7 @@ from views.testing import status24_nominal
 from views.testing_gestantes import status24_nominal_ges
 from views.no_cargados_childs import periodo_excluyentes
 from views.padron.revision_padron import revision_padron
+from views.avances_25 import resumen25
 #if 'key' not in st.session_state:
 #    with open("config.yaml", "r") as f:
 #        config = yaml.safe_load(f)
@@ -44,6 +45,7 @@ padron = [
 c1 = [
     st.Page(page = childs_status_vd,title="Indicador 1.2",icon = ":material/home:"),
     st.Page(page = gestantes_status_vd,title="Indicador 1.3",icon = ":material/home:"),
+    st.Page(page = resumen25,title="Resumen 2025",icon = ":material/home:"),
     
 ]
 
@@ -62,7 +64,7 @@ helpers = [
     st.Page(page = sectorizacion_helper,title="Sectorización Help",icon = ":material/home:"),
     st.Page(page = review_child,title="Niño Revisión",icon = ":material/home:"),
     st.Page(page = pivot_actividad_childs,title="Generar Reporte Niño",icon = ":material/home:"),
-    #st.Page(page = pivot_actividad_gestante,title="Pivot VD Gestante",icon = ":material/home:"),
+    st.Page(page = pivot_actividad_gestante,title="Pivot VD Gestante",icon = ":material/home:"),
 ]
 #monitores = [
 #    st.Page("./views/monitores/pages/monitorAbastecimiento.py",title="Monitor Abastecimiento",icon = ":material/inventory:",),
