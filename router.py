@@ -31,7 +31,7 @@ home = [st.Page(page = index,title="Home",icon = ":material/home:")]
 visitas = [
     st.Page(page = geo_childs,title="Georeferencias Niños",icon = ":material/home:"),
     st.Page(page = geo_gestantes,title="Georeferencias Gestantes",icon = ":material/home:"),
-    st.Page(page = geo_vd_childs,title="Seguimiento Geo Niños",icon = ":material/home:"),
+    #st.Page(page = geo_vd_childs,title="Seguimiento Geo Niños",icon = ":material/home:"),
 ]
 padron = [
     st.Page(page = dash_padron,title="Padrón Nominal",icon = ":material/home:"),
@@ -45,22 +45,23 @@ padron = [
 c1 = [
     st.Page(page = childs_status_vd,title="Indicador 1.2",icon = ":material/home:"),
     st.Page(page = gestantes_status_vd,title="Indicador 1.3",icon = ":material/home:"),
-    st.Page(page = resumen25,title="Resumen 2025",icon = ":material/home:"),
+    #st.Page(page = resumen25,title="Resumen 2025",icon = ":material/home:"),
     
 ]
 
-indicadores = [
-    st.Page(page = asignacion_mes,title="Asignación Mes",icon = ":material/home:"),
-    st.Page(page = as_vd,title="Actores Sociales",icon = ":material/home:"),
-    st.Page(page = periodo_excluyentes,title="No Cargados Periodo",icon = ":material/home:"),
+#indicadores = [
+    
+    #st.Page(page = as_vd,title="Actores Sociales",icon = ":material/home:"),
+    #st.Page(page = periodo_excluyentes,title="No Cargados Periodo",icon = ":material/home:"),
     #st.Page(page = status24,title="Revisión 2024",icon = ":material/home:"),
     #st.Page(page = status24_nominal,title="Revisión Niños24",icon = ":material/home:"),
     #st.Page(page = status24_nominal_ges,title="Revisión Gestantes24",icon = ":material/home:"),
     #st.Page(page = indicadores_childs,title="Niños",icon = ":material/home:"),
     #st.Page(page = indicadores_gestantes,title="Gestantes",icon = ":material/home:"),
-]
+#]
 
 helpers = [
+    st.Page(page = asignacion_mes,title="Asignación Mes",icon = ":material/home:"),
     st.Page(page = sectorizacion_helper,title="Sectorización Help",icon = ":material/home:"),
     st.Page(page = review_child,title="Niño Revisión",icon = ":material/home:"),
     st.Page(page = pivot_actividad_childs,title="Generar Reporte Niño",icon = ":material/home:"),
@@ -78,6 +79,6 @@ def pages():
     page_dict["Geo"] = visitas
     page_dict["Padron N"] = padron
     page_dict["Visitas C1"] = c1
-    page_dict["C1 Estatus"] = indicadores
+    #page_dict["C1 Estatus"] = indicadores
     page_dict["Helpers"] = helpers
     return page_dict
