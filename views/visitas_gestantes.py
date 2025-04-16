@@ -47,7 +47,8 @@ def gestantes_status_vd():
     #################REPORTE DE ACTIVIDAD GESTANTES########################
     
     vd_movil_df = actvd_filt_df_last[actvd_filt_df_last["Dispositivo Intervención"]=="MOVIL"]
-    
+    vd_web_df = actvd_filt_df_last[actvd_filt_df_last["Dispositivo Intervención"]=="WEB"]
+
     #########################################################
     
     #totales
@@ -149,24 +150,28 @@ def gestantes_status_vd():
     fig_eess_count.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
     fig_eess_count.update_layout(xaxis=dict(title=dict(text="Número de Gestantes Cargadas")),font=dict(size=16))
     
+    #############################################################################################################
     #VISITAS GESTANTES
-    eess_top_visitas = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Total de VD presenciales Válidas']].sum().sort_values(["Total de VD presenciales Válidas"]).reset_index()
-    eess_top_visitas = eess_top_visitas.rename(columns=  {"Total de VD presenciales Válidas":"Visitas"})
+    eess_top_visitas = actvd_filt_df_last.groupby(['Establecimiento de Salud'])[['UBIGEO']].count().sort_values(["UBIGEO"]).reset_index()
+    eess_top_visitas = eess_top_visitas.rename(columns=  {"UBIGEO":"Visitas"})
     fig_eess_top_visitas = px.bar(eess_top_visitas, x="Visitas", y="Establecimiento de Salud",
                                     text="Visitas", orientation='h',title = "Gestantes Visitadas por Establecimiento de Salud")
     fig_eess_top_visitas.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
     fig_eess_top_visitas.update_layout(xaxis=dict(title=dict(text="Número de Visitas")),font=dict(size=16))
     #VISITAS MOVIL
-    eess_top_visitas_movil = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Total de VD presencial Válidas MOVIL']].sum().sort_values(["Total de VD presencial Válidas MOVIL"]).reset_index()
-    eess_top_visitas_movil = eess_top_visitas_movil.rename(columns=  {"Total de VD presencial Válidas MOVIL":"Visitas"})
+    
+    eess_top_visitas_movil = vd_movil_df.groupby(['Establecimiento de Salud'])[['UBIGEO']].count().sort_values(["UBIGEO"]).reset_index()
+    eess_top_visitas_movil = eess_top_visitas_movil.rename(columns=  {"UBIGEO":"Visitas"})
+    
     fig_eess_top_visitas_movil = px.bar(eess_top_visitas_movil, x="Visitas", y="Establecimiento de Salud",
                                     text="Visitas", orientation='h',title = "Gestantes con VD MOVIL por Establecimiento de Salud")
     fig_eess_top_visitas_movil.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
     fig_eess_top_visitas_movil.update_layout(xaxis=dict(title=dict(text="Número de Visitas")),font=dict(size=16))
 
     #VISITAS WEB
-    eess_top_visitas_web = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Total de VD presencial Válidas WEB']].sum().sort_values(["Total de VD presencial Válidas WEB"]).reset_index()
-    eess_top_visitas_web = eess_top_visitas_web.rename(columns=  {"Total de VD presencial Válidas WEB":"Visitas"})
+    eess_top_visitas_web = vd_web_df.groupby(['Establecimiento de Salud'])[['UBIGEO']].count().sort_values(["UBIGEO"]).reset_index()
+    eess_top_visitas_web = eess_top_visitas_web.rename(columns=  {"UBIGEO":"Visitas"})
+    
     fig_eess_top_visitas_web = px.bar(eess_top_visitas_web, x="Visitas", y="Establecimiento de Salud",
                                     text="Visitas", orientation='h',title = "Gestantes con VD WEB por Establecimiento de Salud")
     fig_eess_top_visitas_web.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
