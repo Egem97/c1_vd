@@ -232,94 +232,184 @@ def gestantes_status_vd():
     #########################tabla
     #st.write(gestantes_join_df.columns)
     #carga
-    gestantes_carga_df = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Número de Documento']].count().sort_values("Número de Documento",ascending=False).reset_index()
-    gestantes_carga_df = gestantes_carga_df.rename(columns=  {"Número de Documento":"Gestantes Programadas"})
-    
-    #visitas programadas
-    vd_prog_df = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Total de visitas completas para la edad']].sum().reset_index()
-    vd_prog_df = vd_prog_df.rename(columns=  {"Total de visitas completas para la edad":"Visitas Programadas"})
-    gestantes_tabla_df = pd.merge(gestantes_carga_df,vd_prog_df , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
-    gestantes_tabla_df['Establecimiento de Salud'] = gestantes_tabla_df['Establecimiento de Salud'].str[11:]
-   
-
-    
-    actvd_last_df = actvd_filt_df_last[actvd_filt_df_last["Dispositivo Intervención"]=="MOVIL"]
-    test_vd_df = actvd_last_df.groupby(["Establecimiento de Salud","Número de Documento","Etapa"])[["Estado Intervención"]].count().sort_values("Estado Intervención",ascending=False).reset_index()
-    test_vd_df['Etapa'] = test_vd_df['Etapa'].replace({'Visita Domiciliaria (Adulta)': 'Visita Domiciliaria','Visita Domiciliaria (Adolescente)': 'Visita Domiciliaria'})
-    
-    df_pivot = test_vd_df.pivot_table(
-        index=['Establecimiento de Salud','Número de Documento'], 
-        columns='Etapa', 
-        values='Estado Intervención',
-        aggfunc="sum", 
-        fill_value=0
-    )
-    df_pivot = df_pivot.reset_index()
-    df_pivot["Número de Documento"] = df_pivot["Número de Documento"].astype(str)
-    df_pivot['Número de Documento'] = df_pivot['Número de Documento'].str.strip()
-    
-    #FILTRANDO POR ESTADO GESTANTE
-    #estado_nac_gest_df = gestantes_join_df[gestantes_join_df["Etapa"].isin(["Visita Domiciliaria (Adolescente)","Visita Domiciliaria (Adulta)"])]
-    #estado_nac_gest_df = gestantes_join_df[["Número de Documento","ESTADO_NACIMIENTO"]]
-    #estado_nac_gest_df["Número de Documento"] = estado_nac_gest_df["Número de Documento"].astype(str)
-    #estado_nac_gest_df['Número de Documento'] = estado_nac_gest_df['Número de Documento'].str.strip()
-    #dff_pivot = pd.merge(estado_nac_gest_df,df_pivot , left_on='Número de Documento', right_on='Número de Documento', how='left')
-    
-    try:
-        gestantes_vd_enc_df = df_pivot.groupby(["Establecimiento de Salud"])[["Visita Domiciliaria","No Encontrado"]].sum().reset_index()
-    except:
-        gestantes_vd_enc_df = df_pivot.groupby(["Establecimiento de Salud"])[["Visita Domiciliaria"]].sum().reset_index()
-    
-    gestantes_tabla_df = pd.merge(gestantes_tabla_df,gestantes_vd_enc_df , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
-    gestantes_tabla_df["Visitas Realizadas GEO"] = gestantes_tabla_df["Visita Domiciliaria"]+gestantes_tabla_df["No Encontrado"]
+    tab1, tab2= st.tabs(["General", "Solo Visitas"])
+    with tab1:
+        gestantes_carga_df = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Número de Documento']].count().sort_values("Número de Documento",ascending=False).reset_index()
+        gestantes_carga_df = gestantes_carga_df.rename(columns=  {"Número de Documento":"Gestantes Programadas"})
+        #visitas programadas
+        vd_prog_df = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Total de visitas completas para la edad']].sum().reset_index()
+        vd_prog_df = vd_prog_df.rename(columns=  {"Total de visitas completas para la edad":"Visitas Programadas"})
+        gestantes_tabla_df = pd.merge(gestantes_carga_df,vd_prog_df , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+        #puerperas
+        puerperas_eess_df = gestantes_join_df[gestantes_join_df["ESTADO_NACIMIENTO"]=="PUERPERA"]
+        puerperas_dff=puerperas_eess_df.groupby(['Establecimiento de Salud'])[['Número de Documento']].count().sort_values("Número de Documento",ascending=False).reset_index()
+        puerperas_dff = puerperas_dff.rename(columns=  {"Número de Documento":"Gestantes Puerperas"})
     
     
+        gestantes_tabla_df = pd.merge(gestantes_tabla_df,puerperas_dff , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+        gestantes_tabla_df["Gestantes Puerperas"] = gestantes_tabla_df["Gestantes Puerperas"].fillna(0)
+        gestantes_tabla_df['Establecimiento de Salud'] = gestantes_tabla_df['Establecimiento de Salud'].str[11:]
+        gestantes_tabla_df["Visitas Programadas sin Puerperas"] = gestantes_tabla_df["Visitas Programadas"] - (gestantes_tabla_df["Gestantes Puerperas"]*2)
     
-    #st.write(dff_pivot.shape)
-    #st.dataframe(dff_pivot)
-    try:
+        #TEST
+        #st.dataframe(vd_df)
+        actvd_last_df = actvd_filt_df_last[actvd_filt_df_last["Dispositivo Intervención"]=="MOVIL"]
+        test_vd_df = actvd_last_df.groupby(["Establecimiento de Salud","Número de Documento","Etapa"])[["Estado Intervención"]].count().sort_values("Estado Intervención",ascending=False).reset_index()
+        test_vd_df['Etapa'] = test_vd_df['Etapa'].replace({
+        'Visita Domiciliaria (Adulta)': 'Visita Domiciliaria',
+        'Visita Domiciliaria (Adolescente)': 'Visita Domiciliaria'
+        })
+        df_pivot = test_vd_df.pivot_table(
+            index=['Establecimiento de Salud','Número de Documento'], 
+            columns='Etapa', 
+            values='Estado Intervención',
+            aggfunc="sum", 
+            fill_value=0
+        )
+        df_pivot = df_pivot.reset_index()
+        df_pivot["Número de Documento"] = df_pivot["Número de Documento"].astype(str)
+        df_pivot['Número de Documento'] = df_pivot['Número de Documento'].str.strip()
+        #FILTRANDO POR ESTADO GESTANTE
+        estado_nac_gest_df = gestantes_join_df[gestantes_join_df["Etapa"].isin(["Visita Domiciliaria (Adolescente)","Visita Domiciliaria (Adulta)"])]
+        estado_nac_gest_df = estado_nac_gest_df[["Número de Documento","ESTADO_NACIMIENTO"]]
+        estado_nac_gest_df["Número de Documento"] = estado_nac_gest_df["Número de Documento"].astype(str)
+        estado_nac_gest_df['Número de Documento'] = estado_nac_gest_df['Número de Documento'].str.strip()
+        dff_pivot = pd.merge(estado_nac_gest_df,df_pivot , left_on='Número de Documento', right_on='Número de Documento', how='left')
+    
+        dff_pivot = dff_pivot[dff_pivot["ESTADO_NACIMIENTO"]=="GESTANTE"]
+        dff_pivot["Visitas Realizadas GEO"] = dff_pivot["Visita Domiciliaria"] + dff_pivot["No Encontrado"]
+        gestantes_count_df = dff_pivot.groupby(["Establecimiento de Salud"])[["ESTADO_NACIMIENTO"]].count().reset_index()
+        gestantes_count_df = gestantes_count_df.rename(columns=  {"ESTADO_NACIMIENTO":"Gestantes Encontradas"})
+    
+        gestantes_tabla_df = pd.merge(gestantes_tabla_df,gestantes_count_df , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+        gestantes_vd_enc_df = dff_pivot.groupby(["Establecimiento de Salud"])[["Visitas Realizadas GEO"]].sum().reset_index()
+    
+        gestantes_tabla_df = pd.merge(gestantes_tabla_df,gestantes_vd_enc_df , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+    
+    
+        #st.write(dff_pivot.shape)
+        #st.dataframe(dff_pivot)
         total_row = pd.DataFrame({
             "Establecimiento de Salud": ["TOTAL"],  # Nombre de la fila
             "Gestantes Programadas":gestantes_tabla_df["Gestantes Programadas"].sum(),
             "Visitas Programadas":gestantes_tabla_df["Visitas Programadas"].sum(),
-            "Visita Domiciliaria":gestantes_tabla_df["Visita Domiciliaria"].sum(),
-            "No Encontrado":gestantes_tabla_df["No Encontrado"].sum(),
-            #"Gestantes Encontradas":gestantes_tabla_df["Gestantes Encontradas"].sum(),
+            "Gestantes Puerperas":gestantes_tabla_df["Gestantes Puerperas"].sum(),
+            "Visitas Programadas sin Puerperas":gestantes_tabla_df["Visitas Programadas sin Puerperas"].sum(),
+            "Gestantes Encontradas":gestantes_tabla_df["Gestantes Encontradas"].sum(),
             "Visitas Realizadas GEO":gestantes_tabla_df["Visitas Realizadas GEO"].sum(),
-
+    
         })
-    except:
-        total_row = pd.DataFrame({
-            "Establecimiento de Salud": ["TOTAL"],  # Nombre de la fila
-            "Gestantes Programadas":gestantes_tabla_df["Gestantes Programadas"].sum(),
-            "Visitas Programadas":gestantes_tabla_df["Visitas Programadas"].sum(),
-            "Visita Domiciliaria":gestantes_tabla_df["Visita Domiciliaria"].sum(),
-            "Visitas Realizadas GEO":gestantes_tabla_df["Visitas Realizadas GEO"].sum(),
-
-        })
-    gestantes_tabla_df = pd.concat([gestantes_tabla_df, total_row], ignore_index=True)
-   
-    gestantes_tabla_df = gestantes_tabla_df.fillna(0)
-    gestantes_tabla_df["% Actual GEO"] = round((gestantes_tabla_df["Visitas Realizadas GEO"] / gestantes_tabla_df["Visitas Programadas"])*100,1)
-    gestantes_tabla_df['% Actual GEO'] = gestantes_tabla_df['% Actual GEO'].astype(str)
-    gestantes_tabla_df['% Actual GEO'] = gestantes_tabla_df['% Actual GEO']+"%"
-
-    #gestantes_tabla_df["Valla 75% Georref"] = round(gestantes_tabla_df["Visitas Programadas sin Puerperas"]*0.75)
-    #gestantes_tabla_df["Visitas Faltantes"] = gestantes_tabla_df["Valla 75% Georref"] - gestantes_tabla_df["Visitas Realizadas GEO"]
-    #gestantes_tabla_df["Visitas Proyectadas"] = (gestantes_tabla_df["Gestantes Encontradas"] * 2) - gestantes_tabla_df["Visitas Realizadas GEO"]
-    gb = GridOptionsBuilder.from_dataframe(gestantes_tabla_df)
-    gb.configure_default_column(cellStyle={'fontSize': '20px'}) 
-    grid_options = gb.build()
+        gestantes_tabla_df = pd.concat([gestantes_tabla_df, total_row], ignore_index=True)
+        gestantes_tabla_df = gestantes_tabla_df.fillna(0)
+        gestantes_tabla_df["% Actual GEO"] = round((gestantes_tabla_df["Visitas Realizadas GEO"] / gestantes_tabla_df["Visitas Programadas sin Puerperas"])*100,1)
+        gestantes_tabla_df['% Actual GEO'] = gestantes_tabla_df['% Actual GEO'].astype(str)
+        gestantes_tabla_df['% Actual GEO'] = gestantes_tabla_df['% Actual GEO']+"%"
+    
+        gestantes_tabla_df["Valla 75% Georref"] = round(gestantes_tabla_df["Visitas Programadas sin Puerperas"]*0.75)
+        gestantes_tabla_df["Visitas Faltantes"] = gestantes_tabla_df["Valla 75% Georref"] - gestantes_tabla_df["Visitas Realizadas GEO"]
+        gestantes_tabla_df["Visitas Proyectadas"] = (gestantes_tabla_df["Gestantes Encontradas"] * 2) - gestantes_tabla_df["Visitas Realizadas GEO"]
+        gb = GridOptionsBuilder.from_dataframe(gestantes_tabla_df)
+        gb.configure_default_column(cellStyle={'fontSize': '20px'}) 
+        grid_options = gb.build()
     
     
-    grid_response = AgGrid(gestantes_tabla_df, # Dataframe a mostrar
-                            gridOptions=grid_options,
-                            enable_enterprise_modules=False,
-                            #theme='alpine',  # Cambiar tema si se desea ('streamlit', 'light', 'dark', 'alpine', etc.)
-                            update_mode='MODEL_CHANGED',
-                            fit_columns_on_grid_load=True,
-                        
-    )
+        grid_response = AgGrid(gestantes_tabla_df, # Dataframe a mostrar
+                                gridOptions=grid_options,
+                                enable_enterprise_modules=False,
+                                #theme='alpine',  # Cambiar tema si se desea ('streamlit', 'light', 'dark', 'alpine', etc.)
+                                update_mode='MODEL_CHANGED',
+                                fit_columns_on_grid_load=True,
+    
+        )
+    with tab2:
+        gestantes_carga_df = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Número de Documento']].count().sort_values("Número de Documento",ascending=False).reset_index()
+        gestantes_carga_df = gestantes_carga_df.rename(columns=  {"Número de Documento":"Gestantes Programadas"})
+        
+        #visitas programadas
+        vd_prog_df = gestantes_join_df.groupby(['Establecimiento de Salud'])[['Total de visitas completas para la edad']].sum().reset_index()
+        vd_prog_df = vd_prog_df.rename(columns=  {"Total de visitas completas para la edad":"Visitas Programadas"})
+        gestantes_tabla_df = pd.merge(gestantes_carga_df,vd_prog_df , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+        gestantes_tabla_df['Establecimiento de Salud'] = gestantes_tabla_df['Establecimiento de Salud'].str[11:]
+    
+
+        
+        actvd_last_df = actvd_filt_df_last[actvd_filt_df_last["Dispositivo Intervención"]=="MOVIL"]
+        test_vd_df = actvd_last_df.groupby(["Establecimiento de Salud","Número de Documento","Etapa"])[["Estado Intervención"]].count().sort_values("Estado Intervención",ascending=False).reset_index()
+        test_vd_df['Etapa'] = test_vd_df['Etapa'].replace({'Visita Domiciliaria (Adulta)': 'Visita Domiciliaria','Visita Domiciliaria (Adolescente)': 'Visita Domiciliaria'})
+        
+        df_pivot = test_vd_df.pivot_table(
+            index=['Establecimiento de Salud','Número de Documento'], 
+            columns='Etapa', 
+            values='Estado Intervención',
+            aggfunc="sum", 
+            fill_value=0
+        )
+        df_pivot = df_pivot.reset_index()
+        df_pivot["Número de Documento"] = df_pivot["Número de Documento"].astype(str)
+        df_pivot['Número de Documento'] = df_pivot['Número de Documento'].str.strip()
+        
+        #FILTRANDO POR ESTADO GESTANTE
+        #estado_nac_gest_df = gestantes_join_df[gestantes_join_df["Etapa"].isin(["Visita Domiciliaria (Adolescente)","Visita Domiciliaria (Adulta)"])]
+        #estado_nac_gest_df = gestantes_join_df[["Número de Documento","ESTADO_NACIMIENTO"]]
+        #estado_nac_gest_df["Número de Documento"] = estado_nac_gest_df["Número de Documento"].astype(str)
+        #estado_nac_gest_df['Número de Documento'] = estado_nac_gest_df['Número de Documento'].str.strip()
+        #dff_pivot = pd.merge(estado_nac_gest_df,df_pivot , left_on='Número de Documento', right_on='Número de Documento', how='left')
+        
+        try:
+            gestantes_vd_enc_df = df_pivot.groupby(["Establecimiento de Salud"])[["Visita Domiciliaria","No Encontrado"]].sum().reset_index()
+        except:
+            gestantes_vd_enc_df = df_pivot.groupby(["Establecimiento de Salud"])[["Visita Domiciliaria"]].sum().reset_index()
+        
+        gestantes_tabla_df = pd.merge(gestantes_tabla_df,gestantes_vd_enc_df , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+        gestantes_tabla_df["Visitas Realizadas GEO"] = gestantes_tabla_df["Visita Domiciliaria"]+gestantes_tabla_df["No Encontrado"]
+        
+        
+        
+        #st.write(dff_pivot.shape)
+        #st.dataframe(dff_pivot)
+        try:
+            total_row = pd.DataFrame({
+                "Establecimiento de Salud": ["TOTAL"],  # Nombre de la fila
+                "Gestantes Programadas":gestantes_tabla_df["Gestantes Programadas"].sum(),
+                "Visitas Programadas":gestantes_tabla_df["Visitas Programadas"].sum(),
+                "Visita Domiciliaria":gestantes_tabla_df["Visita Domiciliaria"].sum(),
+                "No Encontrado":gestantes_tabla_df["No Encontrado"].sum(),
+                #"Gestantes Encontradas":gestantes_tabla_df["Gestantes Encontradas"].sum(),
+                "Visitas Realizadas GEO":gestantes_tabla_df["Visitas Realizadas GEO"].sum(),
+
+            })
+        except:
+            total_row = pd.DataFrame({
+                "Establecimiento de Salud": ["TOTAL"],  # Nombre de la fila
+                "Gestantes Programadas":gestantes_tabla_df["Gestantes Programadas"].sum(),
+                "Visitas Programadas":gestantes_tabla_df["Visitas Programadas"].sum(),
+                "Visita Domiciliaria":gestantes_tabla_df["Visita Domiciliaria"].sum(),
+                "Visitas Realizadas GEO":gestantes_tabla_df["Visitas Realizadas GEO"].sum(),
+
+            })
+        gestantes_tabla_df = pd.concat([gestantes_tabla_df, total_row], ignore_index=True)
+    
+        gestantes_tabla_df = gestantes_tabla_df.fillna(0)
+        gestantes_tabla_df["% Actual GEO"] = round((gestantes_tabla_df["Visitas Realizadas GEO"] / gestantes_tabla_df["Visitas Programadas"])*100,1)
+        gestantes_tabla_df['% Actual GEO'] = gestantes_tabla_df['% Actual GEO'].astype(str)
+        gestantes_tabla_df['% Actual GEO'] = gestantes_tabla_df['% Actual GEO']+"%"
+
+        #gestantes_tabla_df["Valla 75% Georref"] = round(gestantes_tabla_df["Visitas Programadas sin Puerperas"]*0.75)
+        #gestantes_tabla_df["Visitas Faltantes"] = gestantes_tabla_df["Valla 75% Georref"] - gestantes_tabla_df["Visitas Realizadas GEO"]
+        #gestantes_tabla_df["Visitas Proyectadas"] = (gestantes_tabla_df["Gestantes Encontradas"] * 2) - gestantes_tabla_df["Visitas Realizadas GEO"]
+        gb = GridOptionsBuilder.from_dataframe(gestantes_tabla_df)
+        gb.configure_default_column(cellStyle={'fontSize': '20px'}) 
+        grid_options = gb.build()
+        
+        
+        grid_response = AgGrid(gestantes_tabla_df, # Dataframe a mostrar
+                                gridOptions=grid_options,
+                                enable_enterprise_modules=False,
+                                #theme='alpine',  # Cambiar tema si se desea ('streamlit', 'light', 'dark', 'alpine', etc.)
+                                update_mode='MODEL_CHANGED',
+                                fit_columns_on_grid_load=True,
+                            
+        )
     #df.to_parquet('.\\data\\carga_nino.parquet', engine='pyarrow', index=False)
     
     #CORTE CADA PERIODO CERRADO DE EVALIACION DEL MES
