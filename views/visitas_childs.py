@@ -14,8 +14,8 @@ def childs_status_vd():
     padron_df = fetch_padron()
     datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
     eess = list(carga_df["Establecimiento de Salud"].unique())
-    eess.remove(None)
-    MESES = ["Ene","Feb","Mar","Abr"]
+    eess.remove(None)   
+    MESES = ["Ene","Feb","Mar","Abr","May"]
     columns_row1 = st.columns([3,2,2,4])
     columns_row1[0].title("Visitas a Niños")
     with columns_row1[1]:
@@ -152,10 +152,13 @@ def childs_status_vd():
     childs_encontrados_df = dataframe_efec.groupby(["Establecimiento de Salud"])[["Estado Niño"]].count().reset_index()
     childs_encontrados_df = childs_encontrados_df.rename(columns=  {"Estado Niño":"Niños Encontrados"})
     proyectado_dff = pd.merge(child_programados_df,vd_programadas_df , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+    
 
     proyectado_dff = pd.merge(proyectado_dff, childs_encontrados_df, left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
     proyectado_dff = pd.merge(proyectado_dff, vd_movil_df, left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
-
+    proyectado_dff["Niños Encontrados"] = proyectado_dff["Niños Encontrados"].fillna(0)
+    proyectado_dff["Total de VD presencial Válidas MOVIL"] = proyectado_dff["Total de VD presencial Válidas MOVIL"].fillna(0)
+    
     proyectado_dff["Valla 75% Georref"] = round(proyectado_dff["N° Visitas Completas"]*0.75)
     proyectado_dff["Visitas Faltantes"] = proyectado_dff["Valla 75% Georref"] - proyectado_dff["Total de VD presencial Válidas MOVIL"]
     visitas_for_completar_df = dataframe_efec[dataframe_efec["Estado Visitas"]!="Visitas Completas"]

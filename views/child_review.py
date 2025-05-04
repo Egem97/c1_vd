@@ -33,7 +33,7 @@ def review_child():
     carga_df = fetch_carga_childs()
     padron_df = fetch_padron()
     datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
-    MESES = ["Ene","Feb","Mar","Abr"]
+    MESES = ["Ene","Feb","Mar","Abr","May"]
     
     cols = st.columns([3,2,2,3])
     with cols[0]:

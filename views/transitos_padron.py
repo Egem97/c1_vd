@@ -14,7 +14,7 @@ def analisis_transitos():
     styles(2)
     df = fetch_padron()
     carga_df = fetch_carga_childs()
-    MESES = ["Ene","Feb","Mar"]
+    MESES = ["Ene","Feb","Mar","Abr","May"]
     df["Documento"]= df["Documento"].astype(str)
     df['EESS'] = df['EESS'].fillna("NO ESPECIFICADO")
     df["NUMERO DE CELULAR"] = df["NUMERO DE CELULAR"].str.strip()

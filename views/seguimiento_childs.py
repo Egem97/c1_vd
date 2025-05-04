@@ -16,7 +16,7 @@ def geo_vd_childs():
     fecha_maxima = actvd_df["Fecha Intervención"].max().strftime("%Y-%m-%d")
     eess = list(carga_df["Establecimiento de Salud"].unique())
     eess.remove(None)
-    MESES = ["Ene","Feb","Mar"]
+    MESES = ["Ene","Feb","Mar","Abr","May"]
     column_head = st.columns([4,3,3,3])
     with column_head[0]:
         st.title("Proyección Geo")

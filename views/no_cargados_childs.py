@@ -15,7 +15,7 @@ def periodo_excluyentes():
     datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
     eess = list(carga_df["Establecimiento de Salud"].unique())
     eess.remove(None)
-    MESES = ["Ene","Feb","Mar","Abr"]
+    MESES = ["Ene","Feb","Mar","Abr","May"]
     columns_row1 = st.columns([3,2,2,])
     columns_row1[0].title("Niños no cargados 2025")
     with columns_row1[1]:
