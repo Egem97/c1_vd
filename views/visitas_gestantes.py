@@ -10,37 +10,37 @@ from utils.functions_data import gestantes_unicas_visitados
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 def gestantes_status_vd():
-    styles(2)
-    fecha_actual = datetime.now()
-    vd_df = fetch_vd_gestantes()
-    vd_df["Año"] = vd_df["Año"].astype(str)
-    carga_df = fetch_carga_gestantes()
-    carga_df["Mes"] = carga_df["Mes"].astype(int)
-    carga_df["Establecimiento de Salud"] = carga_df["Establecimiento de Salud"].fillna("Sin Asignar")
+        styles(2)
+        fecha_actual = datetime.now()
+        vd_df = fetch_vd_gestantes()
+        vd_df["Año"] = vd_df["Año"].astype(str)
+        carga_df = fetch_carga_gestantes()
+        carga_df["Mes"] = carga_df["Mes"].astype(int)
+        carga_df["Establecimiento de Salud"] = carga_df["Establecimiento de Salud"].fillna("Sin Asignar")
 
-    padron_df = fetch_padron()
-    
-    
-    eess = list(carga_df["Establecimiento de Salud"].unique())
-    MESES = ["Ene","Feb","Mar","Abr","May"]
+        padron_df = fetch_padron()
+        
+        
+        eess = list(carga_df["Establecimiento de Salud"].unique())
+        MESES = ["Ene","Feb","Mar","Abr","May"]
 
-    columns_row1 = st.columns([3,2,2,4])
-    columns_row1[0].title("Visitas a Gestantes")
-    with columns_row1[1]:
-        select_year  = st.selectbox("Año:", ["2025"], key="select1")
-        
-    with columns_row1[2]:
-        select_mes  = st.selectbox("Mes:", MESES, key="select2",index=len(MESES) - 1)
-    with columns_row1[3]:
-        select_eess  = st.multiselect("Establecimiento de Salud:", eess, key="select3",placeholder="Seleccione EESS")
-        
-        if len(select_eess)> 0:    
-            select_eess_recorted = [s[11:] for s in select_eess]
+        columns_row1 = st.columns([3,2,2,4])
+        columns_row1[0].title("Visitas a Gestantes")
+        with columns_row1[1]:
+            select_year  = st.selectbox("Año:", ["2025"], key="select1")
             
-            carga_df = carga_df[carga_df["Establecimiento de Salud"].isin(select_eess)]
-            vd_df = vd_df[vd_df["Establecimiento de Salud"].isin(select_eess_recorted)]
+        with columns_row1[2]:
+            select_mes  = st.selectbox("Mes:", MESES, key="select2",index=len(MESES) - 1)
+        with columns_row1[3]:
+            select_eess  = st.multiselect("Establecimiento de Salud:", eess, key="select3",placeholder="Seleccione EESS")
+            
+            if len(select_eess)> 0:    
+                select_eess_recorted = [s[11:] for s in select_eess]
+                
+                carga_df = carga_df[carga_df["Establecimiento de Salud"].isin(select_eess)]
+                vd_df = vd_df[vd_df["Establecimiento de Salud"].isin(select_eess_recorted)]
 
-    try:
+    #try:
         carga_filt_df = carga_df[(carga_df['Año']==str(select_year))&(carga_df['Mes']==mestext_short(select_mes))]
         actvd_filt_df_last = vd_df[(vd_df['Año']==str(select_year))&(vd_df['Mes']==select_mes)]  
         archivos_parquet = [f for f in os.listdir(f'./data/puerperas/{select_mes}') if f.endswith(".parquet")]
@@ -434,8 +434,8 @@ def gestantes_status_vd():
                     file_name=f"gestantes_sinpuerperas_{select_mes}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
-    except:
-        st.warning(f'Sin Datos Cargados para el mes {select_mes} ', icon="⚠️")
+    #except:
+    #    st.warning(f'Sin Datos Cargados para el mes {select_mes} ', icon="⚠️")
 
 
 
