@@ -392,6 +392,23 @@ def childs_status_vd():
         with tab5_carga:
             st.plotly_chart(fig_eess_derivados)
 
+    
+    """
+    con la linea podemos hacer corte del mes
+    """
+    gb = GridOptionsBuilder.from_dataframe(proyectado_dff)
+    gb.configure_default_column(cellStyle={'fontSize': '20px'}) 
+    grid_options = gb.build()
+    
+    
+    grid_response = AgGrid(proyectado_dff, # Dataframe a mostrar
+                            gridOptions=grid_options,
+                            enable_enterprise_modules=False,
+                            #theme='alpine',  # Cambiar tema si se desea ('streamlit', 'light', 'dark', 'alpine', etc.)
+                            update_mode='MODEL_CHANGED',
+                            fit_columns_on_grid_load=True,
+                        
+    )
     columnas = st.columns(2)
     #columnas[0].text("Estado Actual Niños Visitados")
     with columnas[0]:
@@ -415,23 +432,6 @@ def childs_status_vd():
         st.plotly_chart(fig_tipo_seguro)
     with columnas_last[1]:
         st.plotly_chart(fig_seguro_all)
-    """
-    con la linea podemos hacer corte del mes
-    """
-    gb = GridOptionsBuilder.from_dataframe(proyectado_dff)
-    gb.configure_default_column(cellStyle={'fontSize': '20px'}) 
-    grid_options = gb.build()
-    
-    
-    grid_response = AgGrid(proyectado_dff, # Dataframe a mostrar
-                            gridOptions=grid_options,
-                            enable_enterprise_modules=False,
-                            #theme='alpine',  # Cambiar tema si se desea ('streamlit', 'light', 'dark', 'alpine', etc.)
-                            update_mode='MODEL_CHANGED',
-                            fit_columns_on_grid_load=True,
-                        
-    )
-    
     #st.dataframe(proyectado_dff)
     with st.expander("Descargas"):
         st.download_button(

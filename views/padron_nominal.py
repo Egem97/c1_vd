@@ -4,7 +4,7 @@ import plotly.express as px
 import datetime
 from styles import styles
 from utils.cache_handler import fetch_padron
-from utils.helpers import convert_excel_df
+from utils.helpers import convert_excel_df,calcular_edad,calcular_edad_anios
 
 def dash_padron():
     styles(2)
@@ -37,6 +37,9 @@ def dash_padron():
     #FECHA DE MODIFICACIÓN DEL REGISTRO
     #dff = df[(df["FECHA DE MODIFICACIÓN DEL REGISTRO"]>=fecha_inicio)&(df["FECHA DE MODIFICACIÓN DEL REGISTRO"]<=fecha_fin)]
     duplicados_df = df[df.duplicated(subset=["Documento"], keep=False)]
+    duplicados_df['EDAD MESES'] = duplicados_df['FECHA DE NACIMIENTO'].apply(calcular_edad)
+    duplicados_df['EDAD'] = duplicados_df['FECHA DE NACIMIENTO'].apply(calcular_edad_anios)
+    
     rows_dup = duplicados_df.shape[0]
     num_rows_ = df.shape[0]
     sin_ejevial_df = df[df['EJE VIAL'] == " "]

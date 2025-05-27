@@ -9,6 +9,19 @@ def convert_excel_df(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Datos')
+        workbook  = writer.book
+        worksheet = writer.sheets['Datos']
+        # Define el rango de la tabla
+        (max_row, max_col) = df.shape
+        column_settings = [{'header': col} for col in df.columns]
+        worksheet.add_table(0, 0, max_row, max_col - 1, {
+            'columns': column_settings,
+            'name': 'TablaExportada',
+            'style': 'Table Style Medium 2'  # Estilo visual como en la imagen
+        })
+        # Ajusta el ancho de las columnas automáticamente
+        for i, width in enumerate([max(len(str(s)) for s in df[col].astype(str).values.tolist() + [col]) for col in df.columns]):
+            worksheet.set_column(i, i, width + 2)
     processed_data = output.getvalue()
     return processed_data
     
@@ -385,6 +398,10 @@ def mes_short(x):
     dict_mes = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Set',10:'Oct',11:'Nov',12:'Dic'}
     return dict_mes[x] 
 
+def mes_compname(x):
+    dict_mes = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',7:'Julio',8:'Agosto',9:'Setiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'}
+    return dict_mes[x] 
+
 def mestext_short(x):
     dict_mes = {'Ene':1,'Feb':2,'Mar':3,'Abr':4,'May':5,'Jun':6,'Jul':7,'Ago':8,'Set':9,'Oct':10,'Nov':11,'Dic':12}
     return dict_mes[x] 
@@ -418,6 +435,11 @@ def calcular_edad(fecha_nacimiento):
     hoy = pd.to_datetime('today')
     diferencia = relativedelta(hoy, fecha_nacimiento)
     return f"{diferencia.years} año(s), {diferencia.months} mes(es)"
+
+def calcular_edad_dias(fecha_nacimiento):
+    hoy = pd.to_datetime('today')
+    diferencia = relativedelta(hoy, fecha_nacimiento)
+    return f"{diferencia.years} año(s), {diferencia.months} mes(es), {diferencia.days} día(s)"
 
 def calcular_edad_anios(fecha_nacimiento):
     hoy = pd.to_datetime('today')
