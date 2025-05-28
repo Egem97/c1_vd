@@ -25,6 +25,7 @@ from views.padron.actualizados_mes import actualizados_mes_padron
 from views.avances_25 import resumen25
 from views.tramo_3.tramo3 import summary_tramo3
 from views.padron.rn_obs import rn_verificacion_insert
+from views.padron.estado_rn import rn_month_insert
 #if 'key' not in st.session_state:
 #    with open("config.yaml", "r") as f:
 #        config = yaml.safe_load(f)
@@ -44,6 +45,7 @@ padron = [
     st.Page(page = nacimientos_padron,title="Nacimientos",icon = ":material/home:"),
     st.Page(page = actualizados_mes_padron,title="Nacidos por Mes",icon = ":material/home:"),
     st.Page(page = revision_padron,title="EESS",icon = ":material/home:"),
+    st.Page(page = rn_month_insert,title="Actualizaciones RN",icon = ":material/home:")
 ]
 
 c1 = [

@@ -13,11 +13,11 @@ def summary_tramo3():
     st.title("Resuemn Tramo III")
     st.subheader("Niños")
     
-    df_ene_child = pd.read_parquet(f".\\data\\1.2\\indicador_childs_enero.parquet")
-    df_feb_child = pd.read_parquet(f".\\data\\1.2\\indicador_childs_febrero.parquet")
-    df_mar_child = pd.read_excel(f".\\data\\1.2\\niños_reporte_Mar_final_mes.xlsx")
-    df_abr_child = pd.read_excel(f".\\data\\1.2\\niños_reporte_Abr_final_mes.xlsx")
-    df_may_child = pd.read_excel(f".\\data\\1.2\\niños_reporte_May_final_mes.xlsx")
+    df_ene_child = pd.read_parquet(f"./data/1.2/indicador_childs_enero.parquet")
+    df_feb_child = pd.read_parquet(f"./data/1.2/indicador_childs_febrero.parquet")
+    df_mar_child = pd.read_excel(f"./data/1.2/niños_reporte_Mar_final_mes.xlsx")
+    df_abr_child = pd.read_excel(f"./data/1.2/niños_reporte_Abr_final_mes.xlsx")
+    df_may_child = pd.read_excel(f"./data/1.2/niños_reporte_May_final_mes.xlsx")
     csummary_df = pd.concat([df_ene_child, df_feb_child, df_mar_child,df_abr_child,df_may_child], ignore_index=True)
     csummary_df["Estado Visitas"] =csummary_df["Estado Visitas"].replace(
         {
@@ -178,11 +178,11 @@ def summary_tramo3():
     
     #####################################################################################################
     st.subheader("Gestantes")
-    df_gestantes = pd.read_parquet(f".\\data\\1.3\\indicador_gestantes_enero.parquet")
-    df_gestantes_feb = pd.read_parquet(f".\\data\\1.3\\indicador_gestantes_febrero.parquet")
-    df_gestantes_mar = pd.read_excel(f".\\data\\1.3\\gestantes_reporte_Mar_final_mes.xlsx")
-    df_gestantes_abr = pd.read_excel(f".\\data\\1.3\\gestantes_reporte_Abr_final_mes.xlsx")
-    df_gestantes_may = pd.read_excel(f".\\data\\1.3\\gestantes_reporte_May_final_mes.xlsx")
+    df_gestantes = pd.read_parquet(f"./data/1.3/indicador_gestantes_enero.parquet")
+    df_gestantes_feb = pd.read_parquet(f"./data/1.3/indicador_gestantes_febrero.parquet")
+    df_gestantes_mar = pd.read_excel(f"./data/1.3/gestantes_reporte_Mar_final_mes.xlsx")
+    df_gestantes_abr = pd.read_excel(f"./data/1.3/gestantes_reporte_Abr_final_mes.xlsx")
+    df_gestantes_may = pd.read_excel(f"./data/1.3/gestantes_reporte_May_final_mes.xlsx")
     csummary_gestantes = pd.concat([df_gestantes, df_gestantes_feb, df_gestantes_mar,df_gestantes_abr,df_gestantes_may], ignore_index=True)
     csummary_gestantes["Etapa"] = csummary_gestantes["Etapa"].replace({
         "Visita Domiciliaria (Adolescente)": "Visita Domiciliaria",
@@ -222,11 +222,11 @@ def summary_tramo3():
     gtable_df.columns = ['Mes', 'Gestantes Cargadas', 'Visitas Programadas', 'N° de Sectores Visitados',
        'N° de Actores Sociales', 'Puerperas', 'Gestantes Encontradas']
     csummary_vdges = pd.concat([
-        pd.read_excel(f".\\data\\1.3\\2025\\vdges_2025_ene.xls",skiprows=7),
-        pd.read_excel(f".\\data\\1.3\\2025\\vdges_2025_feb.xls",skiprows=7),
-        pd.read_excel(f".\\data\\1.3\\2025\\vdges_2025_mar.xls",skiprows=7),
-        pd.read_excel(f".\\data\\1.3\\2025\\vdges_2025_abr.xls",skiprows=7),
-        pd.read_excel(f".\\data\\1.3\\2025\\vdges_2025_may.xls",skiprows=7),
+        pd.read_excel(f"./data/1.3/2025/vdges_2025_ene.xls",skiprows=7),
+        pd.read_excel(f"./data/1.3/2025/vdges_2025_feb.xls",skiprows=7),
+        pd.read_excel(f"./data/1.3/2025/vdges_2025_mar.xls",skiprows=7),
+        pd.read_excel(f"./data/1.3/2025/vdges_2025_abr.xls",skiprows=7),
+        pd.read_excel(f"./data/1.3/2025/vdges_2025_may.xls",skiprows=7),
     ], ignore_index=True)
     csummary_vdges["Mes"] = csummary_vdges["Mes"].map(mestext_short)
     

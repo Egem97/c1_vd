@@ -84,6 +84,31 @@ def excel_pn_clean(dataframe = pd.DataFrame()):
         dataframe["Mes Nacimiento"] = dataframe["FECHA DE NACIMIENTO"].dt.month
         
         return dataframe
+    
+def bar_graph(datafrane : pd.DataFrame, x : str, y : str, title : str,color : str,orientation : str):
+    if orientation == "v":
+        fig = px.bar(datafrane, x= x, y=y,text=y, orientation=orientation,title =title,color=color)
+    else:
+        fig = px.bar(datafrane, x= x, y=y,text=x, orientation=orientation,title =title,color=color)
+        
+    fig.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
+    fig.update_layout(xaxis=dict(title=dict(text="")),font=dict(size=16))
+    fig.update_layout(legend=dict(
+            orientation="h",
+            #entrywidth=70,
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ))
+    return fig
+        
+def pie_graph(datafrane : pd.DataFrame, name : str, values : str, title : str):
+    fig = px.pie(datafrane, values=values, names=name,title=title)
+    fig.update_traces(textposition='inside', textinfo='percent+label+value',insidetextfont=dict(size=15))
+    fig.update_layout(showlegend=False)
+    return fig
+
 
 def rn_verificacion_insert():
     styles(2)
@@ -98,10 +123,10 @@ def rn_verificacion_insert():
     with head_col_1:
         st.title("Revisión Actualizaciones RN")
     with head_col_2:
-        
-        uploaded_file = st.file_uploader(
-            "Ingresa Reporte Recien Nacidos", accept_multiple_files=False
-        )
+        with st.expander("UPLOADED",expanded=True):
+            uploaded_file = st.file_uploader(
+                "Ingresa Reporte Recien Nacidos", accept_multiple_files=False
+            )
     # VD C1 NIÑOS
     vd_childs_df = vd_childs_df[vd_childs_df["Año"]=="2025"]
     
@@ -116,6 +141,7 @@ def rn_verificacion_insert():
     vd_childs_df["C1 Niños Visitados"] = vd_childs_df["C1 Niños Visitados"].str[:-2]
     vd_childs_df["Documento"] = vd_childs_df["Documento"].astype(int)
     vd_childs_df["Celular Madre"] = vd_childs_df["Celular Madre"].str[:-2]
+    vd_childs_df = vd_childs_df.drop_duplicates(subset=['Documento'], keep='first')
     #VD C1 GESTANTES
     #st.dataframe(vd_gestantes_df)
     vd_gestantes_df["Etapa"] = vd_gestantes_df["Etapa"]+" - "
@@ -185,12 +211,45 @@ def rn_verificacion_insert():
             "ACTUALIZADO",
             "NO ACTUALIZADO"
         )
-        # Remove duplicates only when Celular Gestante is not None
-        #dff = dff.sort_values('Celular Gestante', na_position='last')
-        #dff = dff.drop_duplicates(subset=['Celular Gestante'], keep='first')
+        # AGRUPACIONES FOR GRAPH
+        
+        asig_res_df = dff.groupby(["RESPONSABLE"])[["ACTUALIZADO"]].count().sort_values("ACTUALIZADO",ascending=False).reset_index()
+        asig_res_df.columns = ["Responsable","Niños"]
+        
+        #tipo_doc_df = dff.groupby(["Tipo de Documento"])[["ACTUALIZADO"]].count().sort_values("ACTUALIZADO",ascending=False).reset_index()
+        #tipo_doc_df.columns = ["Tipo de Documento","Niños"]
+        tipo_seguro_df = dff.groupby(["TIPO DE SEGURO"])[["ACTUALIZADO"]].count().sort_values("ACTUALIZADO",ascending=False).reset_index()
+        tipo_seguro_df.columns = ["Tipo de Seguro","Niños"]
+        
+        actualizado_df = dff.groupby(["ACTUALIZADO"])[["Documento"]].count().sort_values("Documento",ascending=False).reset_index()
+        actualizado_df.columns = ["Actualizado","Niños"]
+        
+        actualizado_res_df = dff.groupby(["RESPONSABLE","ACTUALIZADO"])[["Documento"]].count().sort_values("Documento",ascending=False).reset_index()
+        actualizado_res_df.columns = ["Responsable","Actualizado","Niños"]
+        
+        eess_df = dff.groupby(["EESS ACTUAL"])[["Documento"]].count().sort_values("Documento",ascending=True).reset_index()
+        eess_df.columns = ["EESS","Niños"]
+        eess_df = eess_df[eess_df["Niños"]>3]
+      
+        
+        
         st.write(dff.shape)
-        st.dataframe(dff)
-        # Create DIRECCION DIFF column
+        
+        with st.expander("Graficos",expanded=True):
+            col_1,col_2,col_3 = st.columns(3)
+            with col_1:
+                st.plotly_chart(bar_graph(asig_res_df, "Responsable", "Niños", "Niños Asignados por Responsable",None,"v"))
+                
+            with col_2:
+                st.plotly_chart(bar_graph(tipo_seguro_df, "Tipo de Seguro", "Niños", "Niños por Tipo de Seguro",None,"v"))
+            with col_3:
+                st.plotly_chart(pie_graph(actualizado_df, "Actualizado", "Niños", "Niños por Tipo de Documento"))
+            col_4,col_5 = st.columns(2)
+            with col_4:
+                st.plotly_chart(bar_graph(actualizado_res_df, "Responsable", "Niños", "Actualizaciones por Responsable","Actualizado","v"))
+            with col_5:
+                st.plotly_chart(bar_graph(eess_df, "Niños", "EESS", "Niños por Establicimientos de Salud",None,"h"))
+        st.dataframe(dff)     
         st.download_button(
                 label="Descargar Reporte RN",
                 data=convert_excel_df(dff),
