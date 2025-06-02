@@ -28,6 +28,7 @@ def summary_tramo3():
             "Visitas Incompletas(faltantes:3)": "Visitas Incompletas", 
             }, 
       )
+    #csummary_df.to_excel("csummary_df.xlsx", index=False)
     #st.dataframe(csummary_df)
     percent_month_df = csummary_df.groupby(["Mes","Estado Visitas"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
     percent_month_df["Percent"] = (percent_month_df.groupby("Mes")["Cantidad"].transform(lambda x: x / x.sum() * 100)).round(2)
@@ -188,6 +189,7 @@ def summary_tramo3():
         "Visita Domiciliaria (Adolescente)": "Visita Domiciliaria",
         "Visita Domiciliaria (Adulta)": "Visita Domiciliaria",
     })
+    #csummary_gestantes.to_excel("csummary_gestantes.xlsx", index=False)
     #st.dataframe(csummary_gestantes)
     #st.write(csummary_gestantes)
     ###PORCENTAJE INDICADOR
@@ -234,6 +236,37 @@ def summary_tramo3():
     dispositivo_gest_df = csummary_vdges.groupby(["Mes","Dispositivo Intervención"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
     dispositivo_gest_df["Percent"] = (dispositivo_gest_df.groupby("Mes")["Cantidad"].transform(lambda x: x / x.sum() * 100)).round(2) 
     dispositivo_gest_df["Mes"] = dispositivo_gest_df["Mes"].map(mes_compname)
+    #### PUERPERA - GESTANTES
+    #st.dataframe(csummary_gestantes)
+    csummary_gestantes["ESTADO_NACIMIENTO"] = csummary_gestantes["ESTADO_NACIMIENTO"].replace({"SIN DATO": "GESTANTE","MESES PASADOS": "PUERPERA"})
+    etap_gest_df = csummary_gestantes.groupby(["Mes","ESTADO_NACIMIENTO"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
+    etap_gest_df["Percent"] = (etap_gest_df.groupby("Mes")["Cantidad"].transform(lambda x: x / x.sum() * 100)).round(2) 
+    etap_gest_df["Mes"] = etap_gest_df["Mes"].map(mes_compname)
+    
+    fig_etap_gest = px.bar(etap_gest_df, x="Mes", y="Percent", color="ESTADO_NACIMIENTO", title="%",
+                 #color_discrete_map=color_map,
+                 text=etap_gest_df.apply(lambda x: f"{x['ESTADO_NACIMIENTO']}<br>{x['Percent']:.1f}%", axis=1)
+                )
+    fig_etap_gest.update_layout(
+        barmode="relative",
+        bargap=0.2,     
+        bargroupgap=0.1,
+        showlegend=False,
+        
+        yaxis=dict(
+            title="Porcentaje (%)",
+            ticksuffix="%",
+            range=[0, 100]  
+        )
+    )
+    fig_etap_gest.update_traces(textposition="inside", textfont_size=14)
+    fig_etap_gest.update_layout(title_text="Distribución porcentual del Estado Gestante - Gestantes Tramo III")
+    
+    
+    
+    
+    
+    
     fig_gest_disp= px.bar(dispositivo_gest_df, x="Mes", y="Percent", color="Dispositivo Intervención", title="%",
                  #color_discrete_map=color_map,
                  text=dispositivo_gest_df.apply(lambda x: f"{x['Dispositivo Intervención']}<br>{x['Percent']:.1f}%", axis=1)
@@ -312,6 +345,8 @@ def summary_tramo3():
     with col_1_r3:
         
         st.plotly_chart(fig_gest_disp)
+    with col_2_r3:
+        st.plotly_chart(fig_etap_gest)
      
     gtable_df["Mes"] = gtable_df["Mes"].map(mes_compname)   
     st.download_button(

@@ -64,7 +64,7 @@ def dash_padron_modreg():
     num_rows = df.shape[0]
     st.write(num_rows)
     df['EDAD FORMATO'] = df['FECHA DE NACIMIENTO'].apply(calcular_edad)
-    print(df.columns)
+    
     Columnas=['CÓDIGO DE PADRON', 'CNV', 'CUI', 'DNI', 'ESTADO DE TRAMITE DE DNI',
        'FECHA DE TRAMITE DE DNI', 'APELLIDO PATERNO DEL NIÑO',
        'APELLIDO MATERNO DEL NIÑO', 'NOMBRES DEL NIÑO','DATOS NIÑO PADRON',  'SEXO',
@@ -99,7 +99,9 @@ def dash_padron_modreg():
        'TIPO DE DOCUMENTO DEL JEFE DE FAMILIA',
        'NUMERO DE DOCUMENTO DEL JEFE DE FAMILIA','DATOS JEFE PADRON',
        ]
+    
     datahomo_df = df[Columnas_HOMOLOGACION]
+    
     datahomo_df = datahomo_df.rename(columns = {
         "EESS NACIMIENTO":"Establecimiento de Salud Nacimiento",
         "EESS":"Establecimiento de Salud Atención",
@@ -108,6 +110,18 @@ def dash_padron_modreg():
         "DATOS JEFE PADRON":"Datos Jefe Familia",
         "EDAD FORMATO":"Edad del Niño"
     })
+    
+    datahomo_df["TIPO DE SEGURO"] = datahomo_df["TIPO DE SEGURO"].fillna("SIN DATOS").apply(
+            lambda x: "SIN DATOS" if x == "SIN DATOS" else 
+                ", ".join([{
+                        "0": "NINGUNO",
+                        "1": "SIS",
+                        "2": "ESSALUD",
+                        "3": "SANIDAD",
+                        "4": "PRIVADO"
+                    }.get(num.strip(), num.strip()) 
+                            for num in x.split(",") if num.strip()])
+        )
     #'ARANJUEZ'
     aranjuez_datahomo_df =  datahomo_df[datahomo_df["Establecimiento de Salud Atención"]=="ARANJUEZ"]
     #,'CLUB DE LEONES'
@@ -130,7 +144,7 @@ def dash_padron_modreg():
     pesqueda3_datahomo_df =  datahomo_df[datahomo_df["Establecimiento de Salud Atención"]=="PESQUEDA III"]
     #,'SAN MARTIN DE PORRES'
     sanmartin_datahomo_df =  datahomo_df[datahomo_df["Establecimiento de Salud Atención"]=="SAN MARTIN DE PORRES"]
-
+    
 
     ##################
 
@@ -151,6 +165,7 @@ def dash_padron_modreg():
     from io import BytesIO
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        # Write each dataframe to its sheet
         df_pivot.to_excel(writer, sheet_name='Resumen', index=False)
         aranjuez_datahomo_df.to_excel(writer, sheet_name='ARANJUEZ', index=False)
         club_datahomo_df.to_excel(writer, sheet_name='CLUB DE LEONES', index=False)
@@ -163,9 +178,73 @@ def dash_padron_modreg():
         pesqueda2_datahomo_df.to_excel(writer, sheet_name='PESQUEDA II', index=False)
         pesqueda3_datahomo_df.to_excel(writer, sheet_name='PESQUEDA III', index=False)
         sanmartin_datahomo_df.to_excel(writer, sheet_name='SAN MARTIN DE PORRES', index=False)
+
+        # Get the workbook and worksheet objects
+        workbook = writer.book
+        
+        # Define formats
+        header_format = workbook.add_format({
+            'bold': True,
+            'text_wrap': True,
+            'valign': 'top',
+            'fg_color': '#D7E4BC',
+            'border': 1
+        })
+
+        # Apply formatting to each worksheet
+        for sheet_name in writer.sheets:
+            worksheet = writer.sheets[sheet_name]
+            
+            # Get the dataframe for this sheet
+            if sheet_name == 'Resumen':
+                df_ = df_pivot
+            elif sheet_name == 'ARANJUEZ':
+                df_ = aranjuez_datahomo_df
+            elif sheet_name == 'CLUB DE LEONES':
+                df_ = club_datahomo_df
+            elif sheet_name == 'NORIA':
+                df_ = noria_datahomo_df
+            elif sheet_name == 'EL BOSQUE':
+                df_ = bosque_datahomo_df
+            elif sheet_name == 'LA UNION':
+                df_ = union_datahomo_df
+            elif sheet_name == 'LIBERTAD':
+                df_ = libertad_datahomo_df
+            elif sheet_name == 'SAGRADO CORAZON':
+                df_ = granados_datahomo_df
+            elif sheet_name == 'LOS JARDINES':
+                df_ = jardines_datahomo_df
+            elif sheet_name == 'PESQUEDA II':
+                df_ = pesqueda2_datahomo_df
+            elif sheet_name == 'PESQUEDA III':
+                df_ = pesqueda3_datahomo_df
+            elif sheet_name == 'SAN MARTIN DE PORRES':
+                df_ = sanmartin_datahomo_df
+
+            # Convert all column names to strings
+            df_.columns = df_.columns.astype(str)
+
+            # Format the header row
+            for col_num, value in enumerate(df_.columns.values):
+                worksheet.write(0, col_num, value, header_format)
+                # Set column width based on content
+                max_length = max(
+                    df_[value].astype(str).apply(len).max(),
+                    len(str(value))
+                )
+                worksheet.set_column(col_num, col_num, max_length + 2)
+
+            # Add table formatting
+            (max_row, max_col) = df_.shape
+            worksheet.add_table(0, 0, max_row, max_col - 1, {
+                'columns': [{'header': str(col)} for col in df_.columns],
+                'style': 'Table Style Medium 2',
+                'autofilter': True
+            })
+
     output.seek(0)
 
-    st.dataframe(df_pivot)
+    
     #st.write(.shape[0])
     st.download_button(
         label="📥 Descargar HOMOLOGACION",
