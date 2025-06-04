@@ -80,6 +80,7 @@ def pie_graph(datafrane : pd.DataFrame, name : str, values : str, title : str):
 def rn_month_insert():
     styles(2)
     padron_df = fetch_padron()
+    carga_childs_df = fetch_carga_childs()
     vd_childs_df = fetch_vd_childs()
     vd_gestantes_df = fetch_vd_gestantes()
     padron_df = padron_df[PADRON_COLUMNS]
@@ -102,6 +103,22 @@ def rn_month_insert():
         select_mes  = st.multiselect("Mes:",options=lista_mes,key="select2",default=lista_mes)
         if len(select_mes) > 0:
             padron_df = padron_df[padron_df["Mes"].isin(select_mes)]
+    
+    
+    #############################################################################################################
+    carga_childs_df["Año"] = carga_childs_df["Año"].astype(str)
+    carga_childs_df = carga_childs_df[carga_childs_df["Año"]=="2025"]
+    carga_childs_df["Mes_"] = carga_childs_df["Mes"].map(mes_compname)
+    carga_childs_df["Periodo"] = carga_childs_df["Año"]+" - "+carga_childs_df["Mes_"]+" - "
+    carga_childs_df = carga_childs_df.groupby(["Número de Documento del niño"])[["Periodo"]].sum().reset_index()
+    carga_childs_df["Periodo"] = carga_childs_df.apply(lambda x: eliminar_periodos_duplicados(x['Periodo']),axis=1)
+    carga_childs_df.columns = ["Documento","Periodo Carga C1"]
+    carga_childs_df["Periodo Carga C1"] = carga_childs_df["Periodo Carga C1"].str[:-2]
+    carga_childs_df = carga_childs_df.drop_duplicates(subset=['Documento'], keep='first')
+    #st.write(carga_childs_df.shape)
+    #st.dataframe(carga_childs_df)
+    
+    #############################################################################################################
     #########################
     vd_childs_df = vd_childs_df[vd_childs_df["Año"]=="2025"]
     
@@ -138,6 +155,7 @@ def rn_month_insert():
     padron_df['Edad'] = padron_df['FECHA DE NACIMIENTO'].apply(calcular_edad_dias)
     dff = pd.merge(padron_df, vd_childs_df, left_on='Documento', right_on='Documento', how='left') 
     dff = pd.merge(dff, vd_gestantes_df, left_on='NUMERO DE DOCUMENTO  DE LA MADRE', right_on='NUMERO DE DOCUMENTO  DE LA MADRE', how='left')
+    dff = pd.merge(dff, carga_childs_df, left_on='Documento', right_on='Documento', how='left')
     dff["ACTUALIZADO"] = np.where(
             (dff["ENTIDAD"] == "MUNICIPIO") &
             (dff["USUARIO QUE MODIFICA"].isin(["18215881", "SERVICIO DNI ESTADO"])) &
@@ -146,7 +164,7 @@ def rn_month_insert():
             "ACTUALIZADO",
             "NO ACTUALIZADO"
     )
-    
+    total_childs = dff.shape[0]
     act_mes_df = dff.groupby(["Mes Nacimiento","Mes","ACTUALIZADO"])[["Documento"]].count().sort_values(by="Mes Nacimiento",ascending=True).reset_index()
     act_mes_df.columns = ["Mes Nacimiento","Mes","Actualizado","Niños"]
     tipo_seguro_df = dff.groupby(["TIPO DE SEGURO"])[["ACTUALIZADO"]].count().sort_values("ACTUALIZADO",ascending=False).reset_index()
@@ -156,7 +174,7 @@ def rn_month_insert():
     
     col_1,col_2 = st.columns([1,1])
     with col_1:
-        st.plotly_chart(bar_graph(act_mes_df,x="Mes",y="Niños",title="Niños Actualizados por Mes",color="Actualizado",orientation="v"))
+        st.plotly_chart(bar_graph(act_mes_df,x="Mes",y="Niños",title=f"Niños Actualizados por Mes ({total_childs})",color="Actualizado",orientation="v"))
     with col_2:
         st.plotly_chart(bar_graph(tipo_seguro_df,x="Tipo de Seguro",y="Niños",title="Niños Actualizados por Tipo de Seguro",color=None,orientation="v"))
     col_1_1,col_1_2 = st.columns(2)

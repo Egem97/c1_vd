@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from datetime import datetime
 from styles import styles
 from utils.cache_handler import fetch_vd_childs,fetch_carga_childs,fetch_padron
 from utils.helpers import *
@@ -15,7 +16,7 @@ def childs_status_vd():
     datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
     eess = list(carga_df["Establecimiento de Salud"].unique())
     eess.remove(None)   
-    MESES = ["Ene","Feb","Mar","Abr","May"]
+    MESES = ["Ene","Feb","Mar","Abr","May","Jun"]
     columns_row1 = st.columns([3,2,2,4])
     columns_row1[0].title("Visitas a Niños")
     with columns_row1[1]:
@@ -30,7 +31,7 @@ def childs_status_vd():
             actvd_df = actvd_df[actvd_df["Establecimiento de Salud"].isin(select_eess)]
     
     
-
+    
     datos_ninos_df = datos_ninos_df[datos_ninos_df["Periodo"]==f"{select_year} - {select_mes}"]
     carga_filt_df = carga_df[(carga_df['Año']==int(select_year))&(carga_df['Mes']==int(mestext_short(select_mes)))]
     actvd_filt_df = actvd_df[(actvd_df['Año']==select_year)&(actvd_df['Mes']==select_mes)]
@@ -61,8 +62,9 @@ def childs_status_vd():
     actvd_filt_df = actvd_filt_df.drop_duplicates(subset='Número de Documento de Niño', keep='first')
     actvd_filt_df.columns = ["Doc_Ultimo_Mes","Actor Social Ultimo Mes","Estado_Visita_Ult","count"]
     actvd_filt_df = actvd_filt_df[["Doc_Ultimo_Mes","Actor Social Ultimo Mes","Estado_Visita_Ult"]]
+    actvd_filt_df["Doc_Ultimo_Mes"] = actvd_filt_df["Doc_Ultimo_Mes"].astype(str)
+    #st.dataframe(actvd_filt_df)
     
-    print(padron_df.columns)
     dataframe_pn = padron_df[[
         'Tipo_file', 'Documento', 'Tipo de Documento','DATOS NIÑO PADRON','CELULAR2_PADRON','SEXO',
         'FECHA DE NACIMIENTO', 'EJE VIAL', 'DIRECCION PADRON','REFERENCIA DE DIRECCION','MENOR VISITADO','¿MENOR ENCONTRADO?',
@@ -78,8 +80,10 @@ def childs_status_vd():
     join_df = join_df.sort_values(by=['Número de Documento del niño', 'Prioridad'])
     join_df = join_df.drop_duplicates(subset='Número de Documento del niño', keep='first')
     join_df = join_df.drop(columns=['Prioridad'])
-    join_df['Número de Documento del niño'] = join_df['Número de Documento del niño'].astype(str)
+    join_df['Número de Documento del niño'] = join_df['Número de Documento del niño'].astype(int).astype(str)
+    
     dataframe_ = pd.merge(join_df, actvd_filt_df, left_on='Número de Documento del niño', right_on='Doc_Ultimo_Mes', how='left')
+    #st.dataframe(dataframe_)
     del join_df , actvd_filt_df
     dataframe_['Pre Asignación'] = test(dataframe_,"Dirección")
     dataframe_['Pre Asignación_Padron'] = test(dataframe_,"DIRECCION PADRON")
@@ -121,6 +125,7 @@ def childs_status_vd():
             'EESS_C1', 'Fecha_ult_at_c1','Zona', 'Manzana', 'Sector','TIPO DE SEGURO','Tipo_file','ENTIDAD','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA','Estado_Visita_Ult', 'Mes', 'Año'
             ]
     dataframe_ = dataframe_[cols]
+    
     dataframe_.columns = ['Establecimiento de Salud',
                 'Actor Social', 'Tipo Documento',
                 'Tipo Documento(P)', 'Número de Documento',
@@ -136,26 +141,54 @@ def childs_status_vd():
                 'EESS ULTIMA ATENCION', 'Fecha Ultima Atención', 'Zona', 'Manzana', 'Sector','Tipo de Seguro', 'Tipo Registro Padrón Nominal',
                 'Entidad Actualiza','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA', 'Estado Niño', 'Mes', 'Año'
             ]
+    
     dataframe_['Estado Visitas'] =  dataframe_.apply(lambda x: estado_visitas_completas(x['N° Visitas Completas'], x['Total de VD presenciales Válidas'],x['Estado Niño']),axis=1)#.apply(lambda x: completar_names_col(x['DATOS NIÑO PADRON'], x['Niño']),axis=1)
+    #st.dataframe(dataframe_)
     dataframe_['Estado Niño'] = dataframe_['Estado Niño'].fillna(f"Sin Visita ({select_mes})")
     dataframe_['USUARIO QUE MODIFICA'] = dataframe_['USUARIO QUE MODIFICA'].fillna(f"Usuario no definido")
 
     #add prueba
     dataframe_['Edad'] = dataframe_['Fecha de Nacimiento'].apply(calcular_edad)
+    dataframe_['Edad Dias'] = dataframe_['Fecha de Nacimiento'].apply(lambda x: (datetime.now() - x).days)
+    #dataframe_['Edad 170-209 Dias'] = dataframe_['Edad Dias'].apply(lambda x: 1 if 170 <= x <= 209 else 0)
+    primer_dia_mes = datetime(int(select_year), int(mestext_short(select_mes)), 1)
+    if int(mestext_short(select_mes)) == 12:
+        ultimo_dia_mes = datetime(int(select_year) + 1, 1, 1) - pd.Timedelta(days=1)
+    else:
+        ultimo_dia_mes = datetime(int(select_year), int(mestext_short(select_mes)) + 1, 1) - pd.Timedelta(days=1)
+
+    dataframe_['Edad en días (primer día del mes)'] = dataframe_['Fecha de Nacimiento'].apply(lambda x: (primer_dia_mes - x).days)
+    dataframe_['Edad en días (último día del mes)'] = dataframe_['Fecha de Nacimiento'].apply(lambda x: (ultimo_dia_mes - x).days)
+
+    dataframe_['Niños 170-209 días en mes'] = dataframe_.apply(
+        lambda row: "SI" if (
+            (row['Edad en días (primer día del mes)'] <= 209 and row['Edad en días (último día del mes)'] >= 170)
+        ) else "NO", axis=1
+    )
+
+    dataframe_['Niños 350-389 días en mes'] = dataframe_.apply(
+        lambda row: "SI" if (
+            (row['Edad en días (primer día del mes)'] <= 389 and row['Edad en días (último día del mes)'] >= 350)
+        ) else "NO", axis=1
+    )
+    st.dataframe(dataframe_)
     ######################## FALTANTES
     dataframe_efec = dataframe_[dataframe_["Estado Niño"].isin(["Visita Domiciliaria (6 a 12 Meses)","Visita Domiciliaria (1 a 5 meses)"])]
+    
     vd_programadas_df = dataframe_.groupby(["Establecimiento de Salud"])[["N° Visitas Completas"]].sum().sort_values("N° Visitas Completas",ascending=False).reset_index()#,"Total de VD presencial Válidas WEB",
     child_programados_df = dataframe_.groupby(["Establecimiento de Salud"])[["N° Visitas Completas"]].count().sort_values("N° Visitas Completas",ascending=False).reset_index()
     child_programados_df = child_programados_df.rename(columns=  {"N° Visitas Completas":"Niños Programados"})
 
     vd_movil_df = dataframe_efec.groupby(["Establecimiento de Salud"])[["Total de VD presencial Válidas MOVIL"]].sum().reset_index()
     childs_encontrados_df = dataframe_efec.groupby(["Establecimiento de Salud"])[["Estado Niño"]].count().reset_index()
+    
     childs_encontrados_df = childs_encontrados_df.rename(columns=  {"Estado Niño":"Niños Encontrados"})
     proyectado_dff = pd.merge(child_programados_df,vd_programadas_df , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
     
 
     proyectado_dff = pd.merge(proyectado_dff, childs_encontrados_df, left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
     proyectado_dff = pd.merge(proyectado_dff, vd_movil_df, left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
+    
     proyectado_dff["Niños Encontrados"] = proyectado_dff["Niños Encontrados"].fillna(0)
     proyectado_dff["Total de VD presencial Válidas MOVIL"] = proyectado_dff["Total de VD presencial Válidas MOVIL"].fillna(0)
     

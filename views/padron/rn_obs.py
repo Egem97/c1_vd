@@ -113,6 +113,7 @@ def pie_graph(datafrane : pd.DataFrame, name : str, values : str, title : str):
 def rn_verificacion_insert():
     styles(2)
     padron_df = fetch_padron()
+    
     vd_childs_df = fetch_vd_childs()
     vd_gestantes_df = fetch_vd_gestantes()
     padron_df = padron_df[PADRON_COLUMNS]
@@ -127,7 +128,11 @@ def rn_verificacion_insert():
             uploaded_file = st.file_uploader(
                 "Ingresa Reporte Recien Nacidos", accept_multiple_files=False
             )
+            
+
+    
     # VD C1 NIÑOS
+    
     vd_childs_df = vd_childs_df[vd_childs_df["Año"]=="2025"]
     
     vd_childs_df["Etapa"] = vd_childs_df["Etapa"]+" - "
