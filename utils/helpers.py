@@ -89,310 +89,26 @@ def verificar_numeros(valor):
         return ''
     
 def test(dataframe, col_name):
-    condlist=[
+    distrito_condiciones = {
+        'ARANJUEZ': ["URB. PALERMO", "PALERMO", "CHICAGO", "ARANJUEZ", "LAS MALVINAS", "MERCADO MAYORISTA", "SECTOR ATAHUALPA", "SECTOR SICHI ROCA"],
+        'EL BOSQUE': ["SANTO DOMINGUITO", "URB. STO", "VILLA SANTA MARIA", "CARLOS WIES", "NORIA", "ASCENCIO DE SALAS", "SEMIRUSTICA EL BOSQUE", "PUEBLO JOVEN", "NUEVO SANTA ROSA", "EL BOSQUE", "MERCADO ASCOMAPAAT", "VILLA EL CONTADOR", "DIDEROT", "NUEVA SANTA ROSA", "SALAZAR BONDY", "VILLA DE CONTADORES", "TORRES DE QUEVEDO", "LUCIO SENECA", "JOSE LUIS DE CASTRO", "SINGAPUR", "LAS PAPAS", "SANTA ROSA", "ASCOMAPAT"],
+        'LOS JARDINES': ["MAMPUESTO", "MANPUESTO", "LOS JARDINES", "SANTA TERESA DE AVILA", "SAN ISIDRO", "LOS CEDROS", "SAN FERNANDO", "PRIMAVERA", "SANTA INES", "LOS FRESNOS", "MOCHICA", "VIRGEN", "MERCADO LIBERTAD", "LA HERMELINDA", "LOS NARANJOS", "SANTA LUCIA", "NICOLAS DE PIEROLA", "SEMI RUSTICA SAN MIGUEL", "VILLA BOLIVARIANA", "WILFREDO TORRES", "HERMANOS UCEDA MEZA", "VILLA HERMOSA", "ELVIRA GARCIA Y GARCIA", "FAUSTINO SARMIENTO", "MIRAFLORES", "LORD COCKRANE", "JOSE VASCONCELLOS", "ROSAS DE AMERICA", "SAN LUIS", "TAKAYNAMO", "SANTA LEONOR", "ALTO MOCHICA", "VIRGEN DE LA PUERTA", "LAS ORQUIDEAS", "VILLA POLICIAL", "SOLILUZ", "GIRASOLES DE SAN ISIDRO", "ALAMEDA", "SEÑOR DE LOS MILAGROS"],
+        'LOS GRANADOS "SAGRADO CORAZON"': ["EL SOL DEL CHACARERO", "LOS GRANADOS", "MARQUEZA", "DANIEL HOYLE", "CHIMU", "EL HUERTO", "LAS MALVINAS", "GRANADOS", "LAS ESMERALDAS", "LOS DIAMANTES", "LOS EUCALIPTOS", "LOS TOPACIO", "LOS TORNILLOS", "LOS ZAFIROS", "MANUEL UBALDE", "ZARUMILLA", "RAZURI", "EL PALOMAR", "RINCONADA"],
+        'SAN MARTIN DE PORRES': ["CRISTOBAL DE MOLINA", "FRANCISCO FALCON", "SANTA MARIA", "TORRES ARAUJO", "GALENO", "GALENOS", "COVIDUNT", "JAZMINES", "JASMINES", "MONSERRATE", "LA MERCED", "LAS CASUARINAS", "SAN VICENTE", "EL RECREO", "LA PERLA", "REPUBLICA DE PANAMA", "29 DE DICIEMBRE", "LA ARBOLEDA", "LOS ALAMOS", "SAN LUIS", "VISTA HERMOSA", "LOS LAURELES", "REAL PLAZA", "ARMANDO VILLANUEVA DEL CAMPO", "SANTA OLGA", "LOS PINOS"],
+        'PESQUEDA III': ["PESQUEDA III", "LAS CASUARINAS", "SAN FRANCISCO DE ASIS", "NUEVA RINCONDA", "LUIS DE LA PUENTE UCEDA", "PASAJE GRAU", "BOLOGNESI", "5 DE ABRIL", "LOS ESPINOS", "ATAHUALPA", "PASAJE N 5", "JOSE CARLOS MAREATEGUI", "JOSECARLOS MAREATEGUI", "LOS RUBIS", "LOS DIAMANTES"],
+        'CLUB DE LEONES': ["COVICORTI", "CORTIJO", "SANCHEZ CARRION", "CAPULLANAS", "NATASHA", "TRUPAL", "VISTA HERMOSA", "HUERTA GRANDEE", "COVIRT", "SAN NICOLAS", "EL ALAMBRE", "SAN ANDRES", "SAN ANDRÉS", "CENTRO CIVICO", "LA ESMERALDA", "JUAN VELASCO ALVARADO", "LOS PINOS", "GERONIMO DE LA TORRE", "SANTA ISABEL", "SAN SALVADOR", "SOLILUZ", "CIRO ALEGRIA", "CENTRO TRUJILLO", "CENTRO HISTORICO", "SANTA ISABEL", "20 DE ABRIL", "PEDRO MUÑIZ", "JUAN PABLO II", "MANUEL VERA ENRIQUEZ", "JORGE CHAVEZ", "MARIANO BEJAR", "SAN JUDAS TADEO", "LUIS ALBRECHT", "GIRASOLES", "FRANCISCO BOLOGNESI", "LAS FLORES", "NATASHA ALTA", "ROSALES DE SAN ANDRES", "TIERRA VERDE", "JESUS DE NAZARETH", "JESUS DE NAZARET", "JESUS DE NAZATETH", "ALBERTH"],
+        'CENTRO DE SALUD LA UNION': ["LA INTENDENCIA", "EL MOLINO", "LA UNION", "BARRIO OBRERO", "PROLONGACION SANTA", "EL EJERCITO", "EL EJÉRCITO"],
+        'LIBERTAD': ["HUERTA BELLA", "ANIMAS", "INDEPENDENCIA", "LIBERTAD", "LOS PORTALES", "EX FUNDO DE LAS ANIMAS", "LA RICONADA MZ"],
+        'PESQUEDA II': ["JUAN PABLO", "SANTA SOFIA", "LAS MALVAS", "PESQUEDA II", "HUASCARAN"]
+    }
 
-    ####-----------------ARANJUEZ
-    (dataframe[col_name].str.contains("URB. PALERMO")) |
-    (dataframe[col_name].str.contains("URB. PALERMO 1 ETAPA")) |
-    (dataframe[col_name].str.contains("PALERMO")) |
-    (dataframe[col_name].str.contains("CHICAGO")) |
-    (dataframe[col_name].str.contains("ARANJUEZ")) |
-    (dataframe[col_name].str.contains("LAS MALVINAS")) |
-    (dataframe[col_name].str.contains("MERCADO MAYORISTA")) |
-    (dataframe[col_name].str.contains("SECTOR ATAHUALPA")) |
-    (dataframe[col_name].str.contains("SECTOR SICHI ROCA")),
-    
-    ####-----------------EL BOSQUE
-    (dataframe[col_name].str.contains("URB. SANTO DOMINGUITO")) |
-    (dataframe[col_name].str.contains("SANTO DOMINGUITO")) |
-    (dataframe[col_name].str.contains("URB. STO")) |
-    (dataframe[col_name].str.contains("URB. VILLA SANTA MARIA")) |
-    (dataframe[col_name].str.contains("CARLOS WIES")) |
-    (dataframe[col_name].str.contains("NORIA")) |
-    (dataframe[col_name].str.contains("ASCENCIO DE SALAS")) |
-    (dataframe[col_name].str.contains("SEMIRUSTICA EL BOSQUE")) |
-    (dataframe[col_name].str.contains("SEMI RUSTICA EL BOSQUE")) |
-    (dataframe[col_name].str.contains("PUEBLO JOVEN")) |
-    (dataframe[col_name].str.contains("NUEVO SANTA ROSA")) |
-    (dataframe[col_name].str.contains("URB. EL BOSQUE")) |
-    (dataframe[col_name].str.contains("URB.STO")) |
-    (dataframe[col_name].str.contains("MERCADO ASCOMAPAAT")) |
-    (dataframe[col_name].str.contains("URB EL BOSQUE")) |
-    (dataframe[col_name].str.contains("VILLA EL CONTADOR")) |
-    (dataframe[col_name].str.contains("URB.EL BOSQUE")) |
-    (dataframe[col_name].str.contains("DIDEROT")) |
-    (dataframe[col_name].str.contains("NUEVA SANTA ROSA")) |
-    (dataframe[col_name].str.contains("SALAZAR BONDY")) |
-    (dataframe[col_name].str.contains("VILLA DE CONTADORES")) |
-    (dataframe[col_name].str.contains("TORRES DE QUEVEDO")) |
-    (dataframe[col_name].str.contains("CALLE LUCIO SENECA")) |
-    (dataframe[col_name].str.contains("JOSE LUIS DE CASTRO")) |
-    (dataframe[col_name].str.contains("VILLA SANTA MARIA")) |
-    (dataframe[col_name].str.contains("URB. SINGAPUR")) |
-    (dataframe[col_name].str.contains("LAS PAPAS")) |
-    (dataframe[col_name].str.contains("URB SANTA ROSA")) |
-    (dataframe[col_name].str.contains("URB RESIDENCIA TORRES DE QUEVEDO")) |
-    (dataframe[col_name].str.contains("URB. ASCOMAPAT")),
-    
-    ####-----------------LOS JARDINES
-    (dataframe[col_name].str.contains("MAMPUESTO")) |
-    (dataframe[col_name].str.contains("MANPUESTO")) |
-    (dataframe[col_name].str.contains("URB. LOS JARDINES")) |
-    (dataframe[col_name].str.contains("URB. SANTA TERESA DE AVILA")) |
-    (dataframe[col_name].str.contains("URB SANTA TERESA DE AVILA")) |
-    (dataframe[col_name].str.contains("URB. STA. TERESA")) |
-    (dataframe[col_name].str.contains("SAN ISIDRO")) |
-    (dataframe[col_name].str.contains("URB. LOS CEDROS")) |
-    (dataframe[col_name].str.contains("URB LOS CEDROS")) |
-    (dataframe[col_name].str.contains("SAN FERNANDO")) |
-    (dataframe[col_name].str.contains("URB. SAN FERNANDO")) |
-    (dataframe[col_name].str.contains("PRIMAVERA")) |
-    (dataframe[col_name].str.contains("SANTA INES")) |
-    (dataframe[col_name].str.contains("URB. LOS FRESNOS")) |
-    (dataframe[col_name].str.contains("MOCHICA")) |
-    (dataframe[col_name].str.contains("AA.HH VIRGEN")) |
-    (dataframe[col_name].str.contains("AA.HH. VIRGEN")) |
-    (dataframe[col_name].str.contains("MERCADO LIBERTAD")) |
-    (dataframe[col_name].str.contains("MERCADO LA LIBERTAD")) |
-    (dataframe[col_name].str.contains("LA HERMELINDA")) |
-    (dataframe[col_name].str.contains("URB. LOS NARANJOS")) |
-    (dataframe[col_name].str.contains("URB. LOS NARANJOS")) |
-    (dataframe[col_name].str.contains("URB. SANTA LUCIA")) |
-    (dataframe[col_name].str.contains("LOS NARANJOS")) |
-    (dataframe[col_name].str.contains("URB.LOS CEDROS")) |
-    (dataframe[col_name].str.contains("SAN ISISDRO")) |
-    (dataframe[col_name].str.contains("AV. NICOLAS DE PIEROLA")) |
-    (dataframe[col_name].str.contains("SEMI RUSTICA SAN MIGUEL")) |
-    (dataframe[col_name].str.contains("SEMIRUSTICA SAN MIGUEL")) |
-    (dataframe[col_name].str.contains("URB. LOS CEDROS")) |
-    (dataframe[col_name].str.contains("URB LOS CEDROS")) |
-    (dataframe[col_name].str.contains("SAN FERNANDO")) |
-    (dataframe[col_name].str.contains("URB. SAN FERNANDO")) |
-    (dataframe[col_name].str.contains("PRIMAVERA")) |
-    (dataframe[col_name].str.contains("SANTA INES")) |
-    (dataframe[col_name].str.contains("URB. LOS FRESNOS")) |
-    (dataframe[col_name].str.contains("MOCHICA")) |
-    (dataframe[col_name].str.contains("AA.HH VIRGEN")) |
-    (dataframe[col_name].str.contains("AA.HH. VIRGEN")) |
-    (dataframe[col_name].str.contains("MERCADO LIBERTAD")) |
-    (dataframe[col_name].str.contains("MERCADO LA LIBERTAD")) |
-    (dataframe[col_name].str.contains("LA HERMELINDA")) |
-    (dataframe[col_name].str.contains("URB. LOS NARANJOS")) |
-    (dataframe[col_name].str.contains("URB.LOS NARANJOS")) |
-    (dataframe[col_name].str.contains("URB. SANTA LUCIA")) |
-    (dataframe[col_name].str.contains("LOS NARANJOS")) |
-    (dataframe[col_name].str.contains("URB.LOS CEDROS")) |
-    (dataframe[col_name].str.contains("SAN ISISDRO")) |
-    (dataframe[col_name].str.contains("AV. NICOLAS DE PIEROLA")) |
-    (dataframe[col_name].str.contains("SEMI RUSTICA SAN MIGUEL")) |
-    (dataframe[col_name].str.contains("SEMIRUSTICA SAN MIGUEL")) |
-    (dataframe[col_name].str.contains("VILLA BOLIVARIANA")) |
-    (dataframe[col_name].str.contains("WILFREDO TORRES")) |
-    (dataframe[col_name].str.contains("AV. HERMANOS UCEDA MEZA")) |
-    (dataframe[col_name].str.contains("URB.VILLA HERMOSA")) |
-    (dataframe[col_name].str.contains("URB. VILLA HERMOSA")) |
-    (dataframe[col_name].str.contains("ELVIRA GARCIA Y GARCIA")) |
-    (dataframe[col_name].str.contains("FAUSTINO SARMIENTO")) |
-    (dataframe[col_name].str.contains("URB. MIRAFLORES")) |
-    (dataframe[col_name].str.contains("CALLE LORD COCKRANE")) |
-    (dataframe[col_name].str.contains("FAUSTINO SARMIENTO")) |
-    (dataframe[col_name].str.contains("JOSE VASCONCELLOS")) |
-    (dataframe[col_name].str.contains("ROSAS DE AMERICA")) |
-    (dataframe[col_name].str.contains("ROSAS DE AMÉRICA")) |
-    (dataframe[col_name].str.contains("ROSA DE AMERICA")) |
-    (dataframe[col_name].str.contains("RESIDENCIAL LOS JARDINES")) |
-    (dataframe[col_name].str.contains("URB.SANTA TERESA DE AVILA")) |
-    (dataframe[col_name].str.contains("URB. SAN LUIS")) |
-    (dataframe[col_name].str.contains("TAKAYNAMO")) |
-    (dataframe[col_name].str.contains("URB. SANTA LEONOR")) |
-    (dataframe[col_name].str.contains("URB. SANTA LEONOR 2 ETAPA")) |
-    (dataframe[col_name].str.contains("URB. ALTO MOCHICA")) |
-    (dataframe[col_name].str.contains("URB. VIRGEN DE LA PUERTA"))|
-    (dataframe[col_name].str.contains("URB. SAN MUGUEL")) |
-    (dataframe[col_name].str.contains("URB. LAS ORQUIDEAS")) |
-    (dataframe[col_name].str.contains("URB ROSAS DE AMERICA")) |
-    (dataframe[col_name].str.contains("URB. VILLA POLICIAL")) |
-    (dataframe[col_name].str.contains("URB. SOLILUZ")) |
-    (dataframe[col_name].str.contains("URB. SAN ISIDRO")) |
-    (dataframe[col_name].str.contains("URB. GIRASOLES DE SAN ISIDRO")) |
-    (dataframe[col_name].str.contains("RESIDENCIAL LOS JARDINES")) |
-    (dataframe[col_name].str.contains("URB. ALAMEDA")) |
-    (dataframe[col_name].str.contains("E - 12 URB SEÑOR DE LOS MILAGROS")) |
-    (dataframe[col_name].str.contains("C-27 LOS CEDROS")) |
-    (dataframe[col_name].str.contains("URB. ALAMEDA")) ,
-    
-    
-    ####-----------------LOS GRANADOS "SAGRADO CORAZON"
-    (dataframe[col_name].str.contains("URB. EL SOL DEL CHACARERO")) |
-    (dataframe[col_name].str.contains("LOS GRANADOS")) |
-    (dataframe[col_name].str.contains("MARQUEZA")) |
-    (dataframe[col_name].str.contains("DANIEL HOYLE")) |
-    (dataframe[col_name].str.contains("CHIMU")) |
-    (dataframe[col_name].str.contains("URB. EL HUERTO")) |
-    (dataframe[col_name].str.contains("LAS MALVINAS")) |
-    (dataframe[col_name].str.contains("GRANADOS")) |
-    (dataframe[col_name].str.contains("CALLE LAS ESMERALDAS")) |
-    (dataframe[col_name].str.contains("CALLE LOS DIAMANTES")) |
-    (dataframe[col_name].str.contains("CALLE LOS EUCALIPTOS")) |
-    (dataframe[col_name].str.contains("CALLE LOS TOPACIO")) |
-    (dataframe[col_name].str.contains("CALLE LOS TORNILLOS")) |
-    (dataframe[col_name].str.contains("CALLE LOS ZAFIROS")) |
-    (dataframe[col_name].str.contains("MANUEL UBALDE")) |
-    (dataframe[col_name].str.contains("CALLE ZARUMILLA")) |
-    (dataframe[col_name].str.contains("RAZURI")) |
-    (dataframe[col_name].str.contains("RAZURI 1 ETAPA")) |
-    (dataframe[col_name].str.contains("RAZURI 2 ETAPA")) |
-    (dataframe[col_name].str.contains("URB. RAZURI")) |
-    (dataframe[col_name].str.contains("URB. EL PALOMAR")) |
-    (dataframe[col_name].str.contains("URB. EL SOL DE CHACARERO")) |
-    (dataframe[col_name].str.contains("URB. RINCONADA")) |
-    (dataframe[col_name].str.contains("RINCONADA")),
-        
-    ####-----------------SAN MARTIN DE PORRES
-    (dataframe[col_name].str.contains("CALLE CRISTOBAL DE MOLINA")) |
-    (dataframe[col_name].str.contains("CALLE FRANCISCO FALCON")) |
-    (dataframe[col_name].str.contains("URB. SANTA MARIA")) |
-    (dataframe[col_name].str.contains("TORRES ARAUJO")) |
-    (dataframe[col_name].str.contains("GALENO")) |
-    (dataframe[col_name].str.contains("GALENOS")) |
-    (dataframe[col_name].str.contains("COVIDUNT")) |
-    (dataframe[col_name].str.contains("JAZMINES")) |
-    (dataframe[col_name].str.contains("JASMINES")) |
-    (dataframe[col_name].str.contains("MONSERRATE")) |
-    (dataframe[col_name].str.contains("LA MERCED")) |
-    (dataframe[col_name].str.contains("URB. LAS CASUARINAS")) |
-    (dataframe[col_name].str.contains("URB. SAN VICENTE")) |
-    (dataframe[col_name].str.contains("EL RECREO")) |
-    (dataframe[col_name].str.contains("URB. LA PERLA")) |
-    (dataframe[col_name].str.contains("CALLE REPUBLICA DE PANAMA")) |
-    (dataframe[col_name].str.contains("AV. 29 DE DICIEMBRE")) |
-    (dataframe[col_name].str.contains("URB. LA ARBOLEDA")) |
-    (dataframe[col_name].str.contains("LOS ALAMOS DE SANTA MARIA")) |
-    (dataframe[col_name].str.contains("ASENT.H. SAN LUIS")) |
-    (dataframe[col_name].str.contains("URB. VISTA HERMOSA")) |
-    (dataframe[col_name].str.contains("URB. LOS LAURELES")) |
-    (dataframe[col_name].str.contains("URB. REAL PLAZA")) |
-    (dataframe[col_name].str.contains("AA.HH. ARMANDO VILLANUEVA DEL CAMPO")) |
-    (dataframe[col_name].str.contains("URB. SANTA OLGA")) |
-    (dataframe[col_name].str.contains("URB. LOS PINOS")) |
-    (dataframe[col_name].str.contains("URB. LA ARBOLEDA")) |
-    (dataframe[col_name].str.contains("URB. LAS CAUARINAS")),
-    
-    ####-----------------PESQUEDA III
-    (dataframe[col_name].str.contains("PESQUEDA III")) |
-    (dataframe[col_name].str.contains("CALLE LAS CASUARINAS")) |
-    (dataframe[col_name].str.contains("AA.HH SAN FRANCISCO DE ASIS")) |
-    (dataframe[col_name].str.contains("AA.HH. SAN FRANCISCO DE ASIS")) |
-    (dataframe[col_name].str.contains("NUEVA RINCONDA")) |
-    (dataframe[col_name].str.contains("LUIS DE LA PUENTE UCEDA")) |
-    (dataframe[col_name].str.contains("PASAJE GRAU")) |
-    (dataframe[col_name].str.contains("BOLOGNESI")) |
-    (dataframe[col_name].str.contains("AVENIDA 5 DE ABRIL")) |
-    (dataframe[col_name].str.contains("LOS ESPINOS")) |
-    (dataframe[col_name].str.contains("ATAHUALPA")) |
-    (dataframe[col_name].str.contains("PASAJE N 5")) |
-    (dataframe[col_name].str.contains("JOSE CARLOS MAREATEGUI")) |
-    (dataframe[col_name].str.contains("JOSECARLOS MAREATEGUI")) |
-    (dataframe[col_name].str.contains("LOS RUBIS")) |
-    (dataframe[col_name].str.contains("LOS DIAMANTES")),
-    
-    
-    
-    
-    
-    ####---------------------CLUB DE LEONES
-    (dataframe[col_name].str.contains("COVICORTI")) |
-    (dataframe[col_name].str.contains("CORTIJO")) |
-    (dataframe[col_name].str.contains("URB. SANCHEZ CARRION")) |
-    (dataframe[col_name].str.contains("CAPULLANAS")) |
-    (dataframe[col_name].str.contains("NATASHA")) |
-    (dataframe[col_name].str.contains("TRUPAL")) |
-    (dataframe[col_name].str.contains("VISTA HERMOSA")) |
-    (dataframe[col_name].str.contains("HUERTA GRANDEE")) |
-    (dataframe[col_name].str.contains("COVIRT")) |
-    (dataframe[col_name].str.contains("SAN NICOLAS")) |
-    (dataframe[col_name].str.contains("EL ALAMBRE")) |
-    (dataframe[col_name].str.contains("SAN ANDRES")) |
-    (dataframe[col_name].str.contains("SAN ANDRÉS")) |
-    (dataframe[col_name].str.contains("CENTRO CIVICO")) |
-    (dataframe[col_name].str.contains("URB. LA ESMERALDA")) |
-    (dataframe[col_name].str.contains("JUAN VELASCO ALVARADO")) |
-    (dataframe[col_name].str.contains("URB. LOS PINOS")) |
-    (dataframe[col_name].str.contains("LA ESMERALDA")) |
-    (dataframe[col_name].str.contains("GERONIMO DE LA TORRE")) |
-    (dataframe[col_name].str.contains("URB. SANTA ISABEL")) |
-    (dataframe[col_name].str.contains("URB. SAN SALVADOR")) |
-    (dataframe[col_name].str.contains("URB. SOLILUZ")) |
-    (dataframe[col_name].str.contains("URB. CIRO ALEGRIA")) |
-    (dataframe[col_name].str.contains("URB CIRO ALEGRIA")) |
-    (dataframe[col_name].str.contains("CENTRO TRUJILLO")) |
-    (dataframe[col_name].str.contains("CENTRO HISTORICO")) |
-    (dataframe[col_name].str.contains("PP.JJ SANTA ISABEL")) |
-    (dataframe[col_name].str.contains("20 DE ABRIL")) |
-    (dataframe[col_name].str.contains("AV. PEDRO MUÑIZ")) |
-    (dataframe[col_name].str.contains("URB. JUAN PABLO II")) |
-    (dataframe[col_name].str.contains("AV. MANUEL VERA ENRIQUEZ")) |
-    (dataframe[col_name].str.contains("JORGE CHAVEZ")) |
-    (dataframe[col_name].str.contains("MARIANO BEJAR")) |
-    (dataframe[col_name].str.contains("COOP VIV. SAN JUDAS TADEO")) |
-    (dataframe[col_name].str.contains("LUIS ALBRECHT")) |
-    (dataframe[col_name].str.contains("JARDIN DE LOS GIRASOLES")) |
-    (dataframe[col_name].str.contains("JR. FRANCISCO BOLOGNESI")) |
-    (dataframe[col_name].str.contains("URB. LAS FLORES")) |
-    (dataframe[col_name].str.contains("NATASHA ALTA")) |
-    (dataframe[col_name].str.contains("URB. LOS ROSALES DE SAN ANDRES")) |
-    (dataframe[col_name].str.contains("SECTOR CONDOMINIO TIERRA VERDE")) |
-    (dataframe[col_name].str.contains("SECTOR AV. JESUS DE NAZARETH")) |
-    (dataframe[col_name].str.contains("AV. JESUS DE NAZARET")) |
-    (dataframe[col_name].str.contains("AV. JESUS DE NAZATETH")) |
-    (dataframe[col_name].str.contains("PEDRO MUÑIZ")) |
-    (dataframe[col_name].str.contains("URB. SANCHEZ CARRION")) |
-    (dataframe[col_name].str.contains("EL ALAMBRE")) |
-    (dataframe[col_name].str.contains("URB. SANTA ISABEL")) |
-    (dataframe[col_name].str.contains("SECTOR ALBERTH")) |
-    (dataframe[col_name].str.contains("URB. SAN ANDRES")),
-    
-       
-    
-    ####---------------------CENTRO DE SALUD LA UNION
-    (dataframe[col_name].str.contains("LA INTENDENCIA")) |
-    (dataframe[col_name].str.contains("EL MOLINO")) |
-    (dataframe[col_name].str.contains("SECTOR LA UNION")) |
-    (dataframe[col_name].str.contains("BARRIO OBRERO")) |
-    (dataframe[col_name].str.contains("SECTOR PROLONGACION SANTA")) |
-    (dataframe[col_name].str.contains("SECTOR AV. EL EJERCITO")) |
-    (dataframe[col_name].str.contains("AV. EL EJERCITO")) |
-    (dataframe[col_name].str.contains("AV. EL EJÉRCITO")),    
-  
-    ####---------------------LIBERTAD
-    (dataframe[col_name].str.contains("HUERTA BELLA")) |
-    (dataframe[col_name].str.contains("ANIMAS")) |
-    (dataframe[col_name].str.contains("URB. INDEPENDENCIA")) |
-    (dataframe[col_name].str.contains("URB. LIBERTAD")) |
-    (dataframe[col_name].str.contains("URB. LOS PORTALES")) |
-    (dataframe[col_name].str.contains("URB. HUERTA BELLA")) |
-    (dataframe[col_name].str.contains("URB. EX FUNDO DE LAS ANIMAS"))|
-    (dataframe[col_name].str.contains("URB LOS PORTALES")) |
-    (dataframe[col_name].str.contains("URBANIZACION LOS PORTALES")) |
-    (dataframe[col_name].str.contains("URB. LA LIBERTAD")) |
-    (dataframe[col_name].str.contains("URB. LA RICONADA MZ.")),
-    
-    
-    #------PESQUEDA II
-    (dataframe[col_name].str.contains("ASENT.H. JUAN PABLO")) |
-    (dataframe[col_name].str.contains("SANTA SOFIA")) |
-    (dataframe[col_name].str.contains("CALLE LAS MALVAS")) |
-    (dataframe[col_name].str.contains("ASENT.H. JUAN PABLO")) |
-    (dataframe[col_name].str.contains("SANTA SOFIA")) |
-    (dataframe[col_name].str.contains("AV PESQUEDA II")) |
-    (dataframe[col_name].str.contains("AV. PESQUEDA II")) |
-    (dataframe[col_name].str.contains("AV. HUASCARAN")) |
-    (dataframe[col_name].str.contains("PESQUEDA II SECTOR ")) |
-    (dataframe[col_name].str.contains("JUAN PABLO MZ")),   
-    
-    ]
-    choicelist_1 =['ARANJUEZ','EL BOSQUE','LOS JARDINES','LOS GRANADOS "SAGRADO CORAZON"','SAN MARTIN DE PORRES','PESQUEDA III','CLUB DE LEONES','CENTRO DE SALUD LA UNION','LIBERTAD','PESQUEDA II']
-    return np.select(condlist,choicelist_1,default='No Especificado')
+    condlist = []
+    for distrito, condiciones in distrito_condiciones.items():
+        condicion = dataframe[col_name].str.contains('|'.join(condiciones), case=False, na=False)
+        condlist.append(condicion)
+
+    choicelist = list(distrito_condiciones.keys())
+    return np.select(condlist, choicelist, default='No Especificado')
     
 def mes_short(x):
     dict_mes = {1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Set',10:'Oct',11:'Nov',12:'Dic'}
@@ -450,3 +166,92 @@ def estado_proyectado(vd_faltantes,proyectado):
             return "OK"
         else:
             return "EN RIESGO"
+        
+def safe_percent(numerator, denominator):
+    return round((numerator / denominator) * 100, 2) if denominator else 0
+
+def generar_excel_distritos():
+    """
+    Genera un archivo Excel con la información de los distritos y sus condiciones
+    de una manera organizada y visualmente atractiva.
+    """
+    # Crear un DataFrame con la información
+    distrito_condiciones = {
+        'ARANJUEZ': ["URB. PALERMO", "PALERMO", "CHICAGO", "ARANJUEZ", "LAS MALVINAS", "MERCADO MAYORISTA", "SECTOR ATAHUALPA", "SECTOR SICHI ROCA"],
+        'EL BOSQUE': ["SANTO DOMINGUITO", "URB. STO", "VILLA SANTA MARIA", "CARLOS WIES", "NORIA", "ASCENCIO DE SALAS", "SEMIRUSTICA EL BOSQUE", "PUEBLO JOVEN", "NUEVO SANTA ROSA", "EL BOSQUE", "MERCADO ASCOMAPAAT", "VILLA EL CONTADOR", "DIDEROT", "NUEVA SANTA ROSA", "SALAZAR BONDY", "VILLA DE CONTADORES", "TORRES DE QUEVEDO", "LUCIO SENECA", "JOSE LUIS DE CASTRO", "SINGAPUR", "LAS PAPAS", "SANTA ROSA", "ASCOMAPAT"],
+        'LOS JARDINES': ["MAMPUESTO", "MANPUESTO", "LOS JARDINES", "SANTA TERESA DE AVILA", "SAN ISIDRO", "LOS CEDROS", "SAN FERNANDO", "PRIMAVERA", "SANTA INES", "LOS FRESNOS", "MOCHICA", "VIRGEN", "MERCADO LIBERTAD", "LA HERMELINDA", "LOS NARANJOS", "SANTA LUCIA", "NICOLAS DE PIEROLA", "SEMI RUSTICA SAN MIGUEL", "VILLA BOLIVARIANA", "WILFREDO TORRES", "HERMANOS UCEDA MEZA", "VILLA HERMOSA", "ELVIRA GARCIA Y GARCIA", "FAUSTINO SARMIENTO", "MIRAFLORES", "LORD COCKRANE", "JOSE VASCONCELLOS", "ROSAS DE AMERICA", "SAN LUIS", "TAKAYNAMO", "SANTA LEONOR", "ALTO MOCHICA", "VIRGEN DE LA PUERTA", "LAS ORQUIDEAS", "VILLA POLICIAL", "SOLILUZ", "GIRASOLES DE SAN ISIDRO", "ALAMEDA", "SEÑOR DE LOS MILAGROS"],
+        'LOS GRANADOS "SAGRADO CORAZON"': ["EL SOL DEL CHACARERO", "LOS GRANADOS", "MARQUEZA", "DANIEL HOYLE", "CHIMU", "EL HUERTO", "LAS MALVINAS", "GRANADOS", "LAS ESMERALDAS", "LOS DIAMANTES", "LOS EUCALIPTOS", "LOS TOPACIO", "LOS TORNILLOS", "LOS ZAFIROS", "MANUEL UBALDE", "ZARUMILLA", "RAZURI", "EL PALOMAR", "RINCONADA"],
+        'SAN MARTIN DE PORRES': ["CRISTOBAL DE MOLINA", "FRANCISCO FALCON", "SANTA MARIA", "TORRES ARAUJO", "GALENO", "GALENOS", "COVIDUNT", "JAZMINES", "JASMINES", "MONSERRATE", "LA MERCED", "LAS CASUARINAS", "SAN VICENTE", "EL RECREO", "LA PERLA", "REPUBLICA DE PANAMA", "29 DE DICIEMBRE", "LA ARBOLEDA", "LOS ALAMOS", "SAN LUIS", "VISTA HERMOSA", "LOS LAURELES", "REAL PLAZA", "ARMANDO VILLANUEVA DEL CAMPO", "SANTA OLGA", "LOS PINOS"],
+        'PESQUEDA III': ["PESQUEDA III", "LAS CASUARINAS", "SAN FRANCISCO DE ASIS", "NUEVA RINCONDA", "LUIS DE LA PUENTE UCEDA", "PASAJE GRAU", "BOLOGNESI", "5 DE ABRIL", "LOS ESPINOS", "ATAHUALPA", "PASAJE N 5", "JOSE CARLOS MAREATEGUI", "JOSECARLOS MAREATEGUI", "LOS RUBIS", "LOS DIAMANTES"],
+        'CLUB DE LEONES': ["COVICORTI", "CORTIJO", "SANCHEZ CARRION", "CAPULLANAS", "NATASHA", "TRUPAL", "VISTA HERMOSA", "HUERTA GRANDEE", "COVIRT", "SAN NICOLAS", "EL ALAMBRE", "SAN ANDRES", "SAN ANDRÉS", "CENTRO CIVICO", "LA ESMERALDA", "JUAN VELASCO ALVARADO", "LOS PINOS", "GERONIMO DE LA TORRE", "SANTA ISABEL", "SAN SALVADOR", "SOLILUZ", "CIRO ALEGRIA", "CENTRO TRUJILLO", "CENTRO HISTORICO", "SANTA ISABEL", "20 DE ABRIL", "PEDRO MUÑIZ", "JUAN PABLO II", "MANUEL VERA ENRIQUEZ", "JORGE CHAVEZ", "MARIANO BEJAR", "SAN JUDAS TADEO", "LUIS ALBRECHT", "GIRASOLES", "FRANCISCO BOLOGNESI", "LAS FLORES", "NATASHA ALTA", "ROSALES DE SAN ANDRES", "TIERRA VERDE", "JESUS DE NAZARETH", "JESUS DE NAZARET", "JESUS DE NAZATETH", "ALBERTH"],
+        'CENTRO DE SALUD LA UNION': ["LA INTENDENCIA", "EL MOLINO", "LA UNION", "BARRIO OBRERO", "PROLONGACION SANTA", "EL EJERCITO", "EL EJÉRCITO"],
+        'LIBERTAD': ["HUERTA BELLA", "ANIMAS", "INDEPENDENCIA", "LIBERTAD", "LOS PORTALES", "EX FUNDO DE LAS ANIMAS", "LA RICONADA MZ"],
+        'PESQUEDA II': ["JUAN PABLO", "SANTA SOFIA", "LAS MALVAS", "PESQUEDA II", "HUASCARAN"]
+    }
+
+    data = []
+    for distrito, condiciones in distrito_condiciones.items():
+        for condicion in condiciones:
+            data.append({
+                'Distrito': distrito,
+                'Condición': condicion
+            })
+    
+    df = pd.DataFrame(data)
+    
+    # Crear el archivo Excel
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Distritos')
+        workbook = writer.book
+        worksheet = writer.sheets['Distritos']
+        
+        # Definir formatos
+        header_format = workbook.add_format({
+            'bold': True,
+            'text_wrap': True,
+            'valign': 'top',
+            'fg_color': '#D7E4BC',
+            'border': 1
+        })
+        
+        distrito_format = workbook.add_format({
+            'text_wrap': True,
+            'valign': 'top',
+            'border': 1
+        })
+        
+        # Aplicar formatos
+        for col_num, value in enumerate(df.columns.values):
+            worksheet.write(0, col_num, value, header_format)
+        
+        # Ajustar anchos de columna
+        worksheet.set_column('A:A', 30)  # Columna Distrito
+        worksheet.set_column('B:B', 50)  # Columna Condición
+        
+        # Agregar tabla con filtros incluidos
+        worksheet.add_table(0, 0, len(df), len(df.columns)-1, {
+            'columns': [{'header': col} for col in df.columns],
+            'style': 'Table Style Medium 2',
+            'autofilter': True
+        })
+    
+    return output.getvalue()
+
+def es_consecutivo(numero):
+    # Convertir el número a string para poder iterar sobre sus dígitos
+    str_numero = str(numero)
+    
+    # Si tiene menos de 2 dígitos, no es consecutivo
+    if len(str_numero) < 2:
+        return "No Consecutivo"
+    
+    # Convertir cada dígito a entero
+    digitos = [int(d) for d in str_numero]
+    
+    # Verificar si hay al menos dos dígitos consecutivos
+    for i in range(len(digitos)-1):
+        if digitos[i+1] - digitos[i] == 1:
+            return "Consecutivo"
+    
+    return "No Consecutivo"

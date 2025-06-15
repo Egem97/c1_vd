@@ -171,7 +171,7 @@ def childs_status_vd():
             (row['Edad en días (primer día del mes)'] <= 389 and row['Edad en días (último día del mes)'] >= 350)
         ) else "NO", axis=1
     )
-    st.dataframe(dataframe_)
+    #st.dataframe(dataframe_)
     ######################## FALTANTES
     dataframe_efec = dataframe_[dataframe_["Estado Niño"].isin(["Visita Domiciliaria (6 a 12 Meses)","Visita Domiciliaria (1 a 5 meses)"])]
     
