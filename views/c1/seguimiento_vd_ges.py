@@ -223,24 +223,24 @@ def gestantes_status_vd():
         gestantes_tabla_df = pd.merge(gestantes_carga_df,vd_prog_df , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
         gestantes_tabla_df['Establecimiento de Salud'] = gestantes_tabla_df['Establecimiento de Salud'].str[11:]
         
-
+        
             
         actvd_last_geo_df = actvd_filt_df_last[actvd_filt_df_last["Dispositivo Intervención"]=="MOVIL"]
-        vd_geo_dff = actvd_last_geo_df.groupby(["Establecimiento de Salud","Número de Documento","Etapa"])[["Estado Intervención"]].count().sort_values("Estado Intervención",ascending=False).reset_index()
-        vd_geo_dff['Etapa'] = vd_geo_dff['Etapa'].replace({'Visita Domiciliaria (Adulta)': 'Visita Domiciliaria','Visita Domiciliaria (Adolescente)': 'Visita Domiciliaria'})
-        vd_geo_dff = vd_geo_dff.groupby(["Establecimiento de Salud"])[["Estado Intervención"]].count().sort_values("Estado Intervención",ascending=False).reset_index()
+        #vd_geo_dff = actvd_last_geo_df.groupby(["Establecimiento de Salud","Número de Documento","Etapa"])[["Estado Intervención"]].count().sort_values("Estado Intervención",ascending=False).reset_index()
+        #vd_geo_dff['Etapa'] = vd_geo_dff['Etapa'].replace({'Visita Domiciliaria (Adulta)': 'Visita Domiciliaria','Visita Domiciliaria (Adolescente)': 'Visita Domiciliaria'})
+        vd_geo_dff = actvd_last_geo_df.groupby(["Establecimiento de Salud"])[["Estado Intervención"]].count().sort_values("Estado Intervención",ascending=False).reset_index()
         vd_geo_dff.columns = ["Establecimiento de Salud","Visitas Realizadas GEO"]
         gestantes_tabla_df = pd.merge(gestantes_tabla_df,vd_geo_dff , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
         gestantes_tabla_df["Visitas Realizadas GEO"] = gestantes_tabla_df["Visitas Realizadas GEO"].fillna(0)
             
             #gestantes_tabla_df["Visitas Realizadas GEO"] = gestantes_tabla_df["Visita Domiciliaria"]+gestantes_tabla_df["No Encontrado"]
-            
+        #st.dataframe(gestantes_tabla_df)    
 
         try:
             actvd_last_web_df = actvd_filt_df_last[actvd_filt_df_last["Dispositivo Intervención"]=="WEB"]
-            vd_web_dff = actvd_last_web_df.groupby(["Establecimiento de Salud","Número de Documento","Etapa"])[["Estado Intervención"]].count().sort_values("Estado Intervención",ascending=False).reset_index()
-            vd_web_dff['Etapa'] = vd_web_dff['Etapa'].replace({'Visita Domiciliaria (Adulta)': 'Visita Domiciliaria','Visita Domiciliaria (Adolescente)': 'Visita Domiciliaria'})
-            vd_web_dff = vd_web_dff.groupby(["Establecimiento de Salud"])[["Estado Intervención"]].count().sort_values("Estado Intervención",ascending=False).reset_index()
+            #vd_web_dff = actvd_last_web_df.groupby(["Establecimiento de Salud","Número de Documento","Etapa"])[["Estado Intervención"]].count().sort_values("Estado Intervención",ascending=False).reset_index()
+            #vd_web_dff['Etapa'] = vd_web_dff['Etapa'].replace({'Visita Domiciliaria (Adulta)': 'Visita Domiciliaria','Visita Domiciliaria (Adolescente)': 'Visita Domiciliaria'})
+            vd_web_dff = actvd_last_web_df.groupby(["Establecimiento de Salud"])[["Estado Intervención"]].count().sort_values("Estado Intervención",ascending=False).reset_index()
             vd_web_dff.columns = ["Establecimiento de Salud","Visitas Realizadas WEB"]
             gestantes_tabla_df = pd.merge(gestantes_tabla_df,vd_web_dff , left_on='Establecimiento de Salud', right_on='Establecimiento de Salud', how='left')
             gestantes_tabla_df["Visitas Realizadas WEB"] = gestantes_tabla_df["Visitas Realizadas WEB"].fillna(0)
