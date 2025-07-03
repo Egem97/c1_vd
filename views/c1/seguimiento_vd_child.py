@@ -41,8 +41,9 @@ def visitas_ninos_dashboard():
             with col_head4:
                 select_mes  = st.selectbox("Mes:",list_mes , key="select2",index=len(list_mes) - 1)
             
-        
+            #st.dataframe(datos_ninos_df)
             datos_ninos_df = datos_ninos_df[datos_ninos_df["Periodo"]==f"{select_year}-{select_mes}"]
+            #st.write(f"{select_year}-{select_mes}")
             datos_ninos_df = fix_data_childs(datos_ninos_df)
             #st.dataframe(datos_ninos_df)
             carga_filt_df = carga_df[(carga_df['Año']==int(select_year))&(carga_df['Mes']==int(mestext_short(select_mes)))]
