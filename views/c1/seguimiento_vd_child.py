@@ -118,7 +118,7 @@ def visitas_ninos_dashboard():
             dataframe_['Edad'] = dataframe_['Fecha de Nacimiento'].apply(calcular_edad)
 
             dataframe_['Edad Dias'] = dataframe_['Fecha de Nacimiento'].apply(lambda x: (datetime.now() - x).days)
-            #dataframe_['Edad 170-209 Dias'] = dataframe_['Edad Dias'].apply(lambda x: 1 if 170 <= x <= 209 else 0)
+          
             primer_dia_mes = datetime(int(select_year), int(mestext_short(select_mes)), 1)
             if int(mestext_short(select_mes)) == 12:
                 ultimo_dia_mes = datetime(int(select_year) + 1, 1, 1) - pd.Timedelta(days=1)
@@ -128,15 +128,28 @@ def visitas_ninos_dashboard():
             dataframe_['Edad en días (primer día del mes)'] = dataframe_['Fecha de Nacimiento'].apply(lambda x: (primer_dia_mes - x).days)
             dataframe_['Edad en días (último día del mes)'] = dataframe_['Fecha de Nacimiento'].apply(lambda x: (ultimo_dia_mes - x).days)
 
-            dataframe_['Niños 170-209 días en mes'] = dataframe_.apply(
+
+            dataframe_['Niños 120-149 días en mes'] = dataframe_.apply(
                 lambda row: "SI" if (
-                    (row['Edad en días (primer día del mes)'] <= 209 and row['Edad en días (último día del mes)'] >= 170)
+                    (row['Edad en días (primer día del mes)'] <= 149 and row['Edad en días (último día del mes)'] >= 120)
                 ) else "NO", axis=1
             )
 
-            dataframe_['Niños 350-389 días en mes'] = dataframe_.apply(
+            dataframe_['Niños 180-209 días en mes'] = dataframe_.apply(
                 lambda row: "SI" if (
-                    (row['Edad en días (primer día del mes)'] <= 389 and row['Edad en días (último día del mes)'] >= 350)
+                    (row['Edad en días (primer día del mes)'] <= 209 and row['Edad en días (último día del mes)'] >= 180)
+                ) else "NO", axis=1
+            )
+
+            dataframe_['Niños 270-299 días en mes'] = dataframe_.apply(
+                lambda row: "SI" if (
+                    (row['Edad en días (primer día del mes)'] <= 299 and row['Edad en días (último día del mes)'] >= 270)
+                ) else "NO", axis=1
+            )
+
+            dataframe_['Niños 360-389 días en mes'] = dataframe_.apply(
+                lambda row: "SI" if (
+                    (row['Edad en días (primer día del mes)'] <= 389 and row['Edad en días (último día del mes)'] >= 360)
                 ) else "NO", axis=1
             )
             metric_col = st.columns(7)
@@ -146,7 +159,7 @@ def visitas_ninos_dashboard():
 
 
             #########################################################
-            tab1, tab2, tab3 = st.tabs(["Seguimiento Visitas Georreferenciadas","Seguimiento Niños que cumplen 170-209 días en el mes","Seguimiento Niños que cumplen 350-389 días en el mes"])
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(["Seguimiento Visitas Georreferenciadas","Seguimiento Niños que cumplen 120-149 días en el mes","Seguimiento Niños que cumplen 180-209 días en el mes","Seguimiento Niños que cumplen 270-299 días en el mes","Seguimiento Niños que cumplen 360-389 días en el mes"])
             with tab1:
                 st.subheader("📱Seguimiento Visitas Georreferenciadas")
                 vd_geo_percent_df = dataframe_[(dataframe_["Estado Visitas"]=="Visitas Completas")]#&(dataframe_["Celular Madre"]!=0)
@@ -260,13 +273,57 @@ def visitas_ninos_dashboard():
                                         #theme='balham',  # Cambiar tema si se desea ('streamlit', 'light', 'dark', 'alpine', etc.)
                                         update_mode='MODEL_CHANGED',
                                         fit_columns_on_grid_load=True,
-                                        height=370
+                                        height=370,
+                                        key="grid_geo"
                                     )
             with tab2:
+                st.subheader("🍼 Seguimiento Niños que cumplen 120-149 días en el mes")
+                soon4_dff = dataframe_[(dataframe_["Niños 120-149 días en mes"]=="SI")]
+                soon4_dff["Estado Niño"] = soon4_dff["Estado Niño"].replace({"Visita Domiciliaria (6 a 12 Meses)":"Visita Domiciliaria","Visita Domiciliaria (1 a 5 meses)":"Visita Domiciliaria"})
+                soon4_dff_group = soon4_dff.groupby(["Establecimiento de Salud"]).agg(
+                    Niños_Programados=("Número de Documento", "count"),
+                    Niños_Encontrados_Efectivos=("Estado Niño", lambda x: (x == "Visita Domiciliaria").sum()),
+                    Niños_SEGURO_SIS=("Tipo de Seguro", lambda x: ((x != "ESSALUD") & (x != "PRIVADO")).sum()),
+                    Niños_OTRO_SEGURO=("Tipo de Seguro", lambda x: ((x == "ESSALUD")|(x == "PRIVADO")).sum()),
+                ).reset_index()
+                soon4_dff_group = soon4_dff_group.sort_values("Niños_Programados", ascending=False)
                 
-                st.subheader("👩‍🍼 Seguimiento Niños que cumplen 170-209 días en el mes")
+                # Agregar fila de total
+                total_row_4 = pd.DataFrame({
+                    "Establecimiento de Salud": ["TOTAL"],
+                    "Niños_Programados": [soon4_dff_group["Niños_Programados"].sum()],
+                    "Niños_Encontrados_Efectivos": [soon4_dff_group["Niños_Encontrados_Efectivos"].sum()],
+                    "Niños_SEGURO_SIS": [soon4_dff_group["Niños_SEGURO_SIS"].sum()],
+                    "Niños_OTRO_SEGURO": [soon4_dff_group["Niños_OTRO_SEGURO"].sum()],
+                })
+                soon4_dff_group = pd.concat([soon4_dff_group, total_row_4], ignore_index=True)
+                soon4_dff_group["% Niños Encontrados"] = (soon4_dff_group["Niños_Encontrados_Efectivos"]/soon4_dff_group["Niños_Programados"]*100).round(1).astype(str) + "%"
+                
+                soon4_dff_group = soon4_dff_group[["Establecimiento de Salud", "Niños_Programados", "Niños_Encontrados_Efectivos","% Niños Encontrados", "Niños_SEGURO_SIS", "Niños_OTRO_SEGURO"]]
+                soon4_dff_group.columns = ["Establecimiento de Salud", "Niños Programados", "Niños Encontrados Efectivos","% Niños Encontrados", "Niños SEGURO SIS", "Niños OTRO SEGURO"]
+                gb = GridOptionsBuilder.from_dataframe(soon4_dff_group)
+                gb.configure_default_column(cellStyle={'fontSize': '17px'}) 
+                #gb.configure_selection(selection_mode="single", use_checkbox=True)
+                gb.configure_column("Establecimiento de Salud", width=350)
+                
+                grid_options = gb.build()
+                
+                grid_tab4 = AgGrid(soon4_dff_group,
+                                        gridOptions=grid_options,
+                                        enable_enterprise_modules=False,
+                                        update_mode='MODEL_CHANGED',
+                                        fit_columns_on_grid_load=True,
+                                        height=340,
+                                        allow_unsafe_jscode=True,
+                                        key="grid_120_149"
+                )
+                
+
+            with tab3:
+                
+                st.subheader("👩‍🍼 Seguimiento Niños que cumplen 180-209 días en el mes")
                 #replace({0: "NO EXISTE REGISTRO",1: "REGISTRO UNICO", 2: "REGISTRO DUPLICADO", 3: "REGISTRO TRIPLICADO"})
-                soon6_dff = dataframe_[(dataframe_["Niños 170-209 días en mes"]=="SI")]
+                soon6_dff = dataframe_[(dataframe_["Niños 180-209 días en mes"]=="SI")]
                 soon6_dff["Estado Niño"] = soon6_dff["Estado Niño"].replace({"Visita Domiciliaria (6 a 12 Meses)":"Visita Domiciliaria","Visita Domiciliaria (1 a 5 meses)":"Visita Domiciliaria"})
                 soon6_dff_group = soon6_dff.groupby(["Establecimiento de Salud"]).agg(
                     Niños_Programados=("Número de Documento", "count"),
@@ -275,7 +332,7 @@ def visitas_ninos_dashboard():
                     Niños_OTRO_SEGURO=("Tipo de Seguro", lambda x: ((x == "ESSALUD")|(x == "PRIVADO")).sum()),
                 ).reset_index()
                 soon6_dff_group = soon6_dff_group.sort_values("Niños_Programados", ascending=False)
-                #soon6_dff_group.columns = ["Establecimiento de Salud", "Total Niños 170-209 días", "Niños SIS 170-209 días", "Niños ESSALUD 170-209 días"]
+                
                 #
                 
                 # Agregar fila de total
@@ -294,41 +351,71 @@ def visitas_ninos_dashboard():
                 soon6_dff_group.columns = ["Establecimiento de Salud", "Niños Programados", "Niños Encontrados Efectivos","% Niños Encontrados", "Niños SEGURO SIS", "Niños OTRO SEGURO"]
                 gb = GridOptionsBuilder.from_dataframe(soon6_dff_group)
                 gb.configure_default_column(cellStyle={'fontSize': '17px'}) 
-                gb.configure_selection(selection_mode="single", use_checkbox=True)
+                #gb.configure_selection(selection_mode="single", use_checkbox=True)
                 gb.configure_column("Establecimiento de Salud", width=350)
                 # Formato condicional para la columna Estado
                 
                 grid_options = gb.build()
                 #grid_options['getRowStyle'] = row_style
                 
-                grid_tab1 = AgGrid(soon6_dff_group, # Dataframe a mostrar
+                grid_tab11 = AgGrid(soon6_dff_group, # Dataframe a mostrar
                                         gridOptions=grid_options,
                                         enable_enterprise_modules=False,
                                         #theme='balham',  # Cambiar tema si se desea ('streamlit', 'light', 'dark', 'alpine', etc.)
                                         update_mode='MODEL_CHANGED',
                                         fit_columns_on_grid_load=True,
                                         height=340,
-                                        allow_unsafe_jscode=True
+                                        allow_unsafe_jscode=True,
+                                        key="grid_180_209"
                 )
-                #try:
-                if grid_tab1['selected_rows'] is not None:
-                    selected_row = grid_tab1['selected_rows']["Establecimiento de Salud"].values[0]
-                    if selected_row == "TOTAL":
-                        soon6_dff_group_selected = soon6_dff.copy()
-                    else:
-                        soon6_dff_group_selected = soon6_dff[soon6_dff["Establecimiento de Salud"] == selected_row]
-                    #Niños_Encontrados_Efectivos=("Estado Niño", lambda x: (x == "Visita Domiciliaria").sum()),
-                    soon6_dff_group_total = soon6_dff_group_selected.groupby(["Establecimiento de Salud","Actor Social"]).agg( Niños_Programados=("Número de Documento", "count")).reset_index()
-                    estado_soon6_dff =soon6_dff_group_selected.groupby(["Establecimiento de Salud","Actor Social","Estado Niño"])[["Número de Documento"]].count().reset_index()
-                    estado_soon6_dff_pivot = estado_soon6_dff.pivot_table(index=["Establecimiento de Salud","Actor Social"], columns="Estado Niño", values="Número de Documento",aggfunc="sum",fill_value=0)
-                    estado_soon6_dff_pivot = estado_soon6_dff_pivot.reset_index()
-                    soon6_dff_group_total = soon6_dff_group_total.merge(estado_soon6_dff_pivot, on=["Establecimiento de Salud","Actor Social"], how="left")
-                    st.dataframe(soon6_dff_group_total,hide_index=True)
-                #except:
-                #    st.warning("No se ha seleccionado ningún establecimiento de salud")
-            with tab3:    
-                st.subheader("👶 Seguimiento Niños que cumplen 350-389 días en el mes")
-                soon12_dff = dataframe_[(dataframe_["Niños 350-389 días en mes"]=="SI")]
+                
+            with tab4:
+                st.subheader("👶 Seguimiento Niños que cumplen 270-299 días en el mes")
+                soon9_dff = dataframe_[(dataframe_["Niños 270-299 días en mes"]=="SI")]
+                soon9_dff["Estado Niño"] = soon9_dff["Estado Niño"].replace({"Visita Domiciliaria (6 a 12 Meses)":"Visita Domiciliaria","Visita Domiciliaria (1 a 5 meses)":"Visita Domiciliaria"})
+                soon9_dff_group = soon9_dff.groupby(["Establecimiento de Salud"]).agg(
+                    Niños_Programados=("Número de Documento", "count"),
+                    Niños_Encontrados_Efectivos=("Estado Niño", lambda x: (x == "Visita Domiciliaria").sum()),
+                    Niños_SEGURO_SIS=("Tipo de Seguro", lambda x: ((x != "ESSALUD") & (x != "PRIVADO")).sum()),
+                    Niños_OTRO_SEGURO=("Tipo de Seguro", lambda x: ((x == "ESSALUD")|(x == "PRIVADO")).sum()),
+                ).reset_index()
+                soon9_dff_group = soon9_dff_group.sort_values("Niños_Programados", ascending=False)
+                
+                # Agregar fila de total
+                total_row_9 = pd.DataFrame({
+                    "Establecimiento de Salud": ["TOTAL"],
+                    "Niños_Programados": [soon9_dff_group["Niños_Programados"].sum()],
+                    "Niños_Encontrados_Efectivos": [soon9_dff_group["Niños_Encontrados_Efectivos"].sum()],
+                    "Niños_SEGURO_SIS": [soon9_dff_group["Niños_SEGURO_SIS"].sum()],
+                    "Niños_OTRO_SEGURO": [soon9_dff_group["Niños_OTRO_SEGURO"].sum()],
+                })
+                soon9_dff_group = pd.concat([soon9_dff_group, total_row_9], ignore_index=True)
+                soon9_dff_group["% Niños Encontrados"] = (soon9_dff_group["Niños_Encontrados_Efectivos"]/soon9_dff_group["Niños_Programados"]*100).round(1).astype(str) + "%"
+                
+                soon9_dff_group = soon9_dff_group[["Establecimiento de Salud", "Niños_Programados", "Niños_Encontrados_Efectivos","% Niños Encontrados", "Niños_SEGURO_SIS", "Niños_OTRO_SEGURO"]]
+                soon9_dff_group.columns = ["Establecimiento de Salud", "Niños Programados", "Niños Encontrados Efectivos","% Niños Encontrados", "Niños SEGURO SIS", "Niños OTRO SEGURO"]
+                
+                gb3 = GridOptionsBuilder.from_dataframe(soon9_dff_group)
+                gb3.configure_default_column(cellStyle={'fontSize': '17px'}) 
+                #gb3.configure_selection(selection_mode="single", use_checkbox=True)
+                gb3.configure_column("Establecimiento de Salud", width=350)
+                
+                grid_options3 = gb3.build()
+                
+                grid_tab8 = AgGrid(soon9_dff_group,
+                                        gridOptions=grid_options3,
+                                        enable_enterprise_modules=False,
+                                        update_mode='MODEL_CHANGED',
+                                        fit_columns_on_grid_load=True,
+                                        height=340,
+                                        allow_unsafe_jscode=True,
+                                        key="grid_270_299"
+                )
+                
+                
+            with tab5:
+                st.subheader("👶 Seguimiento Niños que cumplen 360-389 días en el mes")
+                soon12_dff = dataframe_[(dataframe_["Niños 360-389 días en mes"]=="SI")]
                 soon12_dff["Estado Niño"] = soon12_dff["Estado Niño"].replace({"Visita Domiciliaria (6 a 12 Meses)":"Visita Domiciliaria","Visita Domiciliaria (1 a 5 meses)":"Visita Domiciliaria"})
                 soon12_dff_group = soon12_dff.groupby(["Establecimiento de Salud"]).agg(
                     Niños_Programados=("Número de Documento", "count"),
@@ -354,7 +441,7 @@ def visitas_ninos_dashboard():
                 
                 gb2 = GridOptionsBuilder.from_dataframe(soon12_dff_group)
                 gb2.configure_default_column(cellStyle={'fontSize': '17px'}) 
-                gb2.configure_selection(selection_mode="single", use_checkbox=True)
+                #gb2.configure_selection(selection_mode="single", use_checkbox=True)
                 gb2.configure_column("Establecimiento de Salud", width=350)
                 
                 grid_options2 = gb2.build()
@@ -365,22 +452,11 @@ def visitas_ninos_dashboard():
                                         update_mode='MODEL_CHANGED',
                                         fit_columns_on_grid_load=True,
                                         height=340,
-                                        allow_unsafe_jscode=True
+                                        allow_unsafe_jscode=True,
+                                        key="grid_360_389"
                 )
                 
-                if grid_tab2['selected_rows'] is not None:
-                    selected_row2 = grid_tab2['selected_rows']["Establecimiento de Salud"].values[0]
-                    if selected_row2 == "TOTAL":
-                        soon12_dff_group_selected = soon12_dff.copy()
-                    else:
-                        soon12_dff_group_selected = soon12_dff[soon12_dff["Establecimiento de Salud"] == selected_row2]
-                    
-                    soon12_dff_group_total2 = soon12_dff_group_selected.groupby(["Establecimiento de Salud","Actor Social"]).agg( Niños_Programados=("Número de Documento", "count")).reset_index()
-                    estado_soon12_dff = soon12_dff_group_selected.groupby(["Establecimiento de Salud","Actor Social","Estado Niño"])[["Número de Documento"]].count().reset_index()
-                    estado_soon12_dff_pivot = estado_soon12_dff.pivot_table(index=["Establecimiento de Salud","Actor Social"], columns="Estado Niño", values="Número de Documento",aggfunc="sum",fill_value=0)
-                    estado_soon12_dff_pivot = estado_soon12_dff_pivot.reset_index()
-                    soon12_dff_group_total2 = soon12_dff_group_total2.merge(estado_soon12_dff_pivot, on=["Establecimiento de Salud","Actor Social"], how="left")
-                    st.dataframe(soon12_dff_group_total2,hide_index=True)
+                
                 
             # Filtra duplicados de Celular Madre
             df_con_num_cel = dataframe_[dataframe_["Celular Madre"] != 0].copy()
@@ -699,15 +775,15 @@ def generar_excel_seguimiento_nominal():
     pre_final_df['Edad en días (primer día del mes)'] = pre_final_df['Fecha de Nacimiento'].apply(lambda x: (primer_dia_mes - x).days)
     pre_final_df['Edad en días (último día del mes)'] = pre_final_df['Fecha de Nacimiento'].apply(lambda x: (ultimo_dia_mes - x).days)
 
-    pre_final_df['Niños 170-209 días en mes'] = pre_final_df.apply(
+    pre_final_df['Niños 180-209 días en mes'] = pre_final_df.apply(
             lambda row: "SI" if (
-                (row['Edad en días (primer día del mes)'] <= 209 and row['Edad en días (último día del mes)'] >= 170)
+                (row['Edad en días (primer día del mes)'] <= 209 and row['Edad en días (último día del mes)'] >= 180)
             ) else "NO", axis=1
     )
 
-    pre_final_df['Niños 350-389 días en mes'] = pre_final_df.apply(
+    pre_final_df['Niños 360-389 días en mes'] = pre_final_df.apply(
             lambda row: "SI" if (
-                (row['Edad en días (primer día del mes)'] <= 389 and row['Edad en días (último día del mes)'] >= 350)
+                (row['Edad en días (primer día del mes)'] <= 389 and row['Edad en días (último día del mes)'] >= 360)
             ) else "NO", axis=1
     )
     pre_final_df["Edad"] = pre_final_df['Fecha de Nacimiento'].apply(lambda x: calcular_edad(x))
@@ -720,8 +796,8 @@ def generar_excel_seguimiento_nominal():
         'NUMERO DE CELULAR', 'Celular de la madre', 'Tipo_file',
         'TIPO DE SEGURO', 'EESS NACIMIENTO', 'EESS',
         'Periodos', '¿Es consecutivo?',
-        'Niños 170-209 días en mes',
-        'Niños 350-389 días en mes', 
+        'Niños 180-209 días en mes',
+        'Niños 360-389 días en mes', 
         '¿Es prematuro?',
         'FECHA del tamizaje de Hemoglobina de 06 MESES',
         'Resultado de Hemoglobina de 06 MESES',
