@@ -680,6 +680,7 @@ def estadisticas_dashboard():
         st.metric("Umbral Minimo 30%", round(childs_consecutivos*0.3,0))
     with col4:
         st.metric("Umbral Minimo 37%", round(childs_consecutivos*0.37,0))
+    
 
 
     #st.dataframe(all_c1_carga_df)
