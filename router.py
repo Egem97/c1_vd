@@ -8,6 +8,7 @@ from views.edad_padron import edades_padron
 from views.padron.actualizados_mes import actualizados_mes_padron
 from views.padron.revision_padron import revision_padron
 from views.padron.estado_rn import rn_month_insert
+from views.tramo_3.tramo3 import *
 
 def pages():
     page_dict = {}
@@ -21,10 +22,11 @@ def pages():
     page_dict["Compromiso 1"] = [
         st.Page(page=visitas_ninos_dashboard, title="Visitas a Niños", icon="👶", url_path="/seguimiento-vd-ninos"),
         #st.Page(page=, title="Visitas a Niños", icon="👶", url_path="/vd-ninos"),
-        
-        st.Page(page=estadisticas_dashboard, title="Indicador Niños", icon="📈", url_path="/indicador-anemia-ninos"),
+        #st.Page(page=hb_data_c1, title="Hemoglobina", icon="🩸", url_path="/datos-hemoglobina"),
+        #st.Page(page=estadisticas_dashboard, title="Indicador Niños", icon="📈", url_path="/indicador-anemia-ninos"),
         st.Page(page=gestantes_status_vd, title="Visitas a Gestantes", icon="🤰", url_path="/seguimiento-vd-gestantes"),
-        st.Page(page=generar_excel_seguimiento_nominal, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal")
+        #st.Page(page=generar_excel_seguimiento_nominal, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal"),
+        #t.Page(page=summary_tramo3, title="Tramo 3", icon="🎯", url_path="/tramo-3")
     ]
     page_dict["Padrón Nominal"] = [
         st.Page(page=dash_padron_modreg, title="Actualizaciones General", icon="💡", url_path="/actualizaciones-padron"),

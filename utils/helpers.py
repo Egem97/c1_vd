@@ -255,3 +255,203 @@ def es_consecutivo(numero):
             return "Consecutivo"
     
     return "No Consecutivo"
+
+def calcular_edad_diagnostico(fecha_nacimiento, fecha_diagnostico):
+    """
+    Calcula la edad al momento del diagnóstico.
+    
+    Args:
+        fecha_nacimiento: Fecha de nacimiento del paciente
+        fecha_diagnostico: Fecha del diagnóstico
+    
+    Returns:
+        str: Edad en formato "X año(s), Y mes(es)"
+    """
+    if pd.isna(fecha_nacimiento) or pd.isna(fecha_diagnostico):
+        return "Sin datos"
+    
+    try:
+        # Convertir a datetime si no lo están ya
+        fecha_nac = pd.to_datetime(fecha_nacimiento)
+        fecha_diag = pd.to_datetime(fecha_diagnostico)
+        
+        # Calcular diferencia
+        diferencia = relativedelta(fecha_diag, fecha_nac)
+        
+        # Formatear resultado siempre con años y meses
+        return f"{diferencia.years} año(s), {diferencia.months} mes(es)"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+def calcular_edad_diagnostico_dias(fecha_nacimiento, fecha_diagnostico):
+    """
+    Calcula la edad en días al momento del diagnóstico.
+    
+    Args:
+        fecha_nacimiento: Fecha de nacimiento del paciente
+        fecha_diagnostico: Fecha del diagnóstico
+    
+    Returns:
+        int: Edad en días, o None si hay error
+    """
+    if pd.isna(fecha_nacimiento) or pd.isna(fecha_diagnostico):
+        return None
+    
+    try:
+        fecha_nac = pd.to_datetime(fecha_nacimiento)
+        fecha_diag = pd.to_datetime(fecha_diagnostico)
+        
+        return (fecha_diag - fecha_nac).days
+    except Exception:
+        return None
+
+def calcular_edad_diagnostico_meses(fecha_nacimiento, fecha_diagnostico):
+    """
+    Calcula la edad en meses al momento del diagnóstico.
+    
+    Args:
+        fecha_nacimiento: Fecha de nacimiento del paciente
+        fecha_diagnostico: Fecha del diagnóstico
+    
+    Returns:
+        float: Edad en meses, o None si hay error
+    """
+    if pd.isna(fecha_nacimiento) or pd.isna(fecha_diagnostico):
+        return None
+    
+    try:
+        fecha_nac = pd.to_datetime(fecha_nacimiento)
+        fecha_diag = pd.to_datetime(fecha_diagnostico)
+        
+        diferencia = relativedelta(fecha_diag, fecha_nac)
+        return diferencia.years * 12 + diferencia.months + diferencia.days / 30.44
+    except Exception:
+        return None
+
+
+def combinar_rangos_dias(row):
+            rangos_activos = []
+            if row['Niños 120-149 días en mes'] == 'SI':
+                rangos_activos.append('Rango de días 120-149 días')
+            if row['Niños 180-209 días en mes'] == 'SI':
+                rangos_activos.append('Rango de días 180-209 días')
+            if row['Niños 270-299 días en mes'] == 'SI':
+                rangos_activos.append('Rango de días 270-299 días')
+            if row['Niños 360-389 días en mes'] == 'SI':
+                rangos_activos.append('Rango de días 360-389 días')
+            
+            if rangos_activos:
+                return ' | '.join(rangos_activos)
+            else:
+                return 'Sin rango específico'
+            
+# Función para determinar el estado del tamizaje basado en HB
+def determinar_estado_tamizaje(hb_valor):
+            # Si es None o vacío
+            if pd.isna(hb_valor) or hb_valor is None:
+                return 'SIN TAMIZAJE'
+            
+            # Convertir a float si es string
+            try:
+                hb_float = float(hb_valor)
+                
+                # Si es 0
+                if hb_float == 0:
+                    return 'ERROR'
+                # Si es mayor a 10.4
+                elif hb_float > 10.4:
+                    return 'SIN ANEMIA'
+                # Si es menor o igual a 10.4 (que incluye < 10.5)
+                else:
+                    return 'CON ANEMIA'
+                    
+            except (ValueError, TypeError):
+                return 'ERROR'
+            
+# Procesar la columna Resultados para obtener el último resultado válido
+def extraer_ultimo_resultado(resultados):
+            if pd.isna(resultados) or resultados == "":
+                return None, None
+            
+            # Dividir por '|' y tomar elementos no vacíos
+            partes = [parte.strip() for parte in str(resultados).split('|') if parte.strip()]
+            if not partes:
+                return None, None
+            
+            # Buscar el último resultado válido (no 0)
+            for i in range(len(partes) - 1, -1, -1):  # Recorrer desde el último hacia atrás
+                resultado = partes[i]
+                
+                # Dividir por ' - ' para separar fecha y hemoglobina
+                if ' - ' in resultado:
+                    fecha, hb = resultado.split(' - ', 1)
+                    fecha = fecha.strip()
+                    hb = hb.strip()
+                    
+                    # Verificar si la hemoglobina es válida (no 0 y es numérica)
+                    try:
+                        hb_valor = float(hb)
+                        if hb_valor > 0:  # Si es mayor que 0, usar este resultado
+                            return fecha, hb
+                    except ValueError:
+                        # Si no es numérico, continuar con el siguiente
+                        continue
+                else:
+                    # Si no tiene el formato esperado, continuar
+                    continue
+            
+            # Si no se encontró ningún resultado válido, devolver el último disponible
+            ultimo_resultado = partes[-1]
+            if ' - ' in ultimo_resultado:
+                fecha, hb = ultimo_resultado.split(' - ', 1)
+                return fecha.strip(), hb.strip()
+            else:
+                return ultimo_resultado.strip(), None
+
+
+# Crear columna ESTADO HB NIÑO
+def determinar_estado_hb(row):
+                # Columnas de anemia
+                col_anemia_1 = 'ANEMIA POR DEFICIENCIA DE HIERRO SIN ESPECIFICACION'
+                col_anemia_2 = 'ANEMIA DE TIPO NO ESPECIFICADO'
+                
+                # Otras columnas de diagnóstico/tratamiento
+                otras_columnas = ['DOSAJE DE HEMOGLOBINA', 'HEMOGLOBINA CON HEMOGLOBINÓMETRO', 
+                                 'SUPLEMENTACIÓN CON HIERRO', 'SUPLEMENTACIÓN DE MULTIMICRONUTRIENTES']
+                
+                # Obtener fechas de anemia
+                fecha_anemia_1 = row.get(col_anemia_1)
+                fecha_anemia_2 = row.get(col_anemia_2)
+                
+                # Determinar la fecha más reciente de anemia
+                fechas_anemia = []
+                if pd.notna(fecha_anemia_1):
+                    fechas_anemia.append(pd.to_datetime(fecha_anemia_1))
+                if pd.notna(fecha_anemia_2):
+                    fechas_anemia.append(pd.to_datetime(fecha_anemia_2))
+                
+                # Si no hay fechas de anemia, el niño no tiene/tuvo anemia
+                if not fechas_anemia:
+                    return "SIN ANEMIA"
+                
+                # Fecha más reciente de anemia
+                fecha_anemia_reciente = max(fechas_anemia)
+                
+                # Obtener fechas de otras intervenciones
+                fechas_otras_intervenciones = []
+                for col in otras_columnas:
+                    if col in row and pd.notna(row.get(col)):
+                        fechas_otras_intervenciones.append(pd.to_datetime(row.get(col)))
+                
+                # Si no hay otras intervenciones, el niño TIENE ANEMIA
+                if not fechas_otras_intervenciones:
+                    return "TIENE ANEMIA"
+                
+                # Fecha más reciente de otras intervenciones
+                fecha_intervencion_reciente = max(fechas_otras_intervenciones)
+                
+                # Comparar fechas
+                if fecha_anemia_reciente > fecha_intervencion_reciente:
+                    return "TIENE ANEMIA"  # La anemia es más reciente
+                else:
+                    return "TUVO ANEMIA"   # Las intervenciones son más recientes

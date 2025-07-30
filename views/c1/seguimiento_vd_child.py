@@ -13,20 +13,82 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.styles import Font, Alignment, Protection
 from io import BytesIO
+from utils.g_sheet import *
 
+def eliminar_duplicados_col(texto):
+        col = texto.split(" - ")
+        col_unicos = sorted(set(col), key=col.index)
+        return " - ".join(col_unicos)
 
+def tomar_ultimo_elemento(texto):
+    col = [c for c in texto.split(" - ") if c.strip() != ""]
+    return col[-1] if col else ""
 
 def visitas_ninos_dashboard():
         
             styles(2)
             
-            actvd_df = fetch_vd_childs()
-            carga_df = fetch_carga_childs()
-            padron_df = fetch_padron()
-            datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
+            # Cache the data loading operations
+            @st.cache_data(ttl=300)  # Cache for 5 minutes
+            def load_base_data():
+                actvd_df = fetch_vd_childs()
+                carga_df = fetch_carga_childs()
+                padron_df = fetch_padron()
+                datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
+                return actvd_df, carga_df, padron_df, datos_ninos_df
+            
+            @st.cache_data(ttl=300)  # Cache for 5 minutes
+            def load_seg_nominal_data():
+                return read_and_concatenate_sheets_optimized(
+                    key_sheet="11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
+                    sheet_names=[
+                        "ARANJUEZ","CLUB DE LEONES","EL BOSQUE","LOS GRANADOS SAGRADO CORAZON",
+                        "CENTRO DE SALUD LA UNION","HOSPITAL DE ESPECIALIDADES BASI",
+                        "LIBERTAD","LOS JARDINES","PESQUEDA III","SAN MARTIN DE PORRES"
+                    ],
+                    add_sheet_column=True  # Añade columna 'sheet_origen'
+                )
+            
+            @st.cache_data(ttl=300)  # Cache for 5 minutes
+            def load_hb_data():
+                hb_df = pd.read_excel(r"./data/microred/DOSAJES DE HEMOGLOBINA NIÑOS DE 6 MESES A 1 AÑO_17_07_2025.xlsx",sheet_name="BASE")
+                hb_df["Fecha_Atencion"] = pd.to_datetime(hb_df["Fecha_Atencion"]).dt.date
+                hb_df["DNI_PACIENTE"] = hb_df["DNI_PACIENTE"].astype(str).str.strip()
+                hb_df["Hemoglobina"] = hb_df["Hemoglobina"].fillna(0)
+                hb_df["Resultados"] = hb_df["Fecha_Atencion"].astype(str) + " - " + hb_df["Hemoglobina"].astype(str) + " | "
+                hbdff = hb_df.groupby(["DNI_PACIENTE"]).agg({"Resultados": "sum"}).reset_index()
+                hbdff = hbdff.rename(columns={"DNI_PACIENTE":"Número de Documento"})
+                return hbdff
+            
+            @st.cache_data(ttl=300)  # Cache for 5 minutes  
+            def load_suplementacion_data():
+                supledf = pd.read_parquet(r'./data/microred/suplementacion.parquet', engine='pyarrow')
+                supledf["DNI_PACIENTE"] = supledf["DNI_PACIENTE"].str.strip()
+                supledf = supledf.rename(columns={"DNI_PACIENTE":"Documento"})
+                supledf = supledf.sort_values(by="Fecha_Diagnostico", ascending=True)
+                supledf["MICRORED"] = supledf["MICRORED"].replace("TRUJILLO - METROPOLITANO", "TRUJILLO")
+                supledf["PACIENTE"] = supledf["PACIENTE"].fillna("Sin Datos")
+                supledf["PACIENTE"] = supledf["PACIENTE"].str.strip()
+
+                return supledf
+            
+            # Load cached data
+            actvd_df, carga_df, padron_df, datos_ninos_df = load_base_data()
+            seg_nominal_df = load_seg_nominal_data()
+            hbdff = load_hb_data()
+            supledf = load_suplementacion_data()
+            
+            # Continue with the rest of the processing...
             fecha_update = str(carga_df["update"].unique()[0])[:-7]
             fecha_actual = str(datetime.now().strftime("%Y-%m-%d %H:%M"))
-
+            
+            seg_nominal_df =seg_nominal_df[["Número de Documento del niño","TIPO DE SEGURO","¿Es consecutivo?","¿Es prematuro?","Tipo de SUPLEMENTO","¿Fue parte de una Sesion demostrativa?"]]
+            seg_nominal_df["TIPO DE SEGURO"] = seg_nominal_df["TIPO DE SEGURO"].replace("", "NINGUNO")
+            seg_nominal_df["¿Es prematuro?"] = seg_nominal_df["¿Es prematuro?"].replace("", "NO")
+            seg_nominal_df["Tipo de SUPLEMENTO"] = seg_nominal_df["Tipo de SUPLEMENTO"].replace("", "NO ESPECIFICADO")
+            seg_nominal_df["¿Fue parte de una Sesion demostrativa?"] = seg_nominal_df["¿Fue parte de una Sesion demostrativa?"].replace("", "NO")
+            seg_nominal_df = seg_nominal_df.rename(columns={"Número de Documento del niño":"Número de Documento"})
+            seg_nominal_df["Tipo de SUPLEMENTO"] = seg_nominal_df["Tipo de SUPLEMENTO"].str.strip()
             #fecha_update = dt.strftime("%Y-%m-%d-%H-%M")
             list_mes = [mes_short(x) for x in sorted(list(carga_df["Mes"].unique()))]
             
@@ -152,14 +214,62 @@ def visitas_ninos_dashboard():
                     (row['Edad en días (primer día del mes)'] <= 389 and row['Edad en días (último día del mes)'] >= 360)
                 ) else "NO", axis=1
             )
+            dataframe_['Rango de Días Activo'] = dataframe_.apply(combinar_rangos_dias, axis=1)
+            dataframe_ = pd.merge(dataframe_, seg_nominal_df, on='Número de Documento', how='left')
+            
+            # Use the cached hb data
+            dataframe_ = pd.merge(dataframe_,hbdff,on="Número de Documento",how="left")
+
+            # Aplicar la función para crear las nuevas columnas
+            dataframe_[['Ultima Fecha tamizaje', 'Ultima HB']] = dataframe_['Resultados'].apply(
+                lambda x: pd.Series(extraer_ultimo_resultado(x))
+            )
+            # Crear la columna ESTADO TAMIZAJE
+            dataframe_['Edad Ultimo Tamizaje'] = dataframe_.apply(
+                lambda row: calcular_edad_diagnostico(row['Fecha de Nacimiento'], row['Ultima Fecha tamizaje']), 
+                axis=1
+            )
+            dataframe_['ESTADO TAMIZAJE'] = dataframe_['Ultima HB'].apply(determinar_estado_tamizaje)
+
+            # Use the cached suplementacion data
+            if 'Fecha_Diagnostico' in supledf.columns and 'FECHA_NAC' in supledf.columns:
+        
+                supledf['Edad Diagnóstico'] = supledf.apply(
+                    lambda row: calcular_edad_diagnostico(row['FECHA_NAC'], row['Fecha_Diagnostico']), 
+                    axis=1
+                )
+                
+                supledf['Edad Diagnóstico (días)'] = supledf.apply(
+                    lambda row: calcular_edad_diagnostico_dias(row['FECHA_NAC'], row['Fecha_Diagnostico']), 
+                    axis=1
+                )
+            supledf["ACTIVIDAD"] = supledf["ACTIVIDAD"].str[4:]
+            supledf["ACTIVIDAD"] = supledf["ACTIVIDAD"].str.strip()
+            supledf = supledf[supledf["MICRORED"].notna()]
+            #print(supledf["DIAGNOSTICO"].unique())
+            # Crear columnas pivote para cada diagnóstico único
+            diagnosticos_unicos = supledf["DIAGNOSTICO"].unique()
+            # Agrupar por Documento y obtener la fecha más reciente para cada diagnóstico
+            supledf_pivot = supledf.groupby(['Documento', 'DIAGNOSTICO'])['Fecha_Diagnostico'].max().reset_index()
+            # Hacer pivot de los diagnósticos
+            supledf_pivot = supledf_pivot.pivot(index='Documento', columns='DIAGNOSTICO', values='Fecha_Diagnostico').reset_index()
+            # Aplicar la función para crear la columna ESTADO HB NIÑO
+            supledf_pivot['ESTADO HB NIÑO'] = supledf_pivot.apply(determinar_estado_hb, axis=1)
+            supledf_pivot = supledf_pivot.rename(columns={"Documento":"Número de Documento"})
+            supledf_pivot["Número de Documento"] = supledf_pivot["Número de Documento"].astype(str)
+            
+            dataframe_ = pd.merge(dataframe_, supledf_pivot, on='Número de Documento', how='left')
+            dataframe_["ESTADO HB NIÑO"] = dataframe_["ESTADO HB NIÑO"].fillna("SIN DIAGNOSTICO")
+            
+            #st.dataframe(dataframe_)
             metric_col = st.columns(7)
             metric_col[0].metric("Niños Cargados",num_carga,f"Con Visita {num_child_vd}({num_carga-num_child_vd})",border=True)
             metric_col[1].metric("Total de Visitas",num_visitas,f"VD Programadas: {num_visitas_programadas}",border=True)
             
+            st.session_state["dataframe_childs"] = dataframe_.copy()
 
-
-            #########################################################
-            tab1, tab2, tab3, tab4, tab5 = st.tabs(["Seguimiento Visitas Georreferenciadas","Seguimiento Niños que cumplen 120-149 días en el mes","Seguimiento Niños que cumplen 180-209 días en el mes","Seguimiento Niños que cumplen 270-299 días en el mes","Seguimiento Niños que cumplen 360-389 días en el mes"])
+            #########################################################   
+            tab1,tab2 = st.tabs(["Seguimiento Visitas Georreferenciadas","Seguimiento Indicadores Anemia"])
             with tab1:
                 st.subheader("📱Seguimiento Visitas Georreferenciadas")
                 vd_geo_percent_df = dataframe_[(dataframe_["Estado Visitas"]=="Visitas Completas")]#&(dataframe_["Celular Madre"]!=0)
@@ -173,7 +283,7 @@ def visitas_ninos_dashboard():
                 percent_vd_completas_movil = safe_percent(total_vd_movil_completas, num_vd_movil)
                 
                 ###
-                fuera_padron_df = dataframe_[(dataframe_["Tipo Registro Padrón Nominal"]=="En Otro Padrón Nominal")]
+                
 
                 #con_visita_cel = dataframe_[(dataframe_["Total de Intervenciones"]!=0)]
                 #num_con_visita_cel = con_visita_cel.shape[0]
@@ -276,320 +386,248 @@ def visitas_ninos_dashboard():
                                         height=370,
                                         key="grid_geo"
                                     )
+                
             with tab2:
-                st.subheader("🍼 Seguimiento Niños que cumplen 120-149 días en el mes")
-                soon4_dff = dataframe_[(dataframe_["Niños 120-149 días en mes"]=="SI")]
-                soon4_dff["Estado Niño"] = soon4_dff["Estado Niño"].replace({"Visita Domiciliaria (6 a 12 Meses)":"Visita Domiciliaria","Visita Domiciliaria (1 a 5 meses)":"Visita Domiciliaria"})
-                soon4_dff_group = soon4_dff.groupby(["Establecimiento de Salud"]).agg(
-                    Niños_Programados=("Número de Documento", "count"),
-                    Niños_Encontrados_Efectivos=("Estado Niño", lambda x: (x == "Visita Domiciliaria").sum()),
-                    Niños_SEGURO_SIS=("Tipo de Seguro", lambda x: ((x != "ESSALUD") & (x != "PRIVADO")).sum()),
-                    Niños_OTRO_SEGURO=("Tipo de Seguro", lambda x: ((x == "ESSALUD")|(x == "PRIVADO")).sum()),
-                ).reset_index()
-                soon4_dff_group = soon4_dff_group.sort_values("Niños_Programados", ascending=False)
-                
-                # Agregar fila de total
-                total_row_4 = pd.DataFrame({
-                    "Establecimiento de Salud": ["TOTAL"],
-                    "Niños_Programados": [soon4_dff_group["Niños_Programados"].sum()],
-                    "Niños_Encontrados_Efectivos": [soon4_dff_group["Niños_Encontrados_Efectivos"].sum()],
-                    "Niños_SEGURO_SIS": [soon4_dff_group["Niños_SEGURO_SIS"].sum()],
-                    "Niños_OTRO_SEGURO": [soon4_dff_group["Niños_OTRO_SEGURO"].sum()],
-                })
-                soon4_dff_group = pd.concat([soon4_dff_group, total_row_4], ignore_index=True)
-                soon4_dff_group["% Niños Encontrados"] = (soon4_dff_group["Niños_Encontrados_Efectivos"]/soon4_dff_group["Niños_Programados"]*100).round(1).astype(str) + "%"
-                
-                soon4_dff_group = soon4_dff_group[["Establecimiento de Salud", "Niños_Programados", "Niños_Encontrados_Efectivos","% Niños Encontrados", "Niños_SEGURO_SIS", "Niños_OTRO_SEGURO"]]
-                soon4_dff_group.columns = ["Establecimiento de Salud", "Niños Programados", "Niños Encontrados Efectivos","% Niños Encontrados", "Niños SEGURO SIS", "Niños OTRO SEGURO"]
-                gb = GridOptionsBuilder.from_dataframe(soon4_dff_group)
-                gb.configure_default_column(cellStyle={'fontSize': '17px'}) 
-                #gb.configure_selection(selection_mode="single", use_checkbox=True)
-                gb.configure_column("Establecimiento de Salud", width=350)
-                
-                grid_options = gb.build()
-                
-                grid_tab4 = AgGrid(soon4_dff_group,
-                                        gridOptions=grid_options,
-                                        enable_enterprise_modules=False,
-                                        update_mode='MODEL_CHANGED',
-                                        fit_columns_on_grid_load=True,
-                                        height=340,
-                                        allow_unsafe_jscode=True,
-                                        key="grid_120_149"
-                )
-                
+                print(dataframe_["Tipo de SUPLEMENTO"].unique())
+                @st.fragment
+                def render_anemia_indicators():
+                    col1, col2, = st.columns([2,2])
+                    with col1:
+                        st.subheader("📱Seguimiento Indicadores Anemia")
+                    with col2:
+                        selection_rango = st.segmented_control(
+                            "Rangos de Edad",
+                            options=["120-149 días","180-209 días","270-299 días","360-389 días","6-12 meses"],
+                            default="120-149 días",
+                            #format_func=lambda option: option_map[option],
+                            selection_mode="single",
+                        )
+                    #with col3:
+                    #    eess = st.selectbox("Establecimiento de Salud",options = dataframe_["Establecimiento de Salud"].unique().tolist(),index=None,placeholder="Todos")
 
-            with tab3:
-                
-                st.subheader("👩‍🍼 Seguimiento Niños que cumplen 180-209 días en el mes")
-                #replace({0: "NO EXISTE REGISTRO",1: "REGISTRO UNICO", 2: "REGISTRO DUPLICADO", 3: "REGISTRO TRIPLICADO"})
-                soon6_dff = dataframe_[(dataframe_["Niños 180-209 días en mes"]=="SI")]
-                soon6_dff["Estado Niño"] = soon6_dff["Estado Niño"].replace({"Visita Domiciliaria (6 a 12 Meses)":"Visita Domiciliaria","Visita Domiciliaria (1 a 5 meses)":"Visita Domiciliaria"})
-                soon6_dff_group = soon6_dff.groupby(["Establecimiento de Salud"]).agg(
-                    Niños_Programados=("Número de Documento", "count"),
-                    Niños_Encontrados_Efectivos=("Estado Niño", lambda x: (x == "Visita Domiciliaria").sum()),
-                    Niños_SEGURO_SIS=("Tipo de Seguro", lambda x: ((x != "ESSALUD") & (x != "PRIVADO")).sum()),
-                    Niños_OTRO_SEGURO=("Tipo de Seguro", lambda x: ((x == "ESSALUD")|(x == "PRIVADO")).sum()),
-                ).reset_index()
-                soon6_dff_group = soon6_dff_group.sort_values("Niños_Programados", ascending=False)
-                
-                #
-                
-                # Agregar fila de total
-                total_row_6 = pd.DataFrame({
-                    "Establecimiento de Salud": ["TOTAL"],
-                    "Niños_Programados": [soon6_dff_group["Niños_Programados"].sum()],
-                    "Niños_Encontrados_Efectivos": [soon6_dff_group["Niños_Encontrados_Efectivos"].sum()],
-                    "Niños_SEGURO_SIS": [soon6_dff_group["Niños_SEGURO_SIS"].sum()],
-                    "Niños_OTRO_SEGURO": [soon6_dff_group["Niños_OTRO_SEGURO"].sum()],
+                    if selection_rango == "120-149 días":
+                        rg_df = dataframe_[dataframe_["Rango de Días Activo"]=="Rango de días 120-149 días"]
+                    elif selection_rango == "180-209 días":
+                        rg_df = dataframe_[dataframe_["Rango de Días Activo"]=="Rango de días 180-209 días"]
+                    elif selection_rango == "270-299 días":
+                        rg_df = dataframe_[dataframe_["Rango de Días Activo"]=="Rango de días 270-299 días"]
+                    elif selection_rango == "360-389 días":
+                        rg_df = dataframe_[dataframe_["Rango de Días Activo"]=="Rango de días 360-389 días"]
+                    elif selection_rango == "6-12 meses":
+                        rg_df = dataframe_[dataframe_["Rango de Edad"]=="6-12 meses"]
+                    rg_dff = rg_df.copy()
+                    rg_df = rg_df.groupby(["Establecimiento de Salud"]).agg(
+                        Niños_Programados=("Número de Documento", "count"),
+                        Niños_Encontrados=("Estado Niño", lambda x: (x.isin(["Visita Domiciliaria (6 a 12 Meses)", "Visita Domiciliaria (1 a 5 meses)"])).sum()),
+                        #Niños_Consecutivos=("¿Es consecutivo?", lambda x: (x.isin(["Consecutivo"])).sum()),
+                        Con_Suplementacion=("Tipo de SUPLEMENTO", lambda x: (x.isin([
+                           'MMN', 'MICRONUTRIENTES', 'GOTAS', 'FERRIMAX',
+                            'SULFATO FERROSO', 'MN', 'JARABE',
+                            'FERRAMIN FORTE', 'POLIMALTOSADO', 'SI',
+                            'FERRAMIN', '7 GOTAS', '8 GOTAS', '8 GOTITAS DE HIERRO',
+                            'MULTIMICRONUTRIENTES', 'GOTA', 'MALTOFER', 'SULFATOFERROSO',
+                            '1 MICRONUTRIENTE', 'M', 'FERRANIN FORTE',
+                            '1 SOBRECITO DE HIERRO', 'FERANIN', 'HIERRO EN GOTAS',
+                            '9 GOTITAS DE HIERRO', 'HIERRO POLIMALTOSA',
+                            'MULTIVITAMINAS', '7 GOTITAS DE HIERRO',  'FERROCIN',
+                            'GOTAS- SF','gotas', '6 GOTAS',
+                            'HIERRO DE ZINC', 'FERROCIL', 'FERROMIL'
+                        ])).sum()),
+                        #Niños_Prematuros=("¿Es prematuro?", lambda x: (x.isin(["SI"])).sum()),
+                        Sin_Anemia_Tamizaje=("ESTADO TAMIZAJE", lambda x: (x.isin(["SIN ANEMIA"])).sum()),
+                        Con_Anemia_Tamizaje=("ESTADO TAMIZAJE", lambda x: (x.isin(["CON ANEMIA"])).sum()),
+                        Sin_Anemia_Diagnostico=("ESTADO HB NIÑO", lambda x: (x.isin(["SIN ANEMIA"])).sum()),
+                        Con_Anemia_Diagnostico=("ESTADO HB NIÑO", lambda x: (x.isin(["TIENE ANEMIA","TUVO ANEMIA"])).sum()),
+                    ).reset_index()
+                    rg_df.columns = ["Establecimiento de Salud","Programados", "Encontrados","Con Suplementación","Sin Anemia (Tamizaje)","Con Anemia (Tamizaje)","Sin Anemia (Diagnostico)","Con Anemia (Diagnostico)"]
+                    rg_df = rg_df.sort_values("Programados", ascending=False)
+                    total_row = pd.DataFrame({
+                        "Establecimiento de Salud": ["TOTAL"],
+                        "Programados": [rg_df["Programados"].sum()],
+                        "Encontrados": [rg_df["Encontrados"].sum()],
+                        #"Consecutivos": [rg_df["Consecutivos"].sum()],
+                        "Con Suplementación": [rg_df["Con Suplementación"].sum()],
+                        #"Prematuros": [rg_df["Prematuros"].sum()],
+                        "Sin Anemia (Tamizaje)": [rg_df["Sin Anemia (Tamizaje)"].sum()],
+                        "Con Anemia (Tamizaje)": [rg_df["Con Anemia (Tamizaje)"].sum()],
+                        "Sin Anemia (Diagnostico)": [rg_df["Sin Anemia (Diagnostico)"].sum()],
+                        "Con Anemia (Diagnostico)": [rg_df["Con Anemia (Diagnostico)"].sum()],
+                    })
+                    rg_df = pd.concat([rg_df, total_row], ignore_index=True)
+                    rg_df["% Encontrados"] = ((rg_df["Encontrados"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
+                    rg_df["% Tamizaje"] = ((rg_df["Sin Anemia (Tamizaje)"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
+                    rg_df["% Diagnostico"] = ((rg_df["Sin Anemia (Diagnostico)"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
+                    gb = GridOptionsBuilder.from_dataframe(rg_df)
+                    gb.configure_default_column(cellStyle={'fontSize': '17px'}) 
+                    gb.configure_column("Establecimiento de Salud", width=300)
+                    # Configurar ancho de columnas numéricas
+                    numeric_columns = ["Programados", "Encontrados","Con Suplementación","Sin Anemia (Tamizaje)","Con Anemia (Tamizaje)","Sin Anemia (Diagnostico)","Con Anemia (Diagnostico)",]
+                    for col in numeric_columns:
+                        gb.configure_column(col, width=130)
+                    
+                    grid_options = gb.build()
+                    #grid_options['getRowStyle'] = row_style
 
-                })
-                soon6_dff_group = pd.concat([soon6_dff_group, total_row_6], ignore_index=True)
-                soon6_dff_group["% Niños Encontrados"] = (soon6_dff_group["Niños_Encontrados_Efectivos"]/soon6_dff_group["Niños_Programados"]*100).round(1).astype(str) + "%"
-                
-                soon6_dff_group = soon6_dff_group[["Establecimiento de Salud", "Niños_Programados", "Niños_Encontrados_Efectivos","% Niños Encontrados", "Niños_SEGURO_SIS", "Niños_OTRO_SEGURO"]]
-                soon6_dff_group.columns = ["Establecimiento de Salud", "Niños Programados", "Niños Encontrados Efectivos","% Niños Encontrados", "Niños SEGURO SIS", "Niños OTRO SEGURO"]
-                gb = GridOptionsBuilder.from_dataframe(soon6_dff_group)
-                gb.configure_default_column(cellStyle={'fontSize': '17px'}) 
-                #gb.configure_selection(selection_mode="single", use_checkbox=True)
-                gb.configure_column("Establecimiento de Salud", width=350)
-                # Formato condicional para la columna Estado
-                
-                grid_options = gb.build()
-                #grid_options['getRowStyle'] = row_style
-                
-                grid_tab11 = AgGrid(soon6_dff_group, # Dataframe a mostrar
-                                        gridOptions=grid_options,
-                                        enable_enterprise_modules=False,
-                                        #theme='balham',  # Cambiar tema si se desea ('streamlit', 'light', 'dark', 'alpine', etc.)
-                                        update_mode='MODEL_CHANGED',
-                                        fit_columns_on_grid_load=True,
-                                        height=340,
-                                        allow_unsafe_jscode=True,
-                                        key="grid_180_209"
-                )
-                
-            with tab4:
-                st.subheader("👶 Seguimiento Niños que cumplen 270-299 días en el mes")
-                soon9_dff = dataframe_[(dataframe_["Niños 270-299 días en mes"]=="SI")]
-                soon9_dff["Estado Niño"] = soon9_dff["Estado Niño"].replace({"Visita Domiciliaria (6 a 12 Meses)":"Visita Domiciliaria","Visita Domiciliaria (1 a 5 meses)":"Visita Domiciliaria"})
-                soon9_dff_group = soon9_dff.groupby(["Establecimiento de Salud"]).agg(
-                    Niños_Programados=("Número de Documento", "count"),
-                    Niños_Encontrados_Efectivos=("Estado Niño", lambda x: (x == "Visita Domiciliaria").sum()),
-                    Niños_SEGURO_SIS=("Tipo de Seguro", lambda x: ((x != "ESSALUD") & (x != "PRIVADO")).sum()),
-                    Niños_OTRO_SEGURO=("Tipo de Seguro", lambda x: ((x == "ESSALUD")|(x == "PRIVADO")).sum()),
-                ).reset_index()
-                soon9_dff_group = soon9_dff_group.sort_values("Niños_Programados", ascending=False)
-                
-                # Agregar fila de total
-                total_row_9 = pd.DataFrame({
-                    "Establecimiento de Salud": ["TOTAL"],
-                    "Niños_Programados": [soon9_dff_group["Niños_Programados"].sum()],
-                    "Niños_Encontrados_Efectivos": [soon9_dff_group["Niños_Encontrados_Efectivos"].sum()],
-                    "Niños_SEGURO_SIS": [soon9_dff_group["Niños_SEGURO_SIS"].sum()],
-                    "Niños_OTRO_SEGURO": [soon9_dff_group["Niños_OTRO_SEGURO"].sum()],
-                })
-                soon9_dff_group = pd.concat([soon9_dff_group, total_row_9], ignore_index=True)
-                soon9_dff_group["% Niños Encontrados"] = (soon9_dff_group["Niños_Encontrados_Efectivos"]/soon9_dff_group["Niños_Programados"]*100).round(1).astype(str) + "%"
-                
-                soon9_dff_group = soon9_dff_group[["Establecimiento de Salud", "Niños_Programados", "Niños_Encontrados_Efectivos","% Niños Encontrados", "Niños_SEGURO_SIS", "Niños_OTRO_SEGURO"]]
-                soon9_dff_group.columns = ["Establecimiento de Salud", "Niños Programados", "Niños Encontrados Efectivos","% Niños Encontrados", "Niños SEGURO SIS", "Niños OTRO SEGURO"]
-                
-                gb3 = GridOptionsBuilder.from_dataframe(soon9_dff_group)
-                gb3.configure_default_column(cellStyle={'fontSize': '17px'}) 
-                #gb3.configure_selection(selection_mode="single", use_checkbox=True)
-                gb3.configure_column("Establecimiento de Salud", width=350)
-                
-                grid_options3 = gb3.build()
-                
-                grid_tab8 = AgGrid(soon9_dff_group,
-                                        gridOptions=grid_options3,
-                                        enable_enterprise_modules=False,
-                                        update_mode='MODEL_CHANGED',
-                                        fit_columns_on_grid_load=True,
-                                        height=340,
-                                        allow_unsafe_jscode=True,
-                                        key="grid_270_299"
-                )
-                
-                
-            with tab5:
-                st.subheader("👶 Seguimiento Niños que cumplen 360-389 días en el mes")
-                soon12_dff = dataframe_[(dataframe_["Niños 360-389 días en mes"]=="SI")]
-                soon12_dff["Estado Niño"] = soon12_dff["Estado Niño"].replace({"Visita Domiciliaria (6 a 12 Meses)":"Visita Domiciliaria","Visita Domiciliaria (1 a 5 meses)":"Visita Domiciliaria"})
-                soon12_dff_group = soon12_dff.groupby(["Establecimiento de Salud"]).agg(
-                    Niños_Programados=("Número de Documento", "count"),
-                    Niños_Encontrados_Efectivos=("Estado Niño", lambda x: (x == "Visita Domiciliaria").sum()),
-                    Niños_SEGURO_SIS=("Tipo de Seguro", lambda x: ((x != "ESSALUD") & (x != "PRIVADO")).sum()),
-                    Niños_OTRO_SEGURO=("Tipo de Seguro", lambda x: ((x == "ESSALUD")|(x == "PRIVADO")).sum()),
-                ).reset_index()
-                soon12_dff_group = soon12_dff_group.sort_values("Niños_Programados", ascending=False)
-                
-                # Agregar fila de total
-                total_row_12 = pd.DataFrame({
-                    "Establecimiento de Salud": ["TOTAL"],
-                    "Niños_Programados": [soon12_dff_group["Niños_Programados"].sum()],
-                    "Niños_Encontrados_Efectivos": [soon12_dff_group["Niños_Encontrados_Efectivos"].sum()],
-                    "Niños_SEGURO_SIS": [soon12_dff_group["Niños_SEGURO_SIS"].sum()],
-                    "Niños_OTRO_SEGURO": [soon12_dff_group["Niños_OTRO_SEGURO"].sum()],
-                })
-                soon12_dff_group = pd.concat([soon12_dff_group, total_row_12], ignore_index=True)
-                soon12_dff_group["% Niños Encontrados"] = (soon12_dff_group["Niños_Encontrados_Efectivos"]/soon12_dff_group["Niños_Programados"]*100).round(1).astype(str) + "%"
-                
-                soon12_dff_group = soon12_dff_group[["Establecimiento de Salud", "Niños_Programados", "Niños_Encontrados_Efectivos","% Niños Encontrados", "Niños_SEGURO_SIS", "Niños_OTRO_SEGURO"]]
-                soon12_dff_group.columns = ["Establecimiento de Salud", "Niños Programados", "Niños Encontrados Efectivos","% Niños Encontrados", "Niños SEGURO SIS", "Niños OTRO SEGURO"]
-                
-                gb2 = GridOptionsBuilder.from_dataframe(soon12_dff_group)
-                gb2.configure_default_column(cellStyle={'fontSize': '17px'}) 
-                #gb2.configure_selection(selection_mode="single", use_checkbox=True)
-                gb2.configure_column("Establecimiento de Salud", width=350)
-                
-                grid_options2 = gb2.build()
-                
-                grid_tab2 = AgGrid(soon12_dff_group,
-                                        gridOptions=grid_options2,
-                                        enable_enterprise_modules=False,
-                                        update_mode='MODEL_CHANGED',
-                                        fit_columns_on_grid_load=True,
-                                        height=340,
-                                        allow_unsafe_jscode=True,
-                                        key="grid_360_389"
-                )
-                
-                
-                
+                    grid_response = AgGrid(rg_df, # Dataframe a mostrar
+                                            gridOptions=grid_options,
+                                            enable_enterprise_modules=False,
+                                            #theme='balham',  # Cambiar tema si se desea ('streamlit', 'light', 'dark', 'alpine', etc.)
+                                            update_mode='MODEL_CHANGED',
+                                            #fit_columns_on_grid_load=True,
+                                            height=370,
+                                            key="grid_anemia"
+                                        )
+                   
+                    tamizaje_df = rg_dff.groupby(["ESTADO TAMIZAJE"])[["Tipo Documento(P)"]].count().reset_index()
+                    tamizaje_df.columns = ["ESTADO TAMIZAJE", "Niños"]
+                    diagnostico_df = rg_dff.groupby(["ESTADO HB NIÑO"])[["Tipo Documento(P)"]].count().reset_index()
+                    diagnostico_df.columns = ["ESTADO HB NIÑO", "Niños"]
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        fig_tamizaje = px.pie(tamizaje_df, values='Niños', names='ESTADO TAMIZAJE', title='Distribución de Resultados de Tamizaje')
+                        fig_tamizaje.update_traces(textposition='inside', textinfo='percent+label+value', insidetextfont=dict(size=18))
+                        st.plotly_chart(fig_tamizaje)
+                    with col2:
+                        fig_diagnostico = px.pie(diagnostico_df, values='Niños', names='ESTADO HB NIÑO', title='Distribución de Resultados de Diagnóstico')
+                        fig_diagnostico.update_traces(textposition='inside', textinfo='percent+label+value', insidetextfont=dict(size=18))
+                        st.plotly_chart(fig_diagnostico)
+    
+
+                render_anemia_indicators()
+  
             # Filtra duplicados de Celular Madre
             df_con_num_cel = dataframe_[dataframe_["Celular Madre"] != 0].copy()
             df_con_num_cel["Celular Madre"] = df_con_num_cel["Celular Madre"].astype(str)
 
-            # Detecta duplicados de Número Doc Madre
+                # Detecta duplicados de Número Doc Madre
             duplicados_num_doc_madre = df_con_num_cel["Número Doc Madre"].duplicated(keep=False)
 
-            # Filtra duplicados de Celular Madre y excluye duplicados de Número Doc Madre
+                # Filtra duplicados de Celular Madre y excluye duplicados de Número Doc Madre
             cel_duplicados_df = df_con_num_cel[
-                df_con_num_cel.duplicated(subset=["Celular Madre"], keep=False) &
-                ~duplicados_num_doc_madre
-            ]
-            
+                    df_con_num_cel.duplicated(subset=["Celular Madre"], keep=False) &
+                    ~duplicados_num_doc_madre
+                ]
+                
 
             groupings = [
-                # (df, x, y, title, text, orientation, color, barmode, xaxis_title, yaxis_title)
-                (dataframe_.groupby(['Establecimiento de Salud'])[['Número de Documento']].count()
-                    .rename(columns={"Número de Documento":"Registros"})
-                    .sort_values("Registros", ascending=True).reset_index(),
-                "Registros", "Establecimiento de Salud", "Niños Asignados por Establecimiento de Salud", "Registros", 'h', None, None, "Número de Niños Cargados", None),
-                (dataframe_.groupby(['Establecimiento de Salud'])[['Total de VD presenciales Válidas']].sum()
-                    .rename(columns={"Total de VD presenciales Válidas":"Visitas"})
-                    .sort_values("Visitas", ascending=True).reset_index(),
-                "Visitas", "Establecimiento de Salud", "Niños Visitados por Establecimiento de Salud", "Visitas", 'h', None, None, "Número de Visitas", None),
-                (dataframe_.groupby(["Estado Niño"])[["Tipo Documento"]].count().rename(columns={"Tipo Documento":"Niños"}).reset_index(),
-                "Niños", "Estado Niño", f"Estado de los Niños Cargados {select_mes}", "Niños", 'h', None, None, "Niños", None),
-                (dataframe_.groupby(["Entidad Actualiza"])[["Tipo Documento"]].count().rename(columns={"Tipo Documento":"Niños"}).reset_index(),
-                "Niños", "Entidad Actualiza", f"Niños C1 - Estado Actualizaciones Padrón Nominal {select_mes}", "Niños", 'h', None, None, "Niños", None),
-                (dataframe_.groupby(["Estado Visitas"])[["Tipo Documento"]].count().rename(columns={"Tipo Documento":"Niños"}).reset_index(),
-                "Niños", "Estado Visitas", f"Estado de las Visitas en {select_mes}", "Niños", 'h', None, None, "Niños", None),
-                (dataframe_.groupby(['Establecimiento de Salud'])[['Total de VD presencial Válidas MOVIL']].sum()
-                    .rename(columns={"Total de VD presencial Válidas MOVIL":"Visitas"})
-                    .sort_values("Visitas", ascending=True).reset_index(),
-                "Visitas", "Establecimiento de Salud", "Visitas Registradas por MOVIL", "Visitas", 'h', None, None, "Número de Visitas", None),
-                (dataframe_.groupby(['Establecimiento de Salud'])[['Total de VD presencial Válidas WEB']].sum()
-                    .rename(columns={"Total de VD presencial Válidas WEB":"Visitas"})
-                    .sort_values("Visitas", ascending=True).reset_index(),
-                "Visitas", "Establecimiento de Salud", "Visitas Registradas por WEB", "Visitas", 'h', None, None, "Número de Visitas", None),
-            ]
+                    # (df, x, y, title, text, orientation, color, barmode, xaxis_title, yaxis_title)
+                    (dataframe_.groupby(['Establecimiento de Salud'])[['Número de Documento']].count()
+                        .rename(columns={"Número de Documento":"Registros"})
+                        .sort_values("Registros", ascending=True).reset_index(),
+                    "Registros", "Establecimiento de Salud", "Niños Asignados por Establecimiento de Salud", "Registros", 'h', None, None, "Número de Niños Cargados", None),
+                    (dataframe_.groupby(['Establecimiento de Salud'])[['Total de VD presenciales Válidas']].sum()
+                        .rename(columns={"Total de VD presenciales Válidas":"Visitas"})
+                        .sort_values("Visitas", ascending=True).reset_index(),
+                    "Visitas", "Establecimiento de Salud", "Niños Visitados por Establecimiento de Salud", "Visitas", 'h', None, None, "Número de Visitas", None),
+                    (dataframe_.groupby(["Estado Niño"])[["Tipo Documento"]].count().rename(columns={"Tipo Documento":"Niños"}).reset_index(),
+                    "Niños", "Estado Niño", f"Estado de los Niños Cargados {select_mes}", "Niños", 'h', None, None, "Niños", None),
+                    (dataframe_.groupby(["Entidad Actualiza"])[["Tipo Documento"]].count().rename(columns={"Tipo Documento":"Niños"}).reset_index(),
+                    "Niños", "Entidad Actualiza", f"Niños C1 - Estado Actualizaciones Padrón Nominal {select_mes}", "Niños", 'h', None, None, "Niños", None),
+                    (dataframe_.groupby(["Estado Visitas"])[["Tipo Documento"]].count().rename(columns={"Tipo Documento":"Niños"}).reset_index(),
+                    "Niños", "Estado Visitas", f"Estado de las Visitas en {select_mes}", "Niños", 'h', None, None, "Niños", None),
+                    (dataframe_.groupby(['Establecimiento de Salud'])[['Total de VD presencial Válidas MOVIL']].sum()
+                        .rename(columns={"Total de VD presencial Válidas MOVIL":"Visitas"})
+                        .sort_values("Visitas", ascending=True).reset_index(),
+                    "Visitas", "Establecimiento de Salud", "Visitas Registradas por MOVIL", "Visitas", 'h', None, None, "Número de Visitas", None),
+                    (dataframe_.groupby(['Establecimiento de Salud'])[['Total de VD presencial Válidas WEB']].sum()
+                        .rename(columns={"Total de VD presencial Válidas WEB":"Visitas"})
+                        .sort_values("Visitas", ascending=True).reset_index(),
+                    "Visitas", "Establecimiento de Salud", "Visitas Registradas por WEB", "Visitas", 'h', None, None, "Número de Visitas", None),
+                ]
 
-            # Gráficos de barras
+                # Gráficos de barras
             figs = [plot_bar(*args) for args in groupings]
 
-            # Gráficos especiales
-            # Niños No Encontrados
+                # Gráficos especiales
+                # Niños No Encontrados
             no_encontrados_df = dataframe_[dataframe_["Estado Niño"]=="No Encontrado"] \
-                .groupby(["Establecimiento de Salud"])[["Estado Niño"]].count() \
-                .rename(columns={"Estado Niño":"Registros"}).sort_values("Registros", ascending=True).reset_index()
+                    .groupby(["Establecimiento de Salud"])[["Estado Niño"]].count() \
+                    .rename(columns={"Estado Niño":"Registros"}).sort_values("Registros", ascending=True).reset_index()
             fig_eess_count_noencon = plot_bar(no_encontrados_df, "Registros", "Establecimiento de Salud", "Niños No Encontrados por Establecimiento de Salud", "Registros", 'h', None, None, "Número de Niños No Encontrados", None)
 
-            # Niños Rechazados
+                # Niños Rechazados
             rechazado_df = dataframe_[dataframe_["Estado Niño"]=="Rechazado"] \
-                .groupby(["Establecimiento de Salud"])[["Estado Niño"]].count() \
-                .rename(columns={"Estado Niño":"Registros"}).sort_values("Registros", ascending=True).reset_index()
+                    .groupby(["Establecimiento de Salud"])[["Estado Niño"]].count() \
+                    .rename(columns={"Estado Niño":"Registros"}).sort_values("Registros", ascending=True).reset_index()
             fig_eess_count_rechazado = plot_bar(rechazado_df, "Registros", "Establecimiento de Salud", "Niños Rechazados por Establecimiento de Salud", "Registros", 'h', None, None, "Número de Niños Rechazados", None)
 
-            # Niños sin Visita
+                # Niños sin Visita
             sinvd_dff = dataframe_[dataframe_["Estado Niño"]==f"Sin Visita ({select_mes})"]
             sinvd_df = sinvd_dff.groupby(["Establecimiento de Salud"])[["Estado Niño"]].count() \
-                .rename(columns={"Estado Niño":"Niños"}).sort_values("Niños", ascending=True).reset_index()
+                    .rename(columns={"Estado Niño":"Niños"}).sort_values("Niños", ascending=True).reset_index()
             fig_eess_sinvd = plot_bar(sinvd_df, "Niños", "Establecimiento de Salud", "Niños sin Visita por Establecimiento", "Niños", 'h', None, None, "Número de Niños", None)
 
-            # Niños Transito
+                # Niños Transito
             child_transito_df = dataframe_[dataframe_["Tipo Registro Padrón Nominal"]=="Activos Transito"] \
-                .groupby(["Establecimiento de Salud"])[["Tipo Registro Padrón Nominal"]].count() \
-                .rename(columns={"Tipo Registro Padrón Nominal":"Niños"}).sort_values("Niños", ascending=True).reset_index()
+                    .groupby(["Establecimiento de Salud"])[["Tipo Registro Padrón Nominal"]].count() \
+                    .rename(columns={"Tipo Registro Padrón Nominal":"Niños"}).sort_values("Niños", ascending=True).reset_index()
             fig_eess_transito = plot_bar(child_transito_df, "Niños", "Establecimiento de Salud", "Niños Transito por Establecimiento", "Niños", 'h', None, None, "Número de Niños", None)
 
-            # Niños Otro Padrón
+                # Niños Otro Padrón
             child_deri_df = dataframe_[dataframe_["Tipo Registro Padrón Nominal"]=="En Otro Padrón Nominal"] \
-                .groupby(["Establecimiento de Salud"])[["Tipo Registro Padrón Nominal"]].count() \
-                .rename(columns={"Tipo Registro Padrón Nominal":"Niños"}).sort_values("Niños", ascending=True).reset_index()
+                    .groupby(["Establecimiento de Salud"])[["Tipo Registro Padrón Nominal"]].count() \
+                    .rename(columns={"Tipo Registro Padrón Nominal":"Niños"}).sort_values("Niños", ascending=True).reset_index()
             fig_eess_derivados = plot_bar(child_deri_df, "Niños", "Establecimiento de Salud", "Niños En otro Distrito Padrón por Establecimiento", "Niños", 'h', None, None, "Número de Niños", None)
 
-            # Estado de Derivados y Transitos
+                # Estado de Derivados y Transitos
             registro_padron_df = dataframe_[dataframe_["Tipo Registro Padrón Nominal"].isin(["Activos Transito","En Otro Padrón Nominal"])]
             registro_padron_group_df = registro_padron_df.groupby(["Estado Niño","Tipo Registro Padrón Nominal"])[["Número de Documento"]].count().rename(columns={"Número de Documento":"Niños"}).reset_index()
             fig_reg_padron = px.bar(registro_padron_group_df, x="Estado Niño", y="Niños", color="Tipo Registro Padrón Nominal",
-                                    text="Niños", orientation='v', title="Niños Derivados y Transitos por Estado de Visita", barmode='group')
+                                        text="Niños", orientation='v', title="Niños Derivados y Transitos por Estado de Visita", barmode='group')
             fig_reg_padron.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
             fig_reg_padron.update_layout(xaxis=dict(title=dict(text="Estado de Visita de los Niños")), yaxis=dict(title=dict(text="Número de Niños")), font=dict(size=16))
 
-            # Tipo de Seguro por Establecimiento
+                # Tipo de Seguro por Establecimiento
             tipo_seguro_df = dataframe_.groupby(["Establecimiento de Salud","Tipo de Seguro"])[["Número de Documento"]].count().rename(columns={"Número de Documento":"Niños"}).reset_index()
             fig_tipo_seguro = plot_bar(tipo_seguro_df, "Niños", "Establecimiento de Salud", "Tipo de Seguro por Establicimiento de salud", "Niños", 'h', "Tipo de Seguro", 'stack', "Número de Niños", "Establecimiento de Salud")
 
-            # Tipo de Seguro general
+                # Tipo de Seguro general
             tipo_seguro_all_df = dataframe_.groupby(["Tipo de Seguro"])[["Número de Documento"]].count().rename(columns={"Número de Documento":"Niños"}).reset_index()
             fig_seguro_all = px.pie(tipo_seguro_all_df, values='Niños', names='Tipo de Seguro', title='Tipo de Seguro')
             fig_seguro_all.update_traces(textposition='inside', textinfo='percent+label+value', insidetextfont=dict(size=18))
-            
-            with st.expander("Charts"):
-                col1, col2 = st.columns(2)
-                with col1:
-                    tab1, tab2, tab3, tab4,tab5 = st.tabs(["Asignados", "Visitados","Sin Visitas","Visitas Movil","Visitas Web"])
-                    with tab1:
-                        st.plotly_chart(figs[0], use_container_width=True)  # Niños Asignados
-                    with tab2:
-                        st.plotly_chart(figs[1], use_container_width=True) 
-                    with tab3:
-                        st.plotly_chart(fig_eess_sinvd, use_container_width=True)
-                    with tab4:
-                        st.plotly_chart(figs[5], use_container_width=True)
-                    with tab5:
-                        st.plotly_chart(figs[6], use_container_width=True)
-
-
-                with col2:
-                    tab1, tab2, tab3, tab4,tab5 = st.tabs(["Transitos/Derivados","Niños Otro Padrón","Niños Transito","Niños No Encontrados", "Niños Rechazados"])
-                    with tab1:
-                        st.plotly_chart(fig_reg_padron, use_container_width=True)
-                    with tab2:
-                        st.plotly_chart(fig_eess_derivados, use_container_width=True)
-                    with tab3:
-                        st.plotly_chart(fig_eess_transito, use_container_width=True)
-                        
-                    with tab4:
-                        st.plotly_chart(fig_eess_count_rechazado, use_container_width=True)  # Niños Rechazados
-                    with tab5:
-                        st.plotly_chart(fig_eess_count_noencon, use_container_width=True)  # Niños No Encontrados
                 
-                col1_, col2_= st.columns(2)
-                with col1_:
-                    tab1_, tab2_, tab3_ = st.tabs(["Tipo de Etapa","Etapa por Visitas","Entidad Actualiza"])
-                    with tab1_:
-                        st.plotly_chart(figs[2], use_container_width=True)
-                    with tab2_:
-                        st.plotly_chart(figs[4], use_container_width=True)
-                    with tab3_:
-                        st.plotly_chart(figs[3], use_container_width=True)
-                with col2_: 
-                    st.plotly_chart(fig_seguro_all, use_container_width=True)
+            with st.expander("Charts"):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        tab1, tab2, tab3, tab4,tab5 = st.tabs(["Asignados", "Visitados","Sin Visitas","Visitas Movil","Visitas Web"])
+                        with tab1:
+                            st.plotly_chart(figs[0], use_container_width=True)  # Niños Asignados
+                        with tab2:
+                            st.plotly_chart(figs[1], use_container_width=True) 
+                        with tab3:
+                            st.plotly_chart(fig_eess_sinvd, use_container_width=True)
+                        with tab4:
+                            st.plotly_chart(figs[5], use_container_width=True)
+                        with tab5:
+                            st.plotly_chart(figs[6], use_container_width=True)
+
+
+                    with col2:
+                        tab1, tab2, tab3, tab4,tab5 = st.tabs(["Transitos/Derivados","Niños Otro Padrón","Niños Transito","Niños No Encontrados", "Niños Rechazados"])
+                        with tab1:
+                            st.plotly_chart(fig_reg_padron, use_container_width=True)
+                        with tab2:
+                            st.plotly_chart(fig_eess_derivados, use_container_width=True)
+                        with tab3:
+                            st.plotly_chart(fig_eess_transito, use_container_width=True)
+                            
+                        with tab4:
+                            st.plotly_chart(fig_eess_count_rechazado, use_container_width=True)  # Niños Rechazados
+                        with tab5:
+                            st.plotly_chart(fig_eess_count_noencon, use_container_width=True)  # Niños No Encontrados
+                    
+                    col1_, col2_= st.columns(2)
+                    with col1_:
+                        tab1_, tab2_, tab3_ = st.tabs(["Tipo de Etapa","Etapa por Visitas","Entidad Actualiza"])
+                        with tab1_:
+                            st.plotly_chart(figs[2], use_container_width=True)
+                        with tab2_:
+                            st.plotly_chart(figs[4], use_container_width=True)
+                        with tab3_:
+                            st.plotly_chart(figs[3], use_container_width=True)
+                    with col2_: 
+                        st.plotly_chart(fig_seguro_all, use_container_width=True)
             #fecha_actual
             col1, col2, col3, col4 = st.columns(4)
             with col1:
@@ -628,20 +666,18 @@ def visitas_ninos_dashboard():
             
             
             
-        
-            
-        
-
-    
-    
-    
 
 
 
 def estadisticas_dashboard():
     styles(2)
     c1_carga_df = fetch_carga_childs()
-    #padron_df = fetch_padron()
+    #c1_carga_df["Número de Documento del niño"] = c1_carga_df["Número de Documento del niño"].astype(str).str.strip()
+    
+    supledf = pd.read_parquet(r'./data/microred/suplementacion.parquet', engine='pyarrow')
+    supledf["DNI_PACIENTE"] = supledf["DNI_PACIENTE"].str.strip()
+    supledf = supledf.rename(columns={"DNI_PACIENTE":"Documento"})
+    
     st.title("Indicador: Niños sin anemia")
     #jun_seg_nominal_df = c1_carga_df[(c1_carga_df["Mes"] == 6) & (c1_carga_df["Año"] == 2025)]
     #jun_seg_nominal_df = jun_seg_nominal_df[[
@@ -649,38 +685,136 @@ def estadisticas_dashboard():
     #    "Mes","Año"
     #]]
     all_c1_carga_df = c1_carga_df[(c1_carga_df["Año"] == 2025)]
+    
     all_c1_carga_df["Mes_name"] = all_c1_carga_df["Mes"].apply(mes_short)
     all_c1_carga_df["Mes_name"] = all_c1_carga_df["Mes_name"] + "-"
     all_c1_carga_df = all_c1_carga_df.sort_values(by="Mes", ascending=True)
     all_c1_carga_df["Mes"] = all_c1_carga_df["Mes"].astype(str)
     all_c1_carga_df['Edad_Meses'] = all_c1_carga_df['Fecha de Nacimiento'].apply(lambda x: (datetime.now() - x).days / 30.44)
     all_c1_carga_df['Tiene_6_Meses'] = all_c1_carga_df['Edad_Meses'].apply(lambda x: 'Sí' if x >= 6 else 'No')
+    all_c1_carga_df.to_excel("owo.xlsx")
+    
     total = all_c1_carga_df.groupby(["Número de Documento del niño"]).agg({"Mes": "sum","Mes_name": "sum"}).reset_index()
     
-    all_c1_carga_df = all_c1_carga_df[all_c1_carga_df["Tiene_6_Meses"]=="Sí"]
+    #all_c1_carga_df = all_c1_carga_df[all_c1_carga_df["Tiene_6_Meses"]=="Sí"]
+    all_c1_carga_df["Establecimiento de Salud"] = all_c1_carga_df["Establecimiento de Salud"]+" - "
+    #st.write(len(list(all_c1_carga_df["Número de Documento del niño"].unique())))
 
-    unique_childs25_df = all_c1_carga_df.groupby(["Número de Documento del niño"]).agg({"Mes": "sum","Mes_name": "sum"}).reset_index()
-    unique_childs25_df.columns = ["Documento", "Periodos","Periodos_name"]
+    unique_childs25_df = all_c1_carga_df.groupby(["Número de Documento del niño"]).agg({"Mes": "sum","Mes_name": "sum","Establecimiento de Salud": "sum"}).reset_index()
+    unique_childs25_df.columns = ["Documento", "Periodos","Periodos_name","Establecimiento de Salud"]
     unique_childs25_df["Periodos_name"] = unique_childs25_df["Periodos_name"].str[:-1] 
     unique_childs25_df['Es_Consecutivo'] = unique_childs25_df['Periodos'].apply(es_consecutivo)  
-    unique_childs25_df = unique_childs25_df[["Documento","Periodos_name","Es_Consecutivo"]]
-    unique_childs25_df.columns = ["Documento","Periodos","¿Es consecutivo?"]
+    unique_childs25_df = unique_childs25_df[["Documento","Periodos_name","Es_Consecutivo","Establecimiento de Salud"]]
+    unique_childs25_df.columns = ["Documento","Periodos","¿Es consecutivo?","Establecimiento de Salud"]
     unique_childs25_df["Documento"] = unique_childs25_df["Documento"].astype(str)
-    
+    unique_childs25_df["Documento"] = unique_childs25_df["Documento"].str.strip()
 
     childs_total =total.shape[0]
     childs_consecutivos = (unique_childs25_df["¿Es consecutivo?"]=="Consecutivo").sum()
+   
     #childs_no_consecutivos = (unique_childs25_df["¿Es consecutivo?"]=="No Consecutivo").sum()
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Total de Niños Cargados 2025", childs_total)
     with col2:
-        st.metric("Total de Niños Consecutivos de 6 meses", childs_consecutivos)
+        st.metric("Total de Niños Consecutivos ", childs_consecutivos)#de 6 meses
     with col3:
         st.metric("Umbral Minimo 30%", round(childs_consecutivos*0.3,0))
     with col4:
         st.metric("Umbral Minimo 37%", round(childs_consecutivos*0.37,0))
+
+    #st.write(unique_childs25_df.shape)
+    #st.dataframe(unique_childs25_df)
+    #st.write(supledf.shape)
+    #st.dataframe(supledf)
+    st.write(unique_childs25_df.shape)
+    st.dataframe(unique_childs25_df)
+    df_ = pd.merge(unique_childs25_df, supledf, on="Documento", how="left")
+    df_ = df_.sort_values(by="Fecha_Diagnostico", ascending=True)
     
+    df_["MICRORED"] = df_["MICRORED"].replace("TRUJILLO - METROPOLITANO", "TRUJILLO")
+    df_["PACIENTE"] = df_["PACIENTE"].fillna("Sin Datos")
+    df_["PACIENTE"] = df_["PACIENTE"].str.strip()
+    #print(df_["PACIENTE"].unique())
+    # Calcular edad de diagnóstico si tienes fecha de nacimiento y fecha de diagnóstico
+    # Ejemplo: si tienes una columna de fecha de diagnóstico en supledf
+    if 'Fecha_Diagnostico' in df_.columns and 'FECHA_NAC' in df_.columns:
+        
+        df_['Edad Diagnóstico'] = df_.apply(
+            lambda row: calcular_edad_diagnostico(row['FECHA_NAC'], row['Fecha_Diagnostico']), 
+            axis=1
+        )
+        
+        df_['Edad Diagnóstico (días)'] = df_.apply(
+            lambda row: calcular_edad_diagnostico_dias(row['FECHA_NAC'], row['Fecha_Diagnostico']), 
+            axis=1
+        )
+    #st.write(df_.shape)
+    #st.dataframe(df_) 
+    df_["RESUMEN"] = df_["Fecha_Diagnostico"].astype(str)+" "+df_["DIAGNOSTICO"]+" "+df_["ACTIVIDAD"]+" "+df_['Edad Diagnóstico']+" - "
+    df_["ACTIVIDAD"] = df_["ACTIVIDAD"].str[4:]
+    df_["ACTIVIDAD"] = df_["ACTIVIDAD"].str.strip()
+    
+    df_ = df_[df_["MICRORED"].notna()]
+    
+    df_["MICRORED"] = df_["MICRORED"]+" - "
+    df_["ESTABLECIMIENTO"] = df_["ESTABLECIMIENTO"]+" - "
+    df_["PACIENTE"] = df_["PACIENTE"]+" - "
+    df_["Fecha_Diagnostico"] = df_["Fecha_Diagnostico"].astype(str)
+    df_["Fecha_Diagnostico"] = df_["Fecha_Diagnostico"]+" - "
+    df_["DIAGNOSTICO"] = df_["DIAGNOSTICO"]+" - "
+    df_["Descripcion_Financiador"] = df_["Descripcion_Financiador"]+" - "
+    df_["ACTIVIDAD"] = df_["ACTIVIDAD"]+" - "
+    df_["Edad Diagnóstico (días)"] = df_["Edad Diagnóstico (días)"].astype(str)
+    df_["Edad Diagnóstico"] = df_["Edad Diagnóstico"]+" - "
+    
+    dff = df_ = df_.groupby(["Establecimiento de Salud",'Documento', 'Periodos', '¿Es consecutivo?',"FECHA_NAC"])[
+        ["MICRORED","ESTABLECIMIENTO","PACIENTE","Fecha_Diagnostico","DIAGNOSTICO","Descripcion_Financiador",
+         "ACTIVIDAD","Edad Diagnóstico","RESUMEN"
+         ]
+    ].sum().reset_index()
+    dff['Establecimiento de Salud'] = dff.apply(lambda x: tomar_ultimo_elemento(x['Establecimiento de Salud']),axis=1)
+    dff['MICRORED'] = dff.apply(lambda x: eliminar_duplicados_col(x['MICRORED']),axis=1)
+    dff['ESTABLECIMIENTO'] = dff.apply(lambda x: eliminar_duplicados_col(x['ESTABLECIMIENTO']),axis=1)
+    dff['PACIENTE'] = dff.apply(lambda x: eliminar_duplicados_col(x['PACIENTE']),axis=1)
+    #dff['Fecha_Diagnostico'] = dff.apply(lambda x: eliminar_duplicados_col(x['Fecha_Diagnostico']),axis=1)
+    #dff['DIAGNOSTICO'] = dff.apply(lambda x: eliminar_duplicados_col(x['DIAGNOSTICO']),axis=1)
+    dff['Descripcion_Financiador'] = dff.apply(lambda x: eliminar_duplicados_col(x['Descripcion_Financiador']),axis=1)
+    #dff['ACTIVIDAD'] = dff.apply(lambda x: eliminar_duplicados_col(x['ACTIVIDAD']),axis=1)
+    #dff['Edad Diagnóstico'] = dff.apply(lambda x: eliminar_duplicados_col(x['Edad Diagnóstico']),axis=1)
+    
+    dff["MICRORED"] = dff["MICRORED"].str[:-2]
+    dff["ESTABLECIMIENTO"] = dff["ESTABLECIMIENTO"].str[:-2]
+    #dff["Fecha_Diagnostico"] = dff["Fecha_Diagnostico"].str[:-2]
+    #dff["DIAGNOSTICO"] = dff["DIAGNOSTICO"].str[:-2]
+    dff["Descripcion_Financiador"] = dff["Descripcion_Financiador"].str[:-2]
+    #dff["ACTIVIDAD"] = dff["ACTIVIDAD"].str[:-2]
+    #dff["Edad Diagnóstico"] = dff["Edad Diagnóstico"].str[:-2]
+    dff["PACIENTE"] = dff["PACIENTE"].str[:-2]
+    print(dff.columns)
+
+    dff = dff[['Establecimiento de Salud', 'Documento','PACIENTE', 'Periodos', '¿Es consecutivo?','FECHA_NAC', 'MICRORED', 'ESTABLECIMIENTO', 
+            'Fecha_Diagnostico', 'DIAGNOSTICO', 'Descripcion_Financiador','ACTIVIDAD', 'Edad Diagnóstico','RESUMEN']]
+    dff = dff.sort_values(by="Establecimiento de Salud", ascending=True)
+    #ANEMIA
+    dff["CON ANEMIA?"] = dff["RESUMEN"].str.contains("ANEMIA", case=False, na=False).map({True: "TUVO ANEMIA", False: "NO TUVO ANEMIA"})
+
+    # Separar la columna RESUMEN en varias columnas
+    resumen_split = dff['RESUMEN'].str.split(' - ', expand=True)
+    # Renombrar las columnas como RESUMEN_1, RESUMEN_2, ...
+    resumen_split.columns = [f'ATENCIONES_{i+1}' for i in range(resumen_split.shape[1])]
+
+    # Concatenar al DataFrame original (opcional: puedes eliminar la columna original si no la quieres)
+    dff = pd.concat([dff.drop(columns=['RESUMEN']), resumen_split], axis=1)
+    st.write(dff.shape)
+    st.dataframe(dff)
+    st.download_button(
+            label="Descargar",
+            icon=":material/download:",
+            data=convert_excel_df(dff),
+            file_name=f"REDTRUJULLO_suplementacion_c1_2025.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+     )
 
 
     #st.dataframe(all_c1_carga_df)
@@ -699,6 +833,8 @@ def estadisticas_dashboard():
 def generar_excel_seguimiento_nominal():
     styles(2)
     c1_carga_df = fetch_carga_childs()
+    
+    
     padron_df = fetch_padron()
     padron_df = padron_df[
         [
@@ -734,22 +870,25 @@ def generar_excel_seguimiento_nominal():
     pre_final_df["Número de Documento del niño"] = pre_final_df["Número de Documento del niño"].astype(str)
     nuevas_columnas = {
         'N°': pd.Series(dtype='int'),
+        'Establecimiento de Atención': pd.Series(dtype='str'),
         '¿Es prematuro?': pd.Series(dtype='str'),
-        'FECHA del tamizaje de Hemoglobina de 06 MESES': pd.Series(dtype='str'),
+        'Fecha del tamizaje de Hemoglobina de 06 MESES': pd.Series(dtype='str'),
         'Resultado de Hemoglobina de 06 MESES': pd.Series(dtype='str'),
-        '¿Fue HISEADO(Tamizaje 6 meses)?': pd.Series(dtype='str'),
-        '¿Tiene ANEMIA? - de 10.5 a menos': pd.Series(dtype='str'),
         '¿Está suplementado?': pd.Series(dtype='str'),
         'Tipo de SUPLEMENTO': pd.Series(dtype='str'),
-        '07 MESES: Fecha y resultado de Hemoglobina': pd.Series(dtype='str'),
-        '08 MESES: Fecha y resultado de Hemoglobina': pd.Series(dtype='str'),
-        '09 MESES: Fecha y resultado de Hemoglobina': pd.Series(dtype='str'),
-        '12 MESES: Fecha y resultado de Hemoglobina': pd.Series(dtype='str'),
-        'Si estuvo en un cuadro de ANEMIA, y ya tiene 12 MESES: ¿Es un Niño recuperado que ya no tiene ANEMIA?': pd.Series(dtype='str'),
-        '12 MESES: Fecha y resultado de Hemoglobina': pd.Series(dtype='str'),
+        'Fecha del tamizaje de Hemoglobina de 07 MESES': pd.Series(dtype='str'),
+        'Resultado de Hemoglobina de 07 MESES': pd.Series(dtype='str'),
+        'Fecha del tamizaje de Hemoglobina de 08 MESES': pd.Series(dtype='str'),
+        'Resultado de Hemoglobina de 08 MESES': pd.Series(dtype='str'),
+        'Fecha del tamizaje de Hemoglobina de 09 MESES': pd.Series(dtype='str'),
+        'Resultado de Hemoglobina de 09 MESES': pd.Series(dtype='str'),
+        'Fecha del tamizaje de Hemoglobina de 12 MESES': pd.Series(dtype='str'),
+        'Resultado de Hemoglobina de 12 MESES': pd.Series(dtype='str'),
         '¿Fue parte de una Sesion demostrativa?': pd.Series(dtype='str'),
-        '¿Fue HISEADO(SD)?': pd.Series(dtype='str'),
+        '¿Fue HISEADO (Sesión Demostrativa)?': pd.Series(dtype='str'),
+        'Observaciones': pd.Series(dtype='str'),
     }
+    #
     def obs_periodos_consecutivos(df):
         all_c1_carga_df = df[(df["Año"] == 2025)]
         all_c1_carga_df["Mes_name"] = all_c1_carga_df["Mes"].apply(mes_short)
@@ -767,7 +906,7 @@ def generar_excel_seguimiento_nominal():
     periodos_consecutivos_df = obs_periodos_consecutivos(c1_carga_df)
     pre_final_df = pd.merge(pre_final_df, periodos_consecutivos_df, left_on="Número de Documento del niño", right_on="Documento", how="left")
     primer_dia_mes = datetime(int(2025), int(mes), 1)
-    print(primer_dia_mes)
+    
     if int(mes) == 12:
             ultimo_dia_mes = datetime(int(2025) + 1, 1, 1) - pd.Timedelta(days=1)
     else:
@@ -776,47 +915,202 @@ def generar_excel_seguimiento_nominal():
     pre_final_df['Edad en días (primer día del mes)'] = pre_final_df['Fecha de Nacimiento'].apply(lambda x: (primer_dia_mes - x).days)
     pre_final_df['Edad en días (último día del mes)'] = pre_final_df['Fecha de Nacimiento'].apply(lambda x: (ultimo_dia_mes - x).days)
 
+    pre_final_df['Niños 120-149 días en mes'] = pre_final_df.apply(
+                lambda row: "SI" if (
+                    (row['Edad en días (primer día del mes)'] <= 149 and row['Edad en días (último día del mes)'] >= 120)
+                ) else "NO", axis=1
+            )
+
     pre_final_df['Niños 180-209 días en mes'] = pre_final_df.apply(
-            lambda row: "SI" if (
-                (row['Edad en días (primer día del mes)'] <= 209 and row['Edad en días (último día del mes)'] >= 180)
-            ) else "NO", axis=1
-    )
+                lambda row: "SI" if (
+                    (row['Edad en días (primer día del mes)'] <= 209 and row['Edad en días (último día del mes)'] >= 180)
+                ) else "NO", axis=1
+            )
+
+    pre_final_df['Niños 270-299 días en mes'] = pre_final_df.apply(
+                lambda row: "SI" if (
+                    (row['Edad en días (primer día del mes)'] <= 299 and row['Edad en días (último día del mes)'] >= 270)
+                ) else "NO", axis=1
+            )
 
     pre_final_df['Niños 360-389 días en mes'] = pre_final_df.apply(
-            lambda row: "SI" if (
-                (row['Edad en días (primer día del mes)'] <= 389 and row['Edad en días (último día del mes)'] >= 360)
-            ) else "NO", axis=1
-    )
+                lambda row: "SI" if (
+                    (row['Edad en días (primer día del mes)'] <= 389 and row['Edad en días (último día del mes)'] >= 360)
+                ) else "NO", axis=1
+            )
+    pre_final_df['Rango de Días Activo'] = pre_final_df.apply(combinar_rangos_dias, axis=1)
     pre_final_df["Edad"] = pre_final_df['Fecha de Nacimiento'].apply(lambda x: calcular_edad(x))
+    
     final_df = pre_final_df.assign(**nuevas_columnas)
     final_df = final_df[
         ['Establecimiento de Salud', 'Nombres del Actor Social','N°',
         'Tipo de Documento', 'Número de Documento del niño','DATOS NIÑO PADRON',
-        'Fecha de Nacimiento', 'Rango de Edad','Edad', 'DIRECCION PADRON',
-        'REFERENCIA DE DIRECCION', 'DNI de la madre','DATOS MADRE PADRON',
-        'NUMERO DE CELULAR', 'Celular de la madre', 'Tipo_file',
-        'TIPO DE SEGURO', 'EESS NACIMIENTO', 'EESS',
-        'Periodos', '¿Es consecutivo?',
-        'Niños 180-209 días en mes',
-        'Niños 360-389 días en mes', 
+        'Fecha de Nacimiento', 'Rango de Edad','Edad',  'DNI de la madre','DATOS MADRE PADRON',
+        'DIRECCION PADRON','REFERENCIA DE DIRECCION','NUMERO DE CELULAR',
+        'TIPO DE SEGURO','Establecimiento de Atención','¿Es consecutivo?',
+        'Rango de Días Activo','Periodos',
         '¿Es prematuro?',
-        'FECHA del tamizaje de Hemoglobina de 06 MESES',
+        'Fecha del tamizaje de Hemoglobina de 06 MESES',
         'Resultado de Hemoglobina de 06 MESES',
-        '¿Fue HISEADO(Tamizaje 6 meses)?',
-        '¿Tiene ANEMIA? - de 10.5 a menos', '¿Está suplementado?',
-        'Tipo de SUPLEMENTO', '07 MESES: Fecha y resultado de Hemoglobina',
-        '08 MESES: Fecha y resultado de Hemoglobina',
-        '09 MESES: Fecha y resultado de Hemoglobina',
-        '12 MESES: Fecha y resultado de Hemoglobina',
-        'Si estuvo en un cuadro de ANEMIA, y ya tiene 12 MESES: ¿Es un Niño recuperado que ya no tiene ANEMIA?',
+        '¿Está suplementado?',
+        'Tipo de SUPLEMENTO',
+        'Fecha del tamizaje de Hemoglobina de 07 MESES',
+        'Resultado de Hemoglobina de 07 MESES',
+        'Fecha del tamizaje de Hemoglobina de 08 MESES',
+        'Resultado de Hemoglobina de 08 MESES',
+        'Fecha del tamizaje de Hemoglobina de 09 MESES',
+        'Resultado de Hemoglobina de 09 MESES',
+        'Fecha del tamizaje de Hemoglobina de 12 MESES',
+        'Resultado de Hemoglobina de 12 MESES',
         '¿Fue parte de una Sesion demostrativa?',
-        '¿Fue HISEADO(SD)?'
-    ]
-    ]
+        '¿Fue HISEADO (Sesión Demostrativa)?',
+        'Observaciones'
+    ]]
     final_df["Establecimiento de Salud"] = final_df["Establecimiento de Salud"].str.replace('LOS GRANADOS "SAGRADO CORAZON"', "LOS GRANADOS SAGRADO CORAZON")
     final_df = final_df.sort_values(by=["Establecimiento de Salud",'Nombres del Actor Social'])
+    final_df["Número de Documento del niño"] = final_df["Número de Documento del niño"].astype(str)
     del pre_final_df
     # Crear el archivo Excel en memoria
+    """
+    AQUI EMPIEZA DATOS DE SEG JUNIO
+    """
+    segno_junio_df = pd.read_excel(r"C:\Proyectos\c1_vd\data\SEG_NOMINAL_JUNIO.xlsx")
+    segno_junio_df['¿Es prematuro?'] = segno_junio_df['¿Es prematuro?'].fillna("NO")
+    segno_junio_df['¿Es prematuro?'] = segno_junio_df['¿Es prematuro?'].str.strip()
+    # Convertir todos los valores diferentes a "SI" en "NO"
+    segno_junio_df['¿Es prematuro?'] = segno_junio_df['¿Es prematuro?'].apply(lambda x: "SI" if x == "SI" else "NO") 
+    
+    # Función para validar si un valor es numérico o string con números
+    def es_valor_numerico(valor):
+        if pd.isna(valor) or valor == "":
+            return False
+        if isinstance(valor, (int, float)):
+            return True
+        if isinstance(valor, str):
+            # Verificar si el string contiene al menos un dígito
+            return any(char.isdigit() for char in valor)
+        return False
+    
+    # Aplicar la función a la columna de hemoglobina
+    segno_junio_df['hemoglobina al mes prematuro'] = segno_junio_df['hemoglobina al mes prematuro'].apply(
+        lambda x: x if es_valor_numerico(x) else pd.NA
+    )
+    
+    # Función para validar si un valor es una fecha válida
+    def es_fecha_valida(valor):
+        if pd.isna(valor):
+            return False
+        if isinstance(valor, (pd.Timestamp, datetime)):
+            return True
+        if isinstance(valor, str):
+            # Verificar si es un string que representa una fecha
+            try:
+                pd.to_datetime(valor, errors='raise')
+                return True
+            except:
+                return False
+        return False
+    
+    # Aplicar la función a la columna de fecha de tamizaje
+    segno_junio_df['FECHA del tamizaje de Hemoglobina de 06 MESES'] = segno_junio_df['FECHA del tamizaje de Hemoglobina de 06 MESES'].apply(
+        lambda x: x if es_fecha_valida(x) else pd.NA
+    )
+    
+    # Función para validar si un valor es numérico (string, float o int)
+    def es_numerico_puro(valor):
+        if pd.isna(valor) or valor == "":
+            return False
+        if isinstance(valor, (int, float)):
+            return True
+        if isinstance(valor, str):
+            # Verificar si el string contiene solo números, punto decimal y signos
+            try:
+                float(valor)
+                return True
+            except ValueError:
+                return False
+        return False
+    
+    # Aplicar la función a la columna de resultado de hemoglobina
+    segno_junio_df['Resultado de Hemoglobina de 06 MESES'] = segno_junio_df['Resultado de Hemoglobina de 06 MESES'].apply(
+        lambda x: x if es_numerico_puro(x) else pd.NA
+    )
+    segno_junio_df['¿Tiene ANEMIA? - de 10.5 a menos'] = segno_junio_df['¿Tiene ANEMIA? - de 10.5 a menos'].apply(lambda x: "SI" if x == "SI" else "NO") 
+    segno_junio_df['¿Está suplementado?'] = segno_junio_df['¿Está suplementado?'].apply(lambda x: "SI" if x == "SI" else "NO") 
+    segno_junio_df['Si estuvo en un cuadro de ANEMIA, y ya tiene 12 MESES: ¿Es un Niño recuperado que ya no tiene ANEMIA?'] = segno_junio_df['Si estuvo en un cuadro de ANEMIA, y ya tiene 12 MESES: ¿Es un Niño recuperado que ya no tiene ANEMIA?'].apply(lambda x: "SI" if x == "SI" else "NO") 
+    segno_junio_df['¿Fue parte de una Sesion demostrativa?'] = segno_junio_df['¿Fue parte de una Sesion demostrativa?'].apply(lambda x: "SI" if x == "SI" else "NO")
+    
+    print(segno_junio_df.columns)
+    segno_junio_df = segno_junio_df.drop(columns=['Unnamed: 0'])
+    columns_to_keep = ['Documento del Niño', 'Apellico y Nombre del Niño',
+       'Periodos Cargados',  '¿Es prematuro?',
+       'hemoglobina al mes prematuro',
+       'FECHA del tamizaje de Hemoglobina de 06 MESES',
+       'Resultado de Hemoglobina de 06 MESES',
+       '¿Tiene ANEMIA? - de 10.5 a menos', '¿Está suplementado?',
+       'Tipo de SUPLEMENTO', '07 MESES: Fecha y resultado de Hemoglobina',
+       '8 MESES: Fecha y resultado de Hemoglobina',
+       '09 MESES: Fecha y resultado de Hemoglobina',
+       '10 MESES: Fecha y resultado de Hemoglobina',
+       '11 MESES: Fecha y resultado de Hemoglobina',
+       '12 MESES: Fecha y resultado de Hemoglobina',
+       'Si estuvo en un cuadro de ANEMIA, y ya tiene 12 MESES: ¿Es un Niño recuperado que ya no tiene ANEMIA?',
+       '¿Fue parte de una Sesion demostrativa?', 'TIPO SEGURO',
+       'Observaciones', 'CONSUME HIERRO  DE 4 A 5 MESES', 'EESS ATENCION',
+       'HG', 'SUPLEMENTO DE 4 A 5 MESES', 'EESS ATENCIONS',
+       '¿Fue HISEADO(Tamizaje 6 meses)?',
+       '08 MESES: Fecha y resultado de Hemoglobina', '¿Fue HISEADO(SD)?',
+       '09 MESES:  Fecha y resultado de Hemoglobina',
+       'ESTABLECIMIENTO DE SALUD ']
+    segno_junio_df = segno_junio_df[columns_to_keep]
+     
+     # Crear un diccionario para renombrar las columnas agregando _1
+    rename_dict = {}
+    for col in segno_junio_df.columns:
+         if col not in ['Documento del Niño']:  # No renombrar la columna de join
+             rename_dict[col] = col + '_1'
+     
+     # Renombrar las columnas
+    segno_junio_df = segno_junio_df.rename(columns=rename_dict)
+    segno_junio_df = segno_junio_df.rename(columns={"Documento del Niño": "Número de Documento del niño"})
+     # Hacer el join entre final_df y segno_junio_df
+    segno_junio_df["Número de Documento del niño"] = segno_junio_df["Número de Documento del niño"].astype(str)
+    
+    final_df = pd.merge(final_df, segno_junio_df, 
+                       on='Número de Documento del niño', 
+                        how='left')
+    #final_df['¿Es prematuro?'] = final_df['¿Es prematuro?'].fillna(final_df['¿Es prematuro?_1'])
+    #final_df['Fecha del tamizaje de Hemoglobina de 06 MESES '] = final_df['Fecha del tamizaje de Hemoglobina de 06 MESES '].fillna(final_df['Fecha del tamizaje de Hemoglobina de 06 MESES'])
+    
+     # Completar espacios vacíos usando los datos de segno_junio_df
+     # Para cada columna que existe en ambos dataframes
+    
+    columns_to_fill = [
+         ('¿Es prematuro?', '¿Es prematuro?_1'),
+         ('Fecha del tamizaje de Hemoglobina de 06 MESES', 'FECHA del tamizaje de Hemoglobina de 06 MESES_1'),
+         ('Resultado de Hemoglobina de 06 MESES', 'Resultado de Hemoglobina de 06 MESES_1'),
+         ('¿Está suplementado?', '¿Está suplementado?_1'),
+         ('Tipo de SUPLEMENTO', 'Tipo de SUPLEMENTO_1'),
+         ('¿Fue parte de una Sesion demostrativa?', '¿Fue parte de una Sesion demostrativa?_1'),
+         ('Fecha del tamizaje de Hemoglobina de 07 MESES', '07 MESES: Fecha y resultado de Hemoglobina_1'),
+         ('Fecha del tamizaje de Hemoglobina de 08 MESES', '08 MESES: Fecha y resultado de Hemoglobina_1'),
+         ('Fecha del tamizaje de Hemoglobina de 09 MESES', '09 MESES: Fecha y resultado de Hemoglobina_1'),
+         ('Fecha del tamizaje de Hemoglobina de 12 MESES', '12 MESES: Fecha y resultado de Hemoglobina_1'),
+         ('Observaciones', 'Observaciones_1'),
+     ]
+     
+     # Llenar valores nulos en final_df con valores de segno_junio_df
+    for col_final, col_junio in columns_to_fill:
+         if col_final in final_df.columns and col_junio in final_df.columns:
+             final_df[col_final] = final_df[col_final].fillna(final_df[col_junio])
+     
+     # Opcional: eliminar las columnas _1 después de completar los datos
+    cols_to_drop = [col for col in final_df.columns if col.endswith('_1') or col == 'Documento del Niño']
+    
+    final_df = final_df.drop(columns=cols_to_drop, errors='ignore')
+    final_df.to_excel(r"C:\Proyectos\c1_vd\data\seguimiento_nominal_por_establecimiento_julio.xlsx")
+    st.dataframe(final_df)
+    
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         # Crear hoja de resumen SIN formato ni tabla
@@ -907,5 +1201,66 @@ def generar_excel_seguimiento_nominal():
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
      )
     st.write(final_df.shape)
+    
     st.dataframe(final_df)
     
+
+
+"""
+
+"""
+
+
+
+
+def hb_data_c1():
+    styles(2)
+    st.title("Datos de Hemoglobina")
+    if "dataframe_childs"  in st.session_state:
+        df = st.session_state["dataframe_childs"]
+        print(df.columns)
+        df = df.rename(columns={"Número de Documento": "DNI_PACIENTE"})
+        df['Rango de Días Activo'] = df.apply(combinar_rangos_dias, axis=1)
+        df = df.drop(columns=[
+            'Edad Dias','Edad en días (primer día del mes)','Edad en días (último día del mes)', 'Niños 120-149 días en mes','Niños 180-209 días en mes', 'Niños 270-299 días en mes',
+        'Niños 360-389 días en mes','Estado Padrón Nominal','Tipo Registro Padrón Nominal','Entidad Actualiza', 'FECHA DE MODIFICACIÓN DEL REGISTRO',
+        'USUARIO QUE MODIFICA', 'FRECUENCIA DE ATENCION', 'EESS ADSCRIPCIÓN','EESS ULTIMA ATENCION', 'Fecha Ultima Atención', 'Zona', 'Manzana','Sector','Número Doc Jefe Familia(P)', 'Datos Jefe Famlia(P)', 
+        'Total de Intervenciones', 'Total de VD presenciales Válidas','Total de VD presencial Válidas WEB','Total de VD presencial Válidas MOVIL', 'Tipo Documento',
+        'MENOR VISITADO','¿MENOR ENCONTRADO?','Estado Visitas'
+       ])
+        
+        hb_df = pd.read_excel(r"./data/microred/DOSAJES DE HEMOGLOBINA NIÑOS DE 6 MESES A 1 AÑO_17_07_2025.xlsx",sheet_name="BASE")
+        hb_df["Fecha_Atencion"] = pd.to_datetime(hb_df["Fecha_Atencion"]).dt.date
+        hb_df["DNI_PACIENTE"] = hb_df["DNI_PACIENTE"].astype(str).str.strip()
+        hb_df["Hemoglobina"] = hb_df["Hemoglobina"].fillna(0)
+        hb_df["Resultados"] = hb_df["Fecha_Atencion"].astype(str) + " - " + hb_df["Hemoglobina"].astype(str) + " | "
+        hbdff = hb_df.groupby(["DNI_PACIENTE"]).agg({"Resultados": "sum"}).reset_index()
+        
+        dataframe_final = pd.merge(df,hbdff,on="DNI_PACIENTE",how="left")
+
+        # Aplicar la función para crear las nuevas columnas
+        dataframe_final[['Ultima Fecha tamizaje', 'Ultima HB']] = dataframe_final['Resultados'].apply(
+            lambda x: pd.Series(extraer_ultimo_resultado(x))
+        )
+        # Crear la columna ESTADO TAMIZAJE
+        dataframe_final['Edad Ultimo Tamizaje'] = dataframe_final.apply(
+            lambda row: calcular_edad_diagnostico(row['Fecha de Nacimiento'], row['Ultima Fecha tamizaje']), 
+            axis=1
+        )
+        dataframe_final['ESTADO TAMIZAJE'] = dataframe_final['Ultima HB'].apply(determinar_estado_tamizaje)
+        
+        # Opcional: Eliminar la columna Resultados original si no la necesitas
+        # dataframe_final = dataframe_final.drop(columns=['Resultados'])
+        
+        st.write(dataframe_final.shape)
+        st.dataframe(dataframe_final)
+        st.download_button(
+            label="Descargar Reporte HB",
+            icon=":material/download:",
+            data=convert_excel_df(dataframe_final),
+            file_name=f"Seguimiento_hb_julio_2025_MPT.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+    else:
+        st.warning("Ingrese a Vistas a Niños")

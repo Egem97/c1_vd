@@ -5,7 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
-
+nifty-might-269005-cd303aaaa33f.json
 # Distribution / packaging
 .Python
 build/
