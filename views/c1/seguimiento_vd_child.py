@@ -106,7 +106,9 @@ def visitas_ninos_dashboard():
             #st.dataframe(datos_ninos_df)
             datos_ninos_df = datos_ninos_df[datos_ninos_df["Periodo"]==f"{select_year}-{select_mes}"]
             #st.write(f"{select_year}-{select_mes}")
+            
             datos_ninos_df = fix_data_childs(datos_ninos_df)
+            
             #st.dataframe(datos_ninos_df)
             carga_filt_df = carga_df[(carga_df['Año']==int(select_year))&(carga_df['Mes']==int(mestext_short(select_mes)))]
             actvd_filt_df = actvd_df[(actvd_df['Año']==select_year)&(actvd_df['Mes']==select_mes)]
@@ -388,7 +390,7 @@ def visitas_ninos_dashboard():
                                     )
                 
             with tab2:
-                print(dataframe_["Tipo de SUPLEMENTO"].unique())
+                
                 @st.fragment
                 def render_anemia_indicators():
                     col1, col2, = st.columns([2,2])
