@@ -6,10 +6,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y apt-transport-https\
     build-essential \
     curl \
-
     git \
     && rm -rf /var/lib/apt/lists/*
-
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
