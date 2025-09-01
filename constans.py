@@ -63,7 +63,7 @@ COLS_DATAFRAME_RESUMIDO_CHILS =['Establecimiento de Salud', 'Actor Social',
        'Dirección Compromiso 1', 'Tipo Documento Madre(P)',
         'Número Doc Madre', 'Datos Madre(P)','Celular Madre',
        'Celular(P)', 'Celular2(P)','EESS ULTIMA ATENCION(P)','Tipo de Seguro', 'Tipo Registro Padrón Nominal',
-       'Estado Niño','Estado Visitas', 'Edad','Rango de Días Activo'
+       'Estado Niño','Estado Visitas', 'Edad','Rango de Días Activo',"Actividad a Realizar","FECHA CUMPLE"
 ]
 
 COLS_DATAFRAME_PADRON_CHILS =['Establecimiento de Salud', 'Actor Social', 

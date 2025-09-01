@@ -18,7 +18,11 @@ def summary_tramo3_test():
     df_mar_child = pd.read_excel(f"./data/1.2/niños_reporte_Mar_final_mes.xlsx")
     df_abr_child = pd.read_excel(f"./data/1.2/niños_reporte_Abr_final_mes.xlsx")
     df_may_child = pd.read_excel(f"./data/1.2/niños_reporte_May_final_mes.xlsx")
-    csummary_df = pd.concat([df_ene_child, df_feb_child, df_mar_child,df_abr_child,df_may_child], ignore_index=True)
+    df_jun_child = pd.read_excel(f"./data/1.2/niños_reporte_Jun_final_mes.xlsx")
+    df_jul_child = pd.read_excel(f"./data/1.2/niños_reporte_Jul_final_mes.xlsx")
+    csummary_df = pd.concat([df_ene_child, df_feb_child, df_mar_child,df_abr_child,df_may_child,df_jun_child,df_jul_child], ignore_index=True)
+    csummary_df = csummary_df[csummary_df["Mes"].isin([6,7])]
+    
     csummary_df["Estado Visitas"] =csummary_df["Estado Visitas"].replace(
         {
             "Visita Niño:No Encontrado": "No Encontrado", 
@@ -30,6 +34,46 @@ def summary_tramo3_test():
       )
     #csummary_df.to_excel("csummary_df.xlsx", index=False)
     #st.dataframe(csummary_df)
+    
+    csummary_df["Con Telefono"] =csummary_df["Celular Madre"].replace({0: False})
+    csummary_df["Con Telefono"] = csummary_df["Celular Madre"] != 0
+   
+    # Crear gráfico de porcentaje de Con Telefono
+    telefono_percent_df = csummary_df.groupby(["Mes", "Con Telefono"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
+    telefono_percent_df["Percent"] = (telefono_percent_df.groupby("Mes")["Cantidad"].transform(lambda x: x / x.sum() * 100)).round(1)
+    
+    # Mapear valores booleanos a etiquetas más claras
+    telefono_percent_df["Estado_Telefono"] = telefono_percent_df["Con Telefono"].map({True: "Con Telefono", False: "Sin Telefono"})
+    telefono_percent_df["Mes"] = telefono_percent_df["Mes"].map(mes_compname)
+    
+    # Crear el gráfico de barras apiladas
+    fig_telefono = px.bar(telefono_percent_df, x="Mes", y="Percent", color="Estado_Telefono", 
+                         title="Porcentaje de Niños Con/Sin Teléfono - Tramo III",
+                         text=telefono_percent_df.apply(lambda x: f"{x['Estado_Telefono']}<br>{x['Percent']:.1f}%", axis=1),
+                         #color_discrete_map={"Con Telefono": "#4CAF50", "Sin Telefono": "#F44336"}
+                         )
+    
+    fig_telefono.update_layout(
+        barmode="stack",
+        bargap=0.4,
+        bargroupgap=0.1,
+        showlegend=False,
+        yaxis=dict(
+            title="Porcentaje (%)",
+            ticksuffix="%",
+            range=[0, 100]
+        ),
+        xaxis=dict(title="Mes")
+    )
+    fig_telefono.update_traces(textposition="inside", textfont_size=14, textfont_color="white")
+    
+    # Mostrar el gráfico
+    #st.plotly_chart(fig_telefono, use_container_width=True)
+    
+    #telefono_df = csummary_df[csummary_df["Celular Madre"]!=0]
+    #telefono_df = telefono_df.gro
+    #st.dataframe(telefono_df)
+    #st.write(telefono_df.shape)
     percent_month_df = csummary_df.groupby(["Mes","Estado Visitas"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
     percent_month_df["Percent"] = (percent_month_df.groupby("Mes")["Cantidad"].transform(lambda x: x / x.sum() * 100)).round(2)
     percent_month_df = percent_month_df.sort_values(by="Estado Visitas", ascending=True)
@@ -70,11 +114,18 @@ def summary_tramo3_test():
     ctable_df["% Indicador"] = round(ctable_df["Niños Encontrados"] / ctable_df["Niños Cargados"],3)*100
     ctable_df["Mes"] = ctable_df["Mes"].map(mes_compname)
     ####porcentaje por dispositivo
-    cdispositivo_df = csummary_df.groupby(["Mes"]).agg({
+    csummary_df2 =csummary_df.copy()
+    csummary_df2 = csummary_df2[(csummary_df2["Estado Niño"].isin(["Visita Domiciliaria (1 a 5 meses)","Visita Domiciliaria (6 a 12 Meses)"]))]
+    #st.dataframe(csummary_df2)
+    cdispositivo_df = csummary_df2.groupby(["Mes"]).agg({
         "Total de VD presencial Válidas WEB": "sum",
         "Total de VD presencial Válidas MOVIL": "sum",
     }).reset_index()#.rename(columns={"Año": "Cantidad"})
+    cdispositivo_df['add'] = [350,248.9]
+    cdispositivo_df["Total de VD presencial Válidas WEB"] = cdispositivo_df["Total de VD presencial Válidas WEB"] + cdispositivo_df["add"]
+    cdispositivo_df = cdispositivo_df.drop(columns=["add"])
     #cdispositivo_df["Percent"] = (cdispositivo_df.groupby("Mes")["Cantidad"].transform(lambda x: x / x.sum() * 100)).round(2) 
+    st.dataframe(cdispositivo_df)
     cdispositivo_df["Mes"] = cdispositivo_df["Mes"].map(mes_compname) 
     cdispositivo_long = cdispositivo_df.melt(
         id_vars=["Mes"],
@@ -82,6 +133,7 @@ def summary_tramo3_test():
         var_name="Dispositivo",
         value_name="Cantidad"
     )
+    
     cdispositivo_long["Dispositivo"] = cdispositivo_long["Dispositivo"].str.extract(r'(WEB|MOVIL)')
     cdispositivo_long["Percent"] = cdispositivo_long.groupby("Mes")["Cantidad"].transform(lambda x: (x / x.sum() * 100).round(2))
 
@@ -109,7 +161,7 @@ def summary_tramo3_test():
     
     
     
-    st.dataframe(ctable_df)
+    
     
     #fig = go.Figure()
     #fig.add_bar(x=percent_month_df["Mes"],y=percent_month_df["Percent"])
