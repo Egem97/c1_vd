@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y apt-transport-https\
     git \
     && rm -rf /var/lib/apt/lists/*
 RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 
 EXPOSE 8000
