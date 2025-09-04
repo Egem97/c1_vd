@@ -20,8 +20,9 @@ def summary_tramo3_test():
     df_may_child = pd.read_excel(f"./data/1.2/niños_reporte_May_final_mes.xlsx")
     df_jun_child = pd.read_excel(f"./data/1.2/niños_reporte_Jun_final_mes.xlsx")
     df_jul_child = pd.read_excel(f"./data/1.2/niños_reporte_Jul_final_mes.xlsx")
-    csummary_df = pd.concat([df_ene_child, df_feb_child, df_mar_child,df_abr_child,df_may_child,df_jun_child,df_jul_child], ignore_index=True)
-    csummary_df = csummary_df[csummary_df["Mes"].isin([6,7])]
+    df_ago_child = pd.read_excel(f"./data/1.2/niños_reporte_Ago_final_mes.xlsx")
+    csummary_df = pd.concat([df_ene_child, df_feb_child, df_mar_child,df_abr_child,df_may_child,df_jun_child,df_jul_child,df_ago_child], ignore_index=True)
+    #csummary_df = csummary_df[csummary_df["Mes"].isin([6,7])]
     
     csummary_df["Estado Visitas"] =csummary_df["Estado Visitas"].replace(
         {
@@ -32,12 +33,146 @@ def summary_tramo3_test():
             "Visitas Incompletas(faltantes:3)": "Visitas Incompletas", 
             }, 
       )
+    csummary_df["Tipo Registro Padrón Nominal"] =csummary_df["Tipo Registro Padrón Nominal"].replace(
+        {"Activos": "Activos","Activos Observados": "Activos","Activos Transito": "Activos Transito","En Otro Padrón Nominal": "En Otro Ubigeo",
+    })
     #csummary_df.to_excel("csummary_df.xlsx", index=False)
     #st.dataframe(csummary_df)
-    
+    csummary_df["Mes_Nombre"] = csummary_df["Mes"].map(mes_compname)
     csummary_df["Con Telefono"] =csummary_df["Celular Madre"].replace({0: False})
     csummary_df["Con Telefono"] = csummary_df["Celular Madre"] != 0
-   
+
+    #test_df = csummary_df.groupby(["Mes","Mes_Nombre","Tipo Registro Padrón Nominal"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
+    #test_df = pd.pivot_table(test_df, index=["Tipo Registro Padrón Nominal"], columns="Mes", values="Cantidad")
+    #"st.dataframe(test_df)
+    # Crear columna Edad_Periodo basada en el último día del mes
+    def calcular_edad_periodo(fecha_nacimiento, mes):
+        """
+        Calcula la edad en el último día del mes especificado
+        """
+        if pd.isna(fecha_nacimiento) or pd.isna(mes):
+            return "Sin datos"
+        
+        try:
+            # Convertir fecha de nacimiento a datetime
+            fecha_nac = pd.to_datetime(fecha_nacimiento)
+            
+            # Obtener el año actual (asumiendo 2025)
+            año_actual = 2025
+            
+            # Obtener el último día del mes
+            if mes in [1, 3, 5, 7, 8, 10, 12]:  # Meses con 31 días
+                ultimo_dia = 31
+            elif mes in [4, 6, 9, 11]:  # Meses con 30 días
+                ultimo_dia = 30
+            elif mes == 2:  # Febrero
+                # Verificar si es año bisiesto
+                if año_actual % 4 == 0 and (año_actual % 100 != 0 or año_actual % 400 == 0):
+                    ultimo_dia = 29
+                else:
+                    ultimo_dia = 28
+            
+            # Crear fecha del último día del mes
+            fecha_fin_mes = pd.to_datetime(f"{año_actual}-{mes:02d}-{ultimo_dia}")
+            
+            # Calcular diferencia usando relativedelta
+            from dateutil.relativedelta import relativedelta
+            diferencia = relativedelta(fecha_fin_mes, fecha_nac)
+            
+            return f"{diferencia.years} año(s), {diferencia.months} mes(es)"
+            
+        except Exception as e:
+            return f"Error: {str(e)}"
+    
+    # Aplicar la función para crear la columna Edad_Periodo
+    csummary_df["Edad_Periodo"] = csummary_df.apply(
+        lambda row: calcular_edad_periodo(row["Fecha de Nacimiento"], row["Mes"]), 
+        axis=1
+    )
+    csummary_df["Estado Carga"] = csummary_df["Edad_Periodo"].replace({
+        "1 año(s), 1 mes(es)": "Sale",
+        "1 año(s), 0 mes(es)": "Sale",
+        "0 año(s), 1 mes(es)": "Ingresa",
+        "0 año(s), 2 mes(es)": "Ingresa",
+    })
+    # Reemplazar todas las filas que contengan "año(s)" por "NO CORRESPONDE"
+    csummary_df["Estado Carga"] = csummary_df["Estado Carga"].where(
+        ~csummary_df["Estado Carga"].str.contains("año\(s\)", na=False), 
+        "NO CORRESPONDE"
+    )
+
+    diff_df = csummary_df.groupby(["Mes","Mes_Nombre","Estado Carga"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
+    diff_df = pd.pivot_table(diff_df, index=["Mes"], columns="Estado Carga", values="Cantidad")
+    st.dataframe(diff_df)
+    
+    # Crear dataframe de registros que no cargaron de un mes al siguiente
+    registros_no_cargados = []
+    
+    # Obtener lista de meses únicos ordenados
+    meses_unicos = sorted(csummary_df["Mes"].unique())
+    
+    # Comparar cada mes con el siguiente
+    for i in range(len(meses_unicos) - 1):
+        mes_actual = meses_unicos[i]
+        mes_siguiente = meses_unicos[i + 1]
+        
+        # Obtener documentos del mes actual y siguiente
+        docs_mes_actual = set(csummary_df[csummary_df["Mes"] == mes_actual]["Número de Documento"].unique())
+        docs_mes_siguiente = set(csummary_df[csummary_df["Mes"] == mes_siguiente]["Número de Documento"].unique())
+        
+        # Encontrar documentos que estaban en el mes actual pero no en el siguiente
+        docs_no_cargados = docs_mes_actual - docs_mes_siguiente
+        
+        # Obtener información completa de los registros no cargados
+        for doc in docs_no_cargados:
+            registro_completo = csummary_df[
+                (csummary_df["Mes"] == mes_actual) & 
+                (csummary_df["Número de Documento"] == doc)
+            ].iloc[0]  # Tomar el primer registro si hay duplicados
+            
+            # Agregar información del mes donde faltó
+            registro_dict = registro_completo.to_dict()
+            registro_dict["Mes_Faltante"] = mes_siguiente
+            registro_dict["Mes_Nombre_Faltante"] = mes_compname(mes_siguiente)
+            registro_dict["Mes_Presente"] = mes_actual
+            registro_dict["Mes_Nombre_Presente"] = mes_compname(mes_actual)
+            
+            registros_no_cargados.append(registro_dict)
+    
+    # Crear DataFrame con los registros no cargados
+    if registros_no_cargados:
+        df_no_cargados = pd.DataFrame(registros_no_cargados)
+        
+        # Reordenar columnas para mejor visualización
+        cols_importantes = [
+            "Número de Documento", "Nombres Niño", "Apellido Paterno Niño", "Apellido Materno Niño",
+            "Mes_Presente", "Mes_Nombre_Presente", "Mes_Faltante", "Mes_Nombre_Faltante",
+            "Fecha de Nacimiento", "Edad_Periodo", "Estado Carga", "Sector", "Actor Social"
+        ]
+        
+        # Filtrar solo las columnas que existen en el DataFrame
+        cols_existentes = [col for col in cols_importantes if col in df_no_cargados.columns]
+        otras_cols = [col for col in df_no_cargados.columns if col not in cols_existentes]
+        
+        df_no_cargados = df_no_cargados[cols_existentes + otras_cols]
+        
+        st.subheader("Registros que no cargaron de un mes al siguiente")
+        st.write(f"Total de registros no cargados: {len(df_no_cargados)}")
+        st.dataframe(df_no_cargados)
+        df_no_cargados.to_excel("df_no_cargados.xlsx", index=False)
+        # Crear resumen por mes
+        resumen_no_cargados = df_no_cargados.groupby(["Mes_Nombre_Presente", "Mes_Nombre_Faltante"]).agg({
+            "Número de Documento": "count"
+        }).reset_index().rename(columns={"Número de Documento": "Cantidad_No_Cargados"})
+        
+        st.subheader("Resumen de registros no cargados por transición de mes")
+        st.dataframe(resumen_no_cargados)
+        
+    else:
+        st.info("No se encontraron registros que dejaron de cargar entre meses consecutivos")
+    
+    st.dataframe(csummary_df)
+    """
     # Crear gráfico de porcentaje de Con Telefono
     telefono_percent_df = csummary_df.groupby(["Mes", "Con Telefono"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
     telefono_percent_df["Percent"] = (telefono_percent_df.groupby("Mes")["Cantidad"].transform(lambda x: x / x.sum() * 100)).round(1)
@@ -121,9 +256,9 @@ def summary_tramo3_test():
         "Total de VD presencial Válidas WEB": "sum",
         "Total de VD presencial Válidas MOVIL": "sum",
     }).reset_index()#.rename(columns={"Año": "Cantidad"})
-    cdispositivo_df['add'] = [350,248.9]
-    cdispositivo_df["Total de VD presencial Válidas WEB"] = cdispositivo_df["Total de VD presencial Válidas WEB"] + cdispositivo_df["add"]
-    cdispositivo_df = cdispositivo_df.drop(columns=["add"])
+    #cdispositivo_df['add'] = [350,248.9]
+    cdispositivo_df["Total de VD presencial Válidas WEB"] = cdispositivo_df["Total de VD presencial Válidas WEB"] #+ cdispositivo_df["add"]
+    #cdispositivo_df = cdispositivo_df.drop(columns=["add"])
     #cdispositivo_df["Percent"] = (cdispositivo_df.groupby("Mes")["Cantidad"].transform(lambda x: x / x.sum() * 100)).round(2) 
     st.dataframe(cdispositivo_df)
     cdispositivo_df["Mes"] = cdispositivo_df["Mes"].map(mes_compname) 
@@ -445,6 +580,8 @@ def summary_tramo3():
     csummary_gestantes["Mes"] = csummary_gestantes["Mes"].map(mes_short)
     
     csummary_gestantes["Status"] = csummary_gestantes["Etapa"]+" - "+csummary_gestantes["ESTADO_NACIMIENTO"]
+    """
+    """
     st.dataframe(csummary_gestantes)
     st.write(len(csummary_gestantes["Número de Documento"].unique()))
     csummary_gestantes["Fecha Nacimiento Hijo"] = csummary_gestantes["Fecha Nacimiento Hijo"].fillna("-")
@@ -487,12 +624,12 @@ def summary_tramo3():
     merge_dff["Datos Gestante"] = merge_dff["Datos Gestante"].str.upper()
     st.write(merge_dff.shape)
     st.dataframe(merge_dff)
-    merge_dff.to_excel("Estado Gestantes TRAMO III.xlsx", index=False)
+    #merge_dff.to_excel("Estado Gestantes TRAMO III.xlsx", index=False)
    
     #st.dataframe(csummary_gestantes)
     #st.write(csummary_gestantes)
     ###PORCENTAJE INDICADOR
-
+ """
 
 
 

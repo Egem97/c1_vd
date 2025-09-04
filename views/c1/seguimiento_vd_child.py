@@ -27,66 +27,43 @@ def tomar_ultimo_elemento(texto):
 
 def visitas_ninos_dashboard():
         
-            styles(2)
-            
-            # Cache the data loading operations
-            @st.cache_data(ttl=300)  # Cache for 5 minutes
-            def load_base_data():
+                styles(2)
                 
-                actvd_df = fetch_vd_childs()
-                carga_df = fetch_carga_childs()
-                
-                padron_df = fetch_padron()
-                datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
-                return actvd_df, carga_df, padron_df, datos_ninos_df
-            
-            @st.cache_data(show_spinner="Cargando datos...",ttl=600)  # Cache for 5 minutes ttl=300
-            def load_seg_nominal_data(select_mes):
-                sn_month = {
-                        "Jun": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
-                        "Jul": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
-                        "Ago": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
-                        "Sep": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
-                        "Oct": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
-                        "Nov": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
-                        "Dic": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
-                }
-                return read_and_concatenate_sheets_optimized(
+                # Cache the data loading operations
+                @st.cache_data(show_spinner="Cargando datos...",ttl=600)  # Cache for 5 minutes
+                def load_base_data():
                     
-                    key_sheet=sn_month[select_mes],
-                    sheet_names=[
-                        "ARANJUEZ","CLUB DE LEONES","EL BOSQUE",'LOS GRANADOS "SAGRADO CORAZON"',
-                        "CENTRO DE SALUD LA UNION","HOSPITAL DE ESPECIALIDADES BASI",
-                        "LIBERTAD","LOS JARDINES","PESQUEDA III","SAN MARTIN DE PORRES"
-                    ],
-                    add_sheet_column=True  # Añade columna 'sheet_origen'
-                )
-            """
-            @st.cache_data(ttl=300)  # Cache for 5 minutes
-            def load_hb_data():
-                hb_df = pd.read_excel(r"./data/microred/DOSAJES DE HEMOGLOBINA NIÑOS DE 6 MESES A 1 AÑO_17_07_2025.xlsx",sheet_name="BASE")
-                hb_df["Fecha_Atencion"] = pd.to_datetime(hb_df["Fecha_Atencion"]).dt.date
-                hb_df["DNI_PACIENTE"] = hb_df["DNI_PACIENTE"].astype(str).str.strip()
-                hb_df["Hemoglobina"] = hb_df["Hemoglobina"].fillna(0)
-                hb_df["Resultados"] = hb_df["Fecha_Atencion"].astype(str) + " - " + hb_df["Hemoglobina"].astype(str) + " | "
-                hbdff = hb_df.groupby(["DNI_PACIENTE"]).agg({"Resultados": "sum"}).reset_index()
-                hbdff = hbdff.rename(columns={"DNI_PACIENTE":"Número de Documento"})
-                return hbdff
+                    actvd_df = fetch_vd_childs()
+                    carga_df = fetch_carga_childs()
+                    
+                    padron_df = fetch_padron()
+                    datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
+                    return actvd_df, carga_df, padron_df, datos_ninos_df
+                
+                @st.cache_data(show_spinner="Cargando datos...",ttl=600)  # Cache for 5 minutes ttl=300
+                def load_seg_nominal_data(select_mes):
+                    sn_month = {
+                            "Jun": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
+                            "Jul": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
+                            "Ago": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
+                            "Set": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
+                            "Oct": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
+                            "Nov": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
+                            "Dic": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
+                    }
+                    return read_and_concatenate_sheets_optimized(
+                        
+                        key_sheet=sn_month[select_mes],
+                        sheet_names=[
+                            "ARANJUEZ","CLUB DE LEONES","EL BOSQUE",'LOS GRANADOS "SAGRADO CORAZON"',
+                            "CENTRO DE SALUD LA UNION","HOSPITAL DE ESPECIALIDADES BASI",
+                            "LIBERTAD","LOS JARDINES","PESQUEDA III","SAN MARTIN DE PORRES"
+                        ],
+                        add_sheet_column=True  # Añade columna 'sheet_origen'
+                    )
             
-            @st.cache_data(ttl=300)  # Cache for 5 minutes  
-            def load_suplementacion_data():
-                supledf = pd.read_parquet(r'./data/microred/suplementacion.parquet', engine='pyarrow')
-                supledf["DNI_PACIENTE"] = supledf["DNI_PACIENTE"].str.strip()
-                supledf = supledf.rename(columns={"DNI_PACIENTE":"Documento"})
-                supledf = supledf.sort_values(by="Fecha_Diagnostico", ascending=True)
-                supledf["MICRORED"] = supledf["MICRORED"].replace("TRUJILLO - METROPOLITANO", "TRUJILLO")
-                supledf["PACIENTE"] = supledf["PACIENTE"].fillna("Sin Datos")
-                supledf["PACIENTE"] = supledf["PACIENTE"].str.strip()
-
-                return supledf
-            """
             # Load cached data
-            try:
+            #try:
                 actvd_df, carga_df, padron_df, datos_ninos_df = load_base_data()
                 
                 #hbdff = load_hb_data()
@@ -736,8 +713,8 @@ def visitas_ninos_dashboard():
                             file_name=f"Duplicados_{select_year}_{select_mes}_{fecha_actual}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     )
-            except:
-                st.warning("Datos incompletos para este periodo")
+            #except:
+            #    st.warning("Datos incompletos para este periodo")
 
             
             
