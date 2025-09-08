@@ -10,6 +10,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 def summary_tramo3_test():
     styles(2)
+    """
     st.title("Resuemn Tramo III")
     st.subheader("Niños")
     
@@ -47,9 +48,7 @@ def summary_tramo3_test():
     #"st.dataframe(test_df)
     # Crear columna Edad_Periodo basada en el último día del mes
     def calcular_edad_periodo(fecha_nacimiento, mes):
-        """
-        Calcula la edad en el último día del mes especificado
-        """
+
         if pd.isna(fecha_nacimiento) or pd.isna(mes):
             return "Sin datos"
         
@@ -172,7 +171,7 @@ def summary_tramo3_test():
         st.info("No se encontraron registros que dejaron de cargar entre meses consecutivos")
     
     st.dataframe(csummary_df)
-    """
+    
     # Crear gráfico de porcentaje de Con Telefono
     telefono_percent_df = csummary_df.groupby(["Mes", "Con Telefono"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
     telefono_percent_df["Percent"] = (telefono_percent_df.groupby("Mes")["Cantidad"].transform(lambda x: x / x.sum() * 100)).round(1)
@@ -363,7 +362,7 @@ def summary_tramo3_test():
     col_1r, col_2r = st.columns(2)
     with col_1r:
         st.plotly_chart(fig_cdispositivo)
-    
+    """
     #####################################################################################################
     st.subheader("Gestantes")
     df_gestantes = pd.read_parquet(f"./data/1.3/indicador_gestantes_enero.parquet")
@@ -376,6 +375,17 @@ def summary_tramo3_test():
         "Visita Domiciliaria (Adolescente)": "Visita Domiciliaria",
         "Visita Domiciliaria (Adulta)": "Visita Domiciliaria",
     })
+    rps_df = csummary_gestantes.groupby(["Mes","Establecimiento de Salud","Etapa"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
+    rps_df = pd.pivot_table(rps_df, index=["Mes","Establecimiento de Salud"], columns="Etapa", values="Cantidad",fill_value=0)
+    rps_df = rps_df.reset_index()
+    rps_df["Mes"] = rps_df["Mes"].map(mes_compname)
+    rps_df = rps_df[["Mes","Establecimiento de Salud","Visita Domiciliaria","No Encontrado","Rechazado"]]
+    rps_df.to_excel("rps_df.xlsx", index=False)
+    st.dataframe(rps_df)
+
+
+
+    st.write("""°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°""")
     #csummary_gestantes.to_excel("csummary_gestantes.xlsx", index=False)
     #st.dataframe(csummary_gestantes)
     #st.write(csummary_gestantes)
@@ -502,7 +512,7 @@ def summary_tramo3_test():
     
     
     fig_gest = px.bar(percent_month_gestantes_df, x="Mes", y="Percent", color="Etapa", title="%",
-                 color_discrete_map=color_map,
+                 #color_discrete_map=color_map,
                  text=percent_month_gestantes_df.apply(lambda x: f"{x['Etapa']}<br>{x['Percent']:.1f}%", axis=1)
                 )
     fig_gest.update_layout(
@@ -629,7 +639,7 @@ def summary_tramo3():
     #st.dataframe(csummary_gestantes)
     #st.write(csummary_gestantes)
     ###PORCENTAJE INDICADOR
- """
+
 
 
 
