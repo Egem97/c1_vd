@@ -27,7 +27,7 @@ def pages():
         st.Page(page=gestantes_status_vd, title="Visitas a Gestantes", icon="🤰", url_path="/seguimiento-vd-gestantes"),
         #st.Page(page=c1_2025_avances, title="Avances C1 2025", icon="🎯", url_path="/avances-c1-2025"),
         #st.Page(page=generar_excel_seguimiento_nominal, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal"),
-        st.Page(page=summary_tramo3_test, title="Tramo 3", icon="🎯", url_path="/tramo-3")
+        #st.Page(page=summary_tramo3_test, title="Tramo 3", icon="🎯", url_path="/tramo-3")
     ]
     page_dict["Padrón Nominal"] = [
         st.Page(page=dash_padron_modreg, title="Actualizaciones General", icon="💡", url_path="/actualizaciones-padron"),
