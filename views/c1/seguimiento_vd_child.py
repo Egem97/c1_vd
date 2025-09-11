@@ -94,6 +94,7 @@ def visitas_ninos_dashboard():
                 
                 datos_ninos_df = fix_data_childs(datos_ninos_df)
                 seg_nominal_df = load_seg_nominal_data(select_mes)
+                st.dataframe(seg_nominal_df)
                 #st.dataframe(seg_nominal_df)
                 #seg_nominal_test = seg_nominal_df.copy()
                 
