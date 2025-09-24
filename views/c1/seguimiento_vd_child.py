@@ -40,7 +40,7 @@ def visitas_ninos_dashboard():
                     datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
                     return actvd_df, carga_df, padron_df, datos_ninos_df
                 
-                @st.cache_data(show_spinner="Cargando datos...",ttl=600)  # ,ttl=600
+                @st.cache_data(show_spinner="Cargando datos...")  # ,ttl=600
                 def load_seg_nominal_data(select_mes):
                     sn_month = {
                             "Jun": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
@@ -94,7 +94,7 @@ def visitas_ninos_dashboard():
                 
                 datos_ninos_df = fix_data_childs(datos_ninos_df)
                 seg_nominal_df = load_seg_nominal_data(select_mes)
-                
+                #st.dataframe(seg_nominal_df)
                 #st.dataframe(seg_nominal_df)
                 #seg_nominal_test = seg_nominal_df.copy()
                 
