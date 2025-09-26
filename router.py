@@ -9,6 +9,8 @@ from views.padron.actualizados_mes import actualizados_mes_padron
 from views.padron.revision_padron import revision_padron
 from views.padron.estado_rn import rn_month_insert
 from views.tramo_3.tramo3 import *
+from views.visitas_childs import geo_childs
+from views.visitas_gestantes import geo_gestantes
 
 def pages():
     page_dict = {}
@@ -28,6 +30,8 @@ def pages():
         #st.Page(page=c1_2025_avances, title="Avances C1 2025", icon="🎯", url_path="/avances-c1-2025"),
         #st.Page(page=generar_excel_seguimiento_nominal, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal"),
         #st.Page(page=summary_tramo3_test, title="Tramo 3", icon="🎯", url_path="/tramo-3")
+        st.Page(page=geo_childs, title="Geo Niños", icon="📍", url_path="/visitas-childs"),
+        st.Page(page=geo_gestantes, title="Geo Gestantes", icon="📍", url_path="/visitas-gestantes"),
     ]
     page_dict["Padrón Nominal"] = [
         st.Page(page=dash_padron_modreg, title="Actualizaciones General", icon="💡", url_path="/actualizaciones-padron"),

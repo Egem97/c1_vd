@@ -508,7 +508,7 @@ def geo_childs():
         year_selected = st.selectbox("Año",year)
         dff = dff[dff["Año"]==year_selected]
     with col_filt[3]:
-        month_selected = st.selectbox("Mes",month)
+        month_selected = st.selectbox("Mes",month,)
         dff = dff[dff["Mes"]==month_selected]
     
     #st.write(dff.shape)
