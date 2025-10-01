@@ -11,6 +11,9 @@ from views.padron.estado_rn import rn_month_insert
 from views.tramo_3.tramo3 import *
 from views.visitas_childs import geo_childs
 from views.visitas_gestantes import geo_gestantes
+from views.c1.seguimiento_nominal import seg_nominal_view
+
+
 
 def pages():
     page_dict = {}
@@ -32,6 +35,7 @@ def pages():
         #st.Page(page=summary_tramo3_test, title="Tramo 3", icon="🎯", url_path="/tramo-3")
         st.Page(page=geo_childs, title="Geo Niños", icon="📍", url_path="/visitas-childs"),
         st.Page(page=geo_gestantes, title="Geo Gestantes", icon="📍", url_path="/visitas-gestantes"),
+        st.Page(page=seg_nominal_view, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal"),
     ]
     page_dict["Padrón Nominal"] = [
         st.Page(page=dash_padron_modreg, title="Actualizaciones General", icon="💡", url_path="/actualizaciones-padron"),
