@@ -10,7 +10,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 def summary_tramo3_test():
     styles(2)
-    """
+    
     st.title("Resuemn Tramo III")
     st.subheader("Niños")
     
@@ -24,7 +24,8 @@ def summary_tramo3_test():
     df_ago_child = pd.read_excel(f"./data/1.2/niños_reporte_Ago_final_mes.xlsx")
     csummary_df = pd.concat([df_ene_child, df_feb_child, df_mar_child,df_abr_child,df_may_child,df_jun_child,df_jul_child,df_ago_child], ignore_index=True)
     #csummary_df = csummary_df[csummary_df["Mes"].isin([6,7])]
-    
+    filtro_mes = st.multiselect("Filtrar por Mes", csummary_df["Mes"].unique(), default=[6,7])
+    csummary_df = csummary_df[csummary_df["Mes"].isin(filtro_mes)]
     csummary_df["Estado Visitas"] =csummary_df["Estado Visitas"].replace(
         {
             "Visita Niño:No Encontrado": "No Encontrado", 
@@ -182,7 +183,7 @@ def summary_tramo3_test():
     
     # Crear el gráfico de barras apiladas
     fig_telefono = px.bar(telefono_percent_df, x="Mes", y="Percent", color="Estado_Telefono", 
-                         title="Porcentaje de Niños Con/Sin Teléfono - Tramo III",
+                         title="Porcentaje de Niños Con/Sin Teléfono",
                          text=telefono_percent_df.apply(lambda x: f"{x['Estado_Telefono']}<br>{x['Percent']:.1f}%", axis=1),
                          #color_discrete_map={"Con Telefono": "#4CAF50", "Sin Telefono": "#F44336"}
                          )
@@ -316,7 +317,7 @@ def summary_tramo3_test():
     percent_month_df["Mes"] = percent_month_df["Mes"].map(mes_compname)
     
     
-    figure_carg = px.bar(ctable_df, x="Mes", y="Niños Cargados", title="Número de Niños Cargados por Mes - Tramo III",text="Niños Cargados")
+    figure_carg = px.bar(ctable_df, x="Mes", y="Niños Cargados", title="Número de Niños Cargados por Mes",text="Niños Cargados")
     figure_carg.update_traces(textposition="outside", textfont_size=16)
     
     
@@ -350,9 +351,9 @@ def summary_tramo3_test():
     )
     fig.update_traces(textposition="inside", textfont_size=14)
     
-    fig_cdispositivo.update_layout(title_text="Porcentaje de Visitas por Dispositivo - Niños Tramo III")
-    figure_carg.update_layout(title_text="Número de Niños Cargados por Mes - Tramo III")
-    fig.update_layout(title_text="Distribución porcentual de Estado de Visitas - Niños Tramo III")
+    fig_cdispositivo.update_layout(title_text="Porcentaje de Visitas por Dispositivo - Niños")
+    figure_carg.update_layout(title_text="Número de Niños Cargados por Mes")
+    fig.update_layout(title_text="Distribución porcentual de Estado de Visitas - Niños")
     
     col_1 , col_2 = st.columns([8,4])
     with col_1:
@@ -362,7 +363,7 @@ def summary_tramo3_test():
     col_1r, col_2r = st.columns(2)
     with col_1r:
         st.plotly_chart(fig_cdispositivo)
-    """
+    
     #####################################################################################################
     st.subheader("Gestantes")
     df_gestantes = pd.read_parquet(f"./data/1.3/indicador_gestantes_enero.parquet")
@@ -370,7 +371,13 @@ def summary_tramo3_test():
     df_gestantes_mar = pd.read_excel(f"./data/1.3/gestantes_reporte_Mar_final_mes.xlsx")
     df_gestantes_abr = pd.read_excel(f"./data/1.3/gestantes_reporte_Abr_final_mes.xlsx")
     df_gestantes_may = pd.read_excel(f"./data/1.3/gestantes_reporte_May_final_mes.xlsx")
-    csummary_gestantes = pd.concat([df_gestantes, df_gestantes_feb, df_gestantes_mar,df_gestantes_abr,df_gestantes_may], ignore_index=True)
+    df_gestantes_may = pd.read_excel(f"./data/1.3/gestantes_reporte_May_final_mes.xlsx")
+    df_gestantes_jun = pd.read_excel(f"./data/1.3/vd_gestantes_Jun_2025_corte_final.xlsx")
+    df_gestantes_jul = pd.read_excel(f"./data/1.3/vd_gestantes_Jul_2025_corte_final.xlsx")
+    df_gestantes_ago = pd.read_excel(f"./data/1.3/vd_gestantes_Ago_2025_corte_final.xlsx")
+    csummary_gestantes = pd.concat([df_gestantes, df_gestantes_feb, df_gestantes_mar,df_gestantes_abr,df_gestantes_may,df_gestantes_jun,df_gestantes_jul,df_gestantes_ago], ignore_index=True)
+    filtro_mes = st.multiselect("Filtrar por Mes", csummary_gestantes["Mes"].unique(), default=[6,7])
+    csummary_gestantes = csummary_gestantes[csummary_gestantes["Mes"].isin(filtro_mes)]
     csummary_gestantes["Etapa"] = csummary_gestantes["Etapa"].replace({
         "Visita Domiciliaria (Adolescente)": "Visita Domiciliaria",
         "Visita Domiciliaria (Adulta)": "Visita Domiciliaria",
@@ -383,9 +390,6 @@ def summary_tramo3_test():
     rps_df.to_excel("rps_df.xlsx", index=False)
     st.dataframe(rps_df)
 
-
-
-    st.write("""°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°""")
     #csummary_gestantes.to_excel("csummary_gestantes.xlsx", index=False)
     #st.dataframe(csummary_gestantes)
     #st.write(csummary_gestantes)
@@ -426,6 +430,9 @@ def summary_tramo3_test():
         pd.read_excel(f"./data/1.3/2025/vdges_2025_mar.xls",skiprows=7),
         pd.read_excel(f"./data/1.3/2025/vdges_2025_abr.xls",skiprows=7),
         pd.read_excel(f"./data/1.3/2025/vdges_2025_may.xls",skiprows=7),
+        pd.read_excel(f"./data/1.3/2025/vdges_2025_jun.xls",skiprows=7),
+        pd.read_excel(f"./data/1.3/2025/vdges_2025_jul.xls",skiprows=7),
+        pd.read_excel(f"./data/1.3/2025/vdges_2025_ago.xls",skiprows=7),
     ], ignore_index=True)
     csummary_vdges["Mes"] = csummary_vdges["Mes"].map(mestext_short)
     
@@ -457,7 +464,7 @@ def summary_tramo3_test():
         )
     )
     fig_etap_gest.update_traces(textposition="inside", textfont_size=14)
-    fig_etap_gest.update_layout(title_text="Distribución porcentual del Estado Gestante - Gestantes Tramo III")
+    fig_etap_gest.update_layout(title_text="Distribución porcentual del Estado Gestante - Gestantes")
     
     
     
@@ -506,7 +513,7 @@ def summary_tramo3_test():
     carga_mes_gest_df = gtable_df.groupby("Mes").agg({"Gestantes Cargadas": "sum"}).reset_index()
     carga_mes_gest_df["Mes"] = carga_mes_gest_df["Mes"].map(mes_compname)
     #st.dataframe(carga_mes_gest_df)
-    figure_carg_gest = px.bar(carga_mes_gest_df, x="Mes", y="Gestantes Cargadas", title="Número de Gestantes Cargadas por Mes - Tramo III",text="Gestantes Cargadas")
+    figure_carg_gest = px.bar(carga_mes_gest_df, x="Mes", y="Gestantes Cargadas", title="Número de Gestantes Cargadas por Mes",text="Gestantes Cargadas")
     figure_carg_gest.update_traces(textposition="outside", textfont_size=16)
     
     
@@ -529,9 +536,9 @@ def summary_tramo3_test():
     )
     fig_gest.update_traces(textposition="inside", textfont_size=14)
     
-    fig_gest_disp.update_layout(title_text="Porcentaje de Visitas por Dispositivo - Gestantes Tramo III")
-    figure_carg_gest.update_layout(title_text="Número de Gestantes Cargadas por Mes - Tramo III")
-    fig_gest.update_layout(title_text="Distribución porcentual de Etapas - Gestantes Tramo III")
+    fig_gest_disp.update_layout(title_text="Porcentaje de Visitas por Dispositivo - Gestantes")
+    figure_carg_gest.update_layout(title_text="Número de Gestantes Cargadas por Mes")
+    fig_gest.update_layout(title_text="Distribución porcentual de Etapas - Gestantes")
     
     col_1_r2 , col_2_r2 = st.columns([8,4])
     with col_1_r2:
@@ -577,7 +584,10 @@ def summary_tramo3():
     df_gestantes_mar = pd.read_excel(f"./data/1.3/gestantes_reporte_Mar_final_mes.xlsx")
     df_gestantes_abr = pd.read_excel(f"./data/1.3/gestantes_reporte_Abr_final_mes.xlsx")
     df_gestantes_may = pd.read_excel(f"./data/1.3/gestantes_reporte_May_final_mes.xlsx")
-    csummary_gestantes = pd.concat([df_gestantes, df_gestantes_feb, df_gestantes_mar,df_gestantes_abr,df_gestantes_may], ignore_index=True)
+    df_gestantes_jun = pd.read_excel(f"./data/1.3/gestantes_reporte_Jun_final_mes.xlsx")
+    df_gestantes_jul = pd.read_excel(f"./data/1.3/gestantes_reporte_Jul_final_mes.xlsx")
+    df_gestantes_ago = pd.read_excel(f"./data/1.3/gestantes_reporte_Ago_final_mes.xlsx")
+    csummary_gestantes = pd.concat([df_gestantes, df_gestantes_feb, df_gestantes_mar,df_gestantes_abr,df_gestantes_may,df_gestantes_jun,df_gestantes_jul,df_gestantes_ago], ignore_index=True)
     csummary_gestantes["Etapa"] = csummary_gestantes["Etapa"].replace({
         "Visita Domiciliaria (Adolescente)": "Visita Domiciliaria",
         "Visita Domiciliaria (Adulta)": "Visita Domiciliaria",
@@ -607,7 +617,7 @@ def summary_tramo3():
     #st.write(dff_pivot.shape)
     #st.dataframe(dff_pivot)
     merge_df = pd.merge(dff_pivot, periodos_dff, on="Número de Documento", how="left")
-    merge_df = merge_df[['Número de Documento','Mes_','Fue NO ENCONTRADO?',  'Ene', 'Feb', 'Mar','Abr', 'May']]
+    merge_df = merge_df[['Número de Documento','Mes_','Fue NO ENCONTRADO?',  'Ene', 'Feb', 'Mar','Abr', 'May','Jun','Jul','Ago']]
     
     st.write(merge_df.shape)
     st.dataframe(merge_df)
@@ -619,7 +629,7 @@ def summary_tramo3():
     st.dataframe(datos_gestantes)
     merge_dff = pd.merge(merge_df, datos_gestantes, on="Número de Documento", how="left")
     merge_dff = merge_dff[['Número de Documento','Datos Gestante', 'Mes_', 'Fue NO ENCONTRADO?', 'Ene', 'Feb',
-       'Mar', 'Abr', 'May']]
+       'Mar', 'Abr', 'May','Jun','Jul','Ago']]
     merge_dff = merge_dff.rename(columns={"Mes_": "Periodos"})
     st.write(merge_dff.shape)
     
@@ -630,7 +640,7 @@ def summary_tramo3():
     st.write(fecha_nac_df.shape)
     merge_dff = pd.merge(merge_dff, fecha_nac_df, on="Número de Documento", how="left")
     merge_dff = merge_dff[['Número de Documento','Datos Gestante', 'Periodos', 'Fue NO ENCONTRADO?', 'Ene', 'Feb',
-       'Mar', 'Abr', 'May','Fecha Nacimiento Hijo']]
+       'Mar', 'Abr', 'May','Jun','Jul','Ago','Fecha Nacimiento Hijo']]
     merge_dff["Datos Gestante"] = merge_dff["Datos Gestante"].str.upper()
     st.write(merge_dff.shape)
     st.dataframe(merge_dff)
@@ -746,7 +756,7 @@ def summary_tramo3():
         )
     )
     fig_etap_gest.update_traces(textposition="inside", textfont_size=14)
-    fig_etap_gest.update_layout(title_text="Distribución porcentual del Estado Gestante - Gestantes Tramo III")
+    fig_etap_gest.update_layout(title_text="Distribución porcentual del Estado Gestante - Gestantes")
     
     
     
@@ -796,7 +806,7 @@ def summary_tramo3():
     carga_mes_gest_df["Mes"] = carga_mes_gest_df["Mes"].map(mes_compname)
     #st.dataframe(carga_mes_gest_df)
     
-    figure_carg_gest = px.bar(carga_mes_gest_df, x="Mes", y="Gestantes Cargadas", title="Número de Gestantes Cargadas por Mes - Tramo III",text="Gestantes Cargadas")
+    figure_carg_gest = px.bar(carga_mes_gest_df, x="Mes", y="Gestantes Cargadas", title="Número de Gestantes Cargadas por Mes",text="Gestantes Cargadas")
     figure_carg_gest.update_traces(textposition="outside", textfont_size=16)
     
     

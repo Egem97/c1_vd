@@ -10,7 +10,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 def resumen25():
     styles(2)
     st.title("Resuemn Tramo III")
-    childs_df = pd.read_parquet('data/resumen/childs_resumen.parquet', engine='pyarrow')
+    childs_df = pd.read_parquet('./data/backups/actividad_nino.parquet', engine='pyarrow')
     #print(childs_df.columns)
     #print(childs_df['Estado Visitas'].unique())
     #st.dataframe(childs_df)
