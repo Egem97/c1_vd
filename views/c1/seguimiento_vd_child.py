@@ -40,13 +40,13 @@ def visitas_ninos_dashboard():
                     datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
                     return actvd_df, carga_df, padron_df, datos_ninos_df
                 
-                @st.cache_data(show_spinner="Cargando datos...",ttl=600)  # ,ttl=600
+                @st.cache_data(show_spinner="Cargando datos...")  # ,ttl=600
                 def load_seg_nominal_data(select_mes):
                     sn_month = {
                             "Jun": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
                             "Jul": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
                             "Ago": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
-                            "Set": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
+                            "Set": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
                             "Oct": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                             "Nov": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                             "Dic": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
