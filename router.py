@@ -13,7 +13,7 @@ from views.visitas_childs import geo_childs
 from views.visitas_gestantes import geo_gestantes
 from views.c1.seguimiento_nominal import seg_nominal_view
 from views.avances_25 import resumen25
-
+from views.c1.pruebas import pruebas_seg
 
 
 def pages():
@@ -37,6 +37,7 @@ def pages():
         st.Page(page=geo_childs, title="Geo Niños", icon="📍", url_path="/visitas-childs"),
         st.Page(page=geo_gestantes, title="Geo Gestantes", icon="📍", url_path="/visitas-gestantes"),
         st.Page(page=seg_nominal_view, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal"),
+        st.Page(page=pruebas_seg, title="Pruebas de Seguimiento", icon="🎯", url_path="/pruebas-seguimiento"),
     ]
     page_dict["Padrón Nominal"] = [
         st.Page(page=dash_padron_modreg, title="Actualizaciones General", icon="💡", url_path="/actualizaciones-padron"),

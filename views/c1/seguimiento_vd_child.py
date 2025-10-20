@@ -47,7 +47,7 @@ def visitas_ninos_dashboard():
                             "Jul": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
                             "Ago": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
                             "Set": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
-                            "Oct": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
+                            "Oct": "1VUARWulWk039rov4fsyM8NJRNd-zWRHyKYhG9tHBefI",
                             "Nov": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                             "Dic": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                     }
@@ -93,24 +93,33 @@ def visitas_ninos_dashboard():
                 #st.write(f"{select_year}-{select_mes}")
                 
                 datos_ninos_df = fix_data_childs(datos_ninos_df)
+
                 seg_nominal_df = load_seg_nominal_data(select_mes)
                 
-                #st.dataframe(seg_nominal_df)
                 #st.dataframe(seg_nominal_df)
                 #seg_nominal_test = seg_nominal_df.copy()
                 
                 seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).str.strip().fillna("0")
+                seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).str.strip()
+                seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).replace("NO", "0")
+                seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).replace("NO CORRESPONDE", "0")
                 seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).replace("", "0")
                 seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).str.replace("-", ".")
                 seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).str.replace(",", ".")
                 seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(float)
-
+                
                 seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).str.strip().fillna("0")
+                seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).str.strip()
+                seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).replace("NO", "0")
+                seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).replace("NO CORRESPONDE", "0")
                 seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).replace("", "0")
                 seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).str.replace("-", ".")
                 seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).str.replace(",", ".")
                 seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(float)
-
+               
+             
+                
+                
 
 
 
@@ -479,10 +488,10 @@ def visitas_ninos_dashboard():
                                 'HIERRO DE ZINC', 'FERROCIL', 'FERROMIL'
                             ])).sum()),
                             Con_Sesion_Demostrativa=("¿Fue parte de una Sesion demostrativa?", lambda x: (x.isin(["SI"])).sum()),
-                            Con_Tamizaje_6_Meses=("Resultado de Hemoglobina de 06 MESES", lambda x: (x > 0).sum()),
-                            Con_Tamizaje_6_Meses_anemia=("Resultado de Hemoglobina de 06 MESES", lambda x: ((x < 10.5) & (x > 0)).sum()),
-                            Con_Tamizaje_12_Meses=("Resultado de Hemoglobina de 12 MESES", lambda x: (x > 0).sum()),
-                            Con_Tamizaje_12_Meses_anemia=("Resultado de Hemoglobina de 12 MESES", lambda x: ((x < 10.5) & (x > 0)).sum()),
+                            Con_Tamizaje_6_Meses=("Resultado de Hemoglobina de 06 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                            Con_Tamizaje_6_Meses_anemia=("Resultado de Hemoglobina de 06 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+                            Con_Tamizaje_12_Meses=("Resultado de Hemoglobina de 12 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                            Con_Tamizaje_12_Meses_anemia=("Resultado de Hemoglobina de 12 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
 
                         ).reset_index()
                         rg_df.columns = ["Establecimiento de Salud","Programados", "Encontrados","Con Suplementación","Con Sesion Demostrativa","Con Tamizaje 6 Meses","Con Anemia 6 Meses","Con Tamizaje 12 Meses","Con Anemia 12 Meses"]#,"Sin Anemia (Tamizaje)","Con Anemia (Tamizaje)","Sin Anemia (Diagnostico)","Con Anemia (Diagnostico)"
