@@ -99,6 +99,7 @@ def visitas_ninos_dashboard():
                 #st.dataframe(seg_nominal_df)
                 #seg_nominal_test = seg_nominal_df.copy()
                 
+                # Procesar columna de 06 MESES
                 seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).str.strip().fillna("0")
                 seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).str.strip()
                 seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).replace("NO", "0")
@@ -106,16 +107,28 @@ def visitas_ninos_dashboard():
                 seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).replace("", "0")
                 seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).str.replace("-", ".")
                 seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(str).str.replace(",", ".")
-                seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].astype(float)
                 
+                # Convertir a float con manejo de errores para formatos de fecha
+                def safe_float_conversion(value):
+                    try:
+                        # Si contiene "/" es probablemente una fecha, convertir a 0
+                        if "/" in str(value):
+                            return 0.0
+                        return float(value)
+                    except (ValueError, TypeError):
+                        return 0.0
+                
+                seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 06 MESES"].apply(safe_float_conversion)
+                
+                # Procesar columna de 12 MESES
                 seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).str.strip().fillna("0")
-                seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).str.strip()
-                seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).replace("NO", "0")
-                seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).replace("NO CORRESPONDE", "0")
+                seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).str.strip()
+                seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).replace("NO", "0")
+                seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).replace("NO CORRESPONDE", "0")
                 seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).replace("", "0")
                 seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).str.replace("-", ".")
                 seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).str.replace(",", ".")
-                seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(float)
+                seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].apply(safe_float_conversion)
                
              
                 
