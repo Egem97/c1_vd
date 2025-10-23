@@ -36,8 +36,9 @@ def pages():
         #st.Page(page=summary_tramo3_test, title="Tramo 3", icon="🎯", url_path="/tramo-3"),
         st.Page(page=geo_childs, title="Geo Niños", icon="📍", url_path="/visitas-childs"),
         st.Page(page=geo_gestantes, title="Geo Gestantes", icon="📍", url_path="/visitas-gestantes"),
-        st.Page(page=seg_nominal_view, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal"),
-        st.Page(page=pruebas_seg, title="Pruebas de Seguimiento", icon="🎯", url_path="/pruebas-seguimiento"),
+        #st.Page(page=seg_nominal_view, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal"),
+        #st.Page(page=seguimiento_nominal_tamizajes, title="Nominal: Tamizajes", icon="🩸", url_path="/seguimiento-nominal-tamizajes"),
+        #st.Page(page=pruebas_seg, title="Pruebas de Seguimiento", icon="🎯", url_path="/pruebas-seguimiento"),
     ]
     page_dict["Padrón Nominal"] = [
         st.Page(page=dash_padron_modreg, title="Actualizaciones General", icon="💡", url_path="/actualizaciones-padron"),

@@ -16,6 +16,178 @@ from openpyxl.styles import Font, Alignment, Protection
 from io import BytesIO
 from utils.g_sheet import *
 
+# Nueva vista nominal enfocada en tamizajes y porcentajes
+def seguimiento_nominal_tamizajes():
+    styles(2)
+    colh, colm = st.columns([7,3])
+    with colh:
+        st.header("📊 Seguimiento Nominal: Tamizajes 6 y 12 meses")
+    with colm:
+        select_mes = st.selectbox("Mes", ["Jun","Jul","Ago","Set","Oct","Nov","Dic"], index=5)
+
+    @st.cache_data(show_spinner="Cargando Seguimiento Nominal...", ttl=600)
+    def load_seg_nominal_for_view(select_mes):
+        sn_month = {
+            "Jun": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
+            "Jul": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
+            "Ago": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
+            "Set": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
+            "Oct": "1VUARWulWk039rov4fsyM8NJRNd-zWRHyKYhG9tHBefI",
+            "Nov": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
+            "Dic": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
+        }
+        return read_and_concatenate_sheets_optimized(
+            key_sheet=sn_month[select_mes],
+            sheet_names=[
+                "ARANJUEZ","CLUB DE LEONES","EL BOSQUE","LOS GRANADOS \"SAGRADO CORAZON\"",
+                "CENTRO DE SALUD LA UNION","HOSPITAL DE ESPECIALIDADES BASI",
+                "LIBERTAD","LOS JARDINES","PESQUEDA III","SAN MARTIN DE PORRES"
+            ],
+            add_sheet_column=True
+        )
+
+    seg_nominal_df = load_seg_nominal_for_view(select_mes)
+    if seg_nominal_df is None or seg_nominal_df.empty:
+        st.error("No se pudo cargar el Seguimiento Nominal. Revisa las hojas o intenta nuevamente.")
+        st.stop()
+
+    # Asegurar columna Actividad a Realizar
+    if "Actividad a Realizar" not in seg_nominal_df.columns:
+        seg_nominal_df["Actividad a Realizar"] = "Sin rango específico"
+
+    # Limpieza y estandarización de columnas de hemoglobina
+    def safe_float_conversion(value):
+        try:
+            if "/" in str(value):
+                return 0.0
+            return float(value)
+        except (ValueError, TypeError):
+            return 0.0
+
+    for col in ["Resultado de Hemoglobina de 06 MESES", "Resultado de Hemoglobina de 12 MESES"]:
+        if col in seg_nominal_df.columns:
+            seg_nominal_df[col] = seg_nominal_df[col].astype(str).str.strip().replace({"NO": "0", "NO CORRESPONDE": "0", "": "0"})
+            seg_nominal_df[col] = seg_nominal_df[col].str.replace("-", ".").str.replace(",", ".")
+            seg_nominal_df[col] = seg_nominal_df[col].apply(safe_float_conversion)
+        else:
+            seg_nominal_df[col] = 0.0
+
+    # Columna de agrupación (EESS)
+    eess_col = next((c for c in [
+        "Establecimiento de Salud",
+        "ESTABLECIMIENTO DE SALUD ",
+        "EESS ATENCION",
+        "EESS ATENCIONS",
+        "EESS NACIMIENTO",
+        "sheet_origen"
+    ] if c in seg_nominal_df.columns), "sheet_origen")
+
+    # Filtro por actividad
+    actividades = ["Todos"] + sorted([a for a in seg_nominal_df["Actividad a Realizar"].dropna().unique().tolist()])
+    colfa, colfb = st.columns([3,7])
+    with colfa:
+        select_act = st.selectbox("Actividad a Realizar", actividades, index=0)
+    if select_act != "Todos":
+        seg_nominal_df = seg_nominal_df[seg_nominal_df["Actividad a Realizar"] == select_act]
+
+    # Variables derivadas para tamizaje y anemia
+    seg_nominal_df["_tam6"] = (seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] > 0).astype(int)
+    seg_nominal_df["_ane6"] = ((seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] > 0) & (seg_nominal_df["Resultado de Hemoglobina de 06 MESES"] < 10.5)).astype(int)
+    seg_nominal_df["_tam12"] = (seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] > 0).astype(int)
+    seg_nominal_df["_ane12"] = ((seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] > 0) & (seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] < 10.5)).astype(int)
+
+    resumen_df = (
+        seg_nominal_df.groupby(eess_col)
+        .agg(
+            Tamizaje_6=("_tam6", "sum"),
+            Anemia_6=("_ane6", "sum"),
+            Tamizaje_12=("_tam12", "sum"),
+            Anemia_12=("_ane12", "sum"),
+        )
+        .reset_index()
+        .rename(columns={eess_col: "Establecimiento de Salud"})
+    )
+
+    # Porcentajes de anemia sobre tamizaje (numérico)
+    def pct(n, d):
+        return round((n / d) * 100, 1) if d and d > 0 else 0.0
+
+    resumen_df["pct_ane6"] = resumen_df.apply(lambda r: pct(r["Anemia_6"], r["Tamizaje_6"]), axis=1)
+    resumen_df["pct_ane12"] = resumen_df.apply(lambda r: pct(r["Anemia_12"], r["Tamizaje_12"]), axis=1)
+
+    # Fila total
+    tot_tam6 = int(resumen_df["Tamizaje_6"].sum())
+    tot_ane6 = int(resumen_df["Anemia_6"].sum())
+    tot_tam12 = int(resumen_df["Tamizaje_12"].sum())
+    tot_ane12 = int(resumen_df["Anemia_12"].sum())
+
+    total_row = {
+        "Establecimiento de Salud": "TOTAL",
+        "Tamizaje_6": tot_tam6,
+        "Anemia_6": tot_ane6,
+        "Tamizaje_12": tot_tam12,
+        "Anemia_12": tot_ane12,
+        "pct_ane6": pct(tot_ane6, tot_tam6),
+        "pct_ane12": pct(tot_ane12, tot_tam12),
+    }
+
+    resumen_df = pd.concat([resumen_df, pd.DataFrame([total_row])], ignore_index=True)
+
+    # Gráficos por establecimiento (excluyendo fila TOTAL)
+    chart_df = resumen_df[resumen_df["Establecimiento de Salud"] != "TOTAL"].copy()
+    colg1, colg2 = st.columns(2)
+    with colg1:
+        fig_tam6 = px.bar(chart_df, x="Establecimiento de Salud", y="Tamizaje_6", title="Tamizaje 6 Meses", text="Tamizaje_6")
+        fig_tam6.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_tam6, use_container_width=True)
+    with colg2:
+        fig_ane6 = px.bar(chart_df, x="Establecimiento de Salud", y="Anemia_6", title="Niños con Anemia (tamizaje 6M)", text="Anemia_6")
+        fig_ane6.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_ane6, use_container_width=True)
+
+    colg3, colg4 = st.columns(2)
+    with colg3:
+        fig_tam12 = px.bar(chart_df, x="Establecimiento de Salud", y="Tamizaje_12", title="Tamizaje 12 Meses", text="Tamizaje_12")
+        fig_tam12.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_tam12, use_container_width=True)
+    with colg4:
+        fig_ane12 = px.bar(chart_df, x="Establecimiento de Salud", y="Anemia_12", title="Niños con Anemia (tamizaje 12M)", text="Anemia_12")
+        fig_ane12.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_ane12, use_container_width=True)
+
+    colg5, colg6 = st.columns(2)
+    with colg5:
+        fig_pct6 = px.bar(chart_df, x="Establecimiento de Salud", y="pct_ane6", title="% Anemia sobre Tamizaje 6M", text="pct_ane6")
+        fig_pct6.update_traces(texttemplate="%{text:.1f}%")
+        fig_pct6.update_layout(xaxis_tickangle=-45, yaxis_title="%")
+        st.plotly_chart(fig_pct6, use_container_width=True)
+    with colg6:
+        fig_pct12 = px.bar(chart_df, x="Establecimiento de Salud", y="pct_ane12", title="% Anemia sobre Tamizaje 12M", text="pct_ane12")
+        fig_pct12.update_traces(texttemplate="%{text:.1f}%")
+        fig_pct12.update_layout(xaxis_tickangle=-45, yaxis_title="%")
+        st.plotly_chart(fig_pct12, use_container_width=True)
+
+    # Tabla con porcentajes formateados
+    resumen_df["% Anemia 6M"] = resumen_df["pct_ane6"].map(lambda x: f"{x:.1f}%")
+    resumen_df["% Anemia 12M"] = resumen_df["pct_ane12"].map(lambda x: f"{x:.1f}%")
+    resumen_df = resumen_df.drop(columns=["pct_ane6","pct_ane12"])
+
+    gob = GridOptionsBuilder.from_dataframe(resumen_df)
+    gob.configure_default_column(resizable=True, filter=True, sortable=True)
+    gob.configure_pagination(paginationPageSize=25)
+    grid_options = gob.build()
+
+    AgGrid(
+        resumen_df,
+        gridOptions=grid_options,
+        enable_enterprise_modules=False,
+        theme='balham',
+        update_mode='NO_UPDATE',
+        fit_columns_on_grid_load=True,
+        height=500,
+        key="grid_nominal_tamizajes",
+    )
+
 def eliminar_duplicados_col(texto):
         col = texto.split(" - ")
         col_unicos = sorted(set(col), key=col.index)
@@ -47,7 +219,7 @@ def visitas_ninos_dashboard():
                             "Jul": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
                             "Ago": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
                             "Set": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
-                            "Oct": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
+                            "Oct": "1VUARWulWk039rov4fsyM8NJRNd-zWRHyKYhG9tHBefI",
                             "Nov": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                             "Dic": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                     }
@@ -95,7 +267,10 @@ def visitas_ninos_dashboard():
                 datos_ninos_df = fix_data_childs(datos_ninos_df)
 
                 seg_nominal_df = load_seg_nominal_data(select_mes)
-                #st.dataframe(seg_nominal_df)
+                # Guardar contra fallos de carga/concatenación
+                if seg_nominal_df is None:
+                    st.error("No se pudo cargar el Seguimiento Nominal. Revisa las hojas o intenta nuevamente.")
+                    st.stop()
                 #st.dataframe(seg_nominal_df)
                 #seg_nominal_test = seg_nominal_df.copy()
                 
@@ -130,14 +305,21 @@ def visitas_ninos_dashboard():
                 seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].astype(str).str.replace(",", ".")
                 seg_nominal_df["Resultado de Hemoglobina de 12 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 12 MESES"].apply(safe_float_conversion)
                
-             
+                seg_nominal_df["Resultado de Hemoglobina de 09 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 09 MESES"].astype(str).str.strip().fillna("0")
+                seg_nominal_df["Resultado de Hemoglobina de 09 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 09 MESES"].astype(str).str.strip()
+                seg_nominal_df["Resultado de Hemoglobina de 09 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 09 MESES"].astype(str).replace("NO", "0")
+                seg_nominal_df["Resultado de Hemoglobina de 09 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 09 MESES"].astype(str).replace("NO CORRESPONDE", "0")
+                seg_nominal_df["Resultado de Hemoglobina de 09 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 09 MESES"].astype(str).replace("", "0")
+                seg_nominal_df["Resultado de Hemoglobina de 09 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 09 MESES"].astype(str).str.replace("-", ".")
+                seg_nominal_df["Resultado de Hemoglobina de 09 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 09 MESES"].astype(str).str.replace(",", ".")
+                seg_nominal_df["Resultado de Hemoglobina de 09 MESES"] = seg_nominal_df["Resultado de Hemoglobina de 09 MESES"].apply(safe_float_conversion)
                 
                 
 
 
 
 
-                seg_nominal_df =seg_nominal_df[["Número de Documento del niño","TIPO DE SEGURO","¿Es prematuro?","Tipo de SUPLEMENTO","¿Fue parte de una Sesion demostrativa?","Resultado de Hemoglobina de 06 MESES","Resultado de Hemoglobina de 12 MESES"]]
+                seg_nominal_df = seg_nominal_df[["Número de Documento del niño","TIPO DE SEGURO","¿Es prematuro?","Tipo de SUPLEMENTO","¿Fue parte de una Sesion demostrativa?","Resultado de Hemoglobina de 06 MESES","Resultado de Hemoglobina de 09 MESES","Resultado de Hemoglobina de 12 MESES"]]
                 seg_nominal_df["TIPO DE SEGURO"] = seg_nominal_df["TIPO DE SEGURO"].replace("", "NINGUNO")
                 seg_nominal_df["¿Es prematuro?"] = seg_nominal_df["¿Es prematuro?"].replace("", "NO")
                 seg_nominal_df["Tipo de SUPLEMENTO"] = seg_nominal_df["Tipo de SUPLEMENTO"].replace("", "NO ESPECIFICADO")
@@ -478,58 +660,166 @@ def visitas_ninos_dashboard():
                             rg_df = dataframe_[dataframe_["Rango de Días Activo"]=="Rango de días 180-209 días"]
                         elif selection_rango == "270-299 días":
                             rg_df = dataframe_[dataframe_["Rango de Días Activo"]=="Rango de días 270-299 días"]
+                            # Asegura columna de Hb 09 meses si falta para evitar KeyError
+                            if "Resultado de Hemoglobina de 09 MESES" not in rg_df.columns:
+                                rg_df["Resultado de Hemoglobina de 09 MESES"] = 0
                         elif selection_rango == "360-389 días":
                             rg_df = dataframe_[dataframe_["Rango de Días Activo"]=="Rango de días 360-389 días"]
                         elif selection_rango == "6-12 meses":
                             rg_df = dataframe_[dataframe_["Rango de Edad"]=="6-12 meses"]
                         rg_dff = rg_df.copy()
-                        rg_df = rg_df.groupby(["Establecimiento de Salud"]).agg(
-                            Niños_Programados=("Número de Documento", "count"),
-                            Niños_Encontrados=("Estado Niño", lambda x: (x.isin(["Visita Domiciliaria (6 a 12 Meses)", "Visita Domiciliaria (1 a 5 meses)"])).sum()),
-                            #Niños_Consecutivos=("¿Es consecutivo?", lambda x: (x.isin(["Consecutivo"])).sum()),
-                            Con_Suplementacion=("Tipo de SUPLEMENTO", lambda x: (x.isin([
-                            'MMN', 'MICRONUTRIENTES', 'GOTAS', 'FERRIMAX',
-                                'SULFATO FERROSO', 'MN', 'JARABE',
-                                'FERRAMIN FORTE', 'POLIMALTOSADO', 'SI',
-                                'FERRAMIN', '7 GOTAS', '8 GOTAS', '8 GOTITAS DE HIERRO',
-                                'MULTIMICRONUTRIENTES', 'GOTA', 'MALTOFER', 'SULFATOFERROSO',
-                                '1 MICRONUTRIENTE', 'M', 'FERRANIN FORTE',
-                                '1 SOBRECITO DE HIERRO', 'FERANIN', 'HIERRO EN GOTAS',
-                                '9 GOTITAS DE HIERRO', 'HIERRO POLIMALTOSA',
-                                'MULTIVITAMINAS', '7 GOTITAS DE HIERRO',  'FERROCIN',
-                                'GOTAS- SF','gotas', '6 GOTAS',
-                                'HIERRO DE ZINC', 'FERROCIL', 'FERROMIL'
-                            ])).sum()),
-                            Con_Sesion_Demostrativa=("¿Fue parte de una Sesion demostrativa?", lambda x: (x.isin(["SI"])).sum()),
-                            Con_Tamizaje_6_Meses=("Resultado de Hemoglobina de 06 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
-                            Con_Tamizaje_6_Meses_anemia=("Resultado de Hemoglobina de 06 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
-                            Con_Tamizaje_12_Meses=("Resultado de Hemoglobina de 12 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
-                            Con_Tamizaje_12_Meses_anemia=("Resultado de Hemoglobina de 12 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+                        if selection_rango == "270-299 días":
+                            rg_df = rg_df.groupby(["Establecimiento de Salud"]).agg(
+                                Niños_Programados=("Número de Documento", "count"),
+                                Niños_Encontrados=("Estado Niño", lambda x: (x.isin(["Visita Domiciliaria (6 a 12 Meses)", "Visita Domiciliaria (1 a 5 meses)"])).sum()),
+                                #Niños_Consecutivos=("¿Es consecutivo?", lambda x: (x.isin(["Consecutivo"])).sum()),
+                                Con_Suplementacion=("Tipo de SUPLEMENTO", lambda x: (x.isin([
+                                'MMN', 'MICRONUTRIENTES', 'GOTAS', 'FERRIMAX',
+                                    'SULFATO FERROSO', 'MN', 'JARABE',
+                                    'FERRAMIN FORTE', 'POLIMALTOSADO', 'SI',
+                                    'FERRAMIN', '7 GOTAS', '8 GOTAS', '8 GOTITAS DE HIERRO',
+                                    'MULTIMICRONUTRIENTES', 'GOTA', 'MALTOFER', 'SULFATOFERROSO',
+                                    '1 MICRONUTRIENTE', 'M', 'FERRANIN FORTE',
+                                    '1 SOBRECITO DE HIERRO', 'FERANIN', 'HIERRO EN GOTAS',
+                                    '9 GOTITAS DE HIERRO', 'HIERRO POLIMALTOSA',
+                                    'MULTIVITAMINAS', '7 GOTITAS DE HIERRO',  'FERROCIN',
+                                    'GOTAS- SF','gotas', '6 GOTAS',
+                                    'HIERRO DE ZINC', 'FERROCIL', 'FERROMIL'
+                                ])).sum()),
+                                Con_Sesion_Demostrativa=("¿Fue parte de una Sesion demostrativa?", lambda x: (x.isin(["SI"])).sum()),
+                                Con_Tamizaje_6_Meses=("Resultado de Hemoglobina de 06 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                Con_Tamizaje_6_Meses_anemia=("Resultado de Hemoglobina de 06 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+                                
+                                
+                                Con_Tamizaje_09_Meses=("Resultado de Hemoglobina de 09 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                Con_Tamizaje_09_Meses_anemia=("Resultado de Hemoglobina de 09 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
 
-                        ).reset_index()
-                        rg_df.columns = ["Establecimiento de Salud","Programados", "Encontrados","Con Suplementación","Con Sesion Demostrativa","Con Tamizaje 6 Meses","Con Anemia 6 Meses","Con Tamizaje 12 Meses","Con Anemia 12 Meses"]#,"Sin Anemia (Tamizaje)","Con Anemia (Tamizaje)","Sin Anemia (Diagnostico)","Con Anemia (Diagnostico)"
-                        rg_df = rg_df.sort_values("Programados", ascending=False)
-                        total_row = pd.DataFrame({
-                            "Establecimiento de Salud": ["TOTAL"],
-                            "Programados": [rg_df["Programados"].sum()],
-                            "Encontrados": [rg_df["Encontrados"].sum()],
-                            #"Consecutivos": [rg_df["Consecutivos"].sum()],
-                            "Con Suplementación": [rg_df["Con Suplementación"].sum()],
-                            "Con Sesion Demostrativa": [rg_df["Con Sesion Demostrativa"].sum()],
-                            "Con Tamizaje 6 Meses": [rg_df["Con Tamizaje 6 Meses"].sum()],
-                            "Con Anemia 6 Meses": [rg_df["Con Anemia 6 Meses"].sum()],
-                            "Con Tamizaje 12 Meses": [rg_df["Con Tamizaje 12 Meses"].sum()],
-                            "Con Anemia 12 Meses": [rg_df["Con Anemia 12 Meses"].sum()],
-                            #"Prematuros": [rg_df["Prematuros"].sum()],
-                            #"Sin Anemia (Tamizaje)": [rg_df["Sin Anemia (Tamizaje)"].sum()],
-                            #"Con Anemia (Tamizaje)": [rg_df["Con Anemia (Tamizaje)"].sum()],
-                        # "Sin Anemia (Diagnostico)": [rg_df["Sin Anemia (Diagnostico)"].sum()],
-                        # "Con Anemia (Diagnostico)": [rg_df["Con Anemia (Diagnostico)"].sum()],
-                        })
+                            ).reset_index()
+                            rg_df.columns = ["Establecimiento de Salud","Programados", "Encontrados","Con Suplementación","Con Sesion Demostrativa","Con Tamizaje 6 Meses","Con Anemia 6 Meses","Con Tamizaje 09 Meses","Con Anemia 09 Meses"]#,"Sin Anemia (Tamizaje)","Con Anemia (Tamizaje)","Sin Anemia (Diagnostico)","Con Anemia (Diagnostico)"
+                            rg_df = rg_df.sort_values("Programados", ascending=False)
+                            total_row = pd.DataFrame({
+                                "Establecimiento de Salud": ["TOTAL"],
+                                "Programados": [rg_df["Programados"].sum()],
+                                "Encontrados": [rg_df["Encontrados"].sum()],
+                                #"Consecutivos": [rg_df["Consecutivos"].sum()],
+                                "Con Suplementación": [rg_df["Con Suplementación"].sum()],
+                                "Con Sesion Demostrativa": [rg_df["Con Sesion Demostrativa"].sum()],
+                                "Con Tamizaje 6 Meses": [rg_df["Con Tamizaje 6 Meses"].sum()],
+                                "Con Anemia 6 Meses": [rg_df["Con Anemia 6 Meses"].sum()],
+                                "Con Tamizaje 09 Meses": [rg_df["Con Tamizaje 09 Meses"].sum()],
+                                "Con Anemia 09 Meses": [rg_df["Con Anemia 09 Meses"].sum()],
+                                #"Prematuros": [rg_df["Prematuros"].sum()],
+                                #"Sin Anemia (Tamizaje)": [rg_df["Sin Anemia (Tamizaje)"].sum()],
+                                #"Con Anemia (Tamizaje)": [rg_df["Con Anemia (Tamizaje)"].sum()],
+                            # "Sin Anemia (Diagnostico)": [rg_df["Sin Anemia (Diagnostico)"].sum()],
+                            # "Con Anemia (Diagnostico)": [rg_df["Con Anemia (Diagnostico)"].sum()],
+                            })
+                        elif selection_rango == "120-149 días" or selection_rango == "180-209 días":
+                            rg_df = rg_df.groupby(["Establecimiento de Salud"]).agg(
+                                Niños_Programados=("Número de Documento", "count"),
+                                Niños_Encontrados=("Estado Niño", lambda x: (x.isin(["Visita Domiciliaria (6 a 12 Meses)", "Visita Domiciliaria (1 a 5 meses)"])).sum()),
+                                #Niños_Consecutivos=("¿Es consecutivo?", lambda x: (x.isin(["Consecutivo"])).sum()),
+                                Con_Suplementacion=("Tipo de SUPLEMENTO", lambda x: (x.isin([
+                                'MMN', 'MICRONUTRIENTES', 'GOTAS', 'FERRIMAX',
+                                    'SULFATO FERROSO', 'MN', 'JARABE',
+                                    'FERRAMIN FORTE', 'POLIMALTOSADO', 'SI',
+                                    'FERRAMIN', '7 GOTAS', '8 GOTAS', '8 GOTITAS DE HIERRO',
+                                    'MULTIMICRONUTRIENTES', 'GOTA', 'MALTOFER', 'SULFATOFERROSO',
+                                    '1 MICRONUTRIENTE', 'M', 'FERRANIN FORTE',
+                                    '1 SOBRECITO DE HIERRO', 'FERANIN', 'HIERRO EN GOTAS',
+                                    '9 GOTITAS DE HIERRO', 'HIERRO POLIMALTOSA',
+                                    'MULTIVITAMINAS', '7 GOTITAS DE HIERRO',  'FERROCIN',
+                                    'GOTAS- SF','gotas', '6 GOTAS',
+                                    'HIERRO DE ZINC', 'FERROCIL', 'FERROMIL'
+                                ])).sum()),
+                                Con_Sesion_Demostrativa=("¿Fue parte de una Sesion demostrativa?", lambda x: (x.isin(["SI"])).sum()),
+                                Con_Tamizaje_6_Meses=("Resultado de Hemoglobina de 06 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                Con_Tamizaje_6_Meses_anemia=("Resultado de Hemoglobina de 06 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+                                
+                                
+                                #Con_Tamizaje_12_Meses=("Resultado de Hemoglobina de 12 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                #Con_Tamizaje_12_Meses_anemia=("Resultado de Hemoglobina de 12 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+
+                            ).reset_index()
+                            rg_df.columns = ["Establecimiento de Salud","Programados", "Encontrados","Con Suplementación","Con Sesion Demostrativa","Con Tamizaje 6 Meses","Con Anemia 6 Meses"]#,"Sin Anemia (Tamizaje)","Con Anemia (Tamizaje)","Sin Anemia (Diagnostico)","Con Anemia (Diagnostico)"
+                            rg_df = rg_df.sort_values("Programados", ascending=False)
+                            total_row = pd.DataFrame({
+                                "Establecimiento de Salud": ["TOTAL"],
+                                "Programados": [rg_df["Programados"].sum()],
+                                "Encontrados": [rg_df["Encontrados"].sum()],
+                                #"Consecutivos": [rg_df["Consecutivos"].sum()],
+                                "Con Suplementación": [rg_df["Con Suplementación"].sum()],
+                                "Con Sesion Demostrativa": [rg_df["Con Sesion Demostrativa"].sum()],
+                                "Con Tamizaje 6 Meses": [rg_df["Con Tamizaje 6 Meses"].sum()],
+                                "Con Anemia 6 Meses": [rg_df["Con Anemia 6 Meses"].sum()],
+                                #"Con Tamizaje 12 Meses": [rg_df["Con Tamizaje 12 Meses"].sum()],
+                                #"Con Anemia 12 Meses": [rg_df["Con Anemia 12 Meses"].sum()],
+                                #"Prematuros": [rg_df["Prematuros"].sum()],
+                                #"Sin Anemia (Tamizaje)": [rg_df["Sin Anemia (Tamizaje)"].sum()],
+                                #"Con Anemia (Tamizaje)": [rg_df["Con Anemia (Tamizaje)"].sum()],
+                            # "Sin Anemia (Diagnostico)": [rg_df["Sin Anemia (Diagnostico)"].sum()],
+                            # "Con Anemia (Diagnostico)": [rg_df["Con Anemia (Diagnostico)"].sum()],
+                            })
+                        else:
+                            rg_df = rg_df.groupby(["Establecimiento de Salud"]).agg(
+                                Niños_Programados=("Número de Documento", "count"),
+                                Niños_Encontrados=("Estado Niño", lambda x: (x.isin(["Visita Domiciliaria (6 a 12 Meses)", "Visita Domiciliaria (1 a 5 meses)"])).sum()),
+                                #Niños_Consecutivos=("¿Es consecutivo?", lambda x: (x.isin(["Consecutivo"])).sum()),
+                                Con_Suplementacion=("Tipo de SUPLEMENTO", lambda x: (x.isin([
+                                'MMN', 'MICRONUTRIENTES', 'GOTAS', 'FERRIMAX',
+                                    'SULFATO FERROSO', 'MN', 'JARABE',
+                                    'FERRAMIN FORTE', 'POLIMALTOSADO', 'SI',
+                                    'FERRAMIN', '7 GOTAS', '8 GOTAS', '8 GOTITAS DE HIERRO',
+                                    'MULTIMICRONUTRIENTES', 'GOTA', 'MALTOFER', 'SULFATOFERROSO',
+                                    '1 MICRONUTRIENTE', 'M', 'FERRANIN FORTE',
+                                    '1 SOBRECITO DE HIERRO', 'FERANIN', 'HIERRO EN GOTAS',
+                                    '9 GOTITAS DE HIERRO', 'HIERRO POLIMALTOSA',
+                                    'MULTIVITAMINAS', '7 GOTITAS DE HIERRO',  'FERROCIN',
+                                    'GOTAS- SF','gotas', '6 GOTAS',
+                                    'HIERRO DE ZINC', 'FERROCIL', 'FERROMIL'
+                                ])).sum()),
+                                Con_Sesion_Demostrativa=("¿Fue parte de una Sesion demostrativa?", lambda x: (x.isin(["SI"])).sum()),
+                                Con_Tamizaje_6_Meses=("Resultado de Hemoglobina de 06 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                Con_Tamizaje_6_Meses_anemia=("Resultado de Hemoglobina de 06 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+                                
+                                
+                                Con_Tamizaje_12_Meses=("Resultado de Hemoglobina de 12 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                Con_Tamizaje_12_Meses_anemia=("Resultado de Hemoglobina de 12 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+
+                            ).reset_index()
+                            rg_df.columns = ["Establecimiento de Salud","Programados", "Encontrados","Con Suplementación","Con Sesion Demostrativa","Con Tamizaje 6 Meses","Con Anemia 6 Meses","Con Tamizaje 12 Meses","Con Anemia 12 Meses"]#,"Sin Anemia (Tamizaje)","Con Anemia (Tamizaje)","Sin Anemia (Diagnostico)","Con Anemia (Diagnostico)"
+                            rg_df = rg_df.sort_values("Programados", ascending=False)
+                            total_row = pd.DataFrame({
+                                "Establecimiento de Salud": ["TOTAL"],
+                                "Programados": [rg_df["Programados"].sum()],
+                                "Encontrados": [rg_df["Encontrados"].sum()],
+                                #"Consecutivos": [rg_df["Consecutivos"].sum()],
+                                "Con Suplementación": [rg_df["Con Suplementación"].sum()],
+                                "Con Sesion Demostrativa": [rg_df["Con Sesion Demostrativa"].sum()],
+                                "Con Tamizaje 6 Meses": [rg_df["Con Tamizaje 6 Meses"].sum()],
+                                "Con Anemia 6 Meses": [rg_df["Con Anemia 6 Meses"].sum()],
+                                "Con Tamizaje 12 Meses": [rg_df["Con Tamizaje 12 Meses"].sum()],
+                                "Con Anemia 12 Meses": [rg_df["Con Anemia 12 Meses"].sum()],
+                                #"Prematuros": [rg_df["Prematuros"].sum()],
+                                #"Sin Anemia (Tamizaje)": [rg_df["Sin Anemia (Tamizaje)"].sum()],
+                                #"Con Anemia (Tamizaje)": [rg_df["Con Anemia (Tamizaje)"].sum()],
+                            # "Sin Anemia (Diagnostico)": [rg_df["Sin Anemia (Diagnostico)"].sum()],
+                            # "Con Anemia (Diagnostico)": [rg_df["Con Anemia (Diagnostico)"].sum()],
+                            })
                         rg_df = pd.concat([rg_df, total_row], ignore_index=True)
                         rg_df["% Encontrados"] = ((rg_df["Encontrados"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
-                        rg_df["% SD (38%)"] = ((rg_df["Con Sesion Demostrativa"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
-                        
+                        #rg_df["% SD (38%)"] = ((rg_df["Con Sesion Demostrativa"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
+                        if selection_rango == "120-149 días":
+                            pass
+                        elif selection_rango == "180-209 días":
+                            rg_df["% Tamizajes 6 meses"] = ((rg_df["Con Tamizaje 6 Meses"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
+                        elif selection_rango == "270-299 días":
+                            rg_df["% Tamizajes 09 meses"] = ((rg_df["Con Tamizaje 09 Meses"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
+                        elif selection_rango == "360-389 días":
+                            rg_df["% Tamizajes 12 meses"] = ((rg_df["Con Tamizaje 12 Meses"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
+                        elif selection_rango == "6-12 meses":
+                            rg_df["% Tamizajes 6 meses"] = ((rg_df["Con Tamizaje 6 Meses"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
+                            rg_df["% Tamizajes 12 meses"] = ((rg_df["Con Tamizaje 12 Meses"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
                         #rg_df["% Tamizaje"] = ((rg_df["Sin Anemia (Tamizaje)"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
                         #rg_df["% Diagnostico"] = ((rg_df["Sin Anemia (Diagnostico)"] / rg_df["Programados"]) * 100).round(1).astype(str) + "%"
                         gb = GridOptionsBuilder.from_dataframe(rg_df)

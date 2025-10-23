@@ -138,6 +138,20 @@ def clear_sheet_cache(key_sheet=None, sheet_name=None):
 
 
 @st.cache_data(ttl=180)  # Cache se actualiza cada 3 minutos (180 segundos)
+def _sanitize_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Limpia y desduplica nombres de columnas para evitar errores de reindex.
+    - Quita espacios
+    - Reemplaza vacíos por 'Col_i'
+    - Desduplica añadiendo sufijos _2, _3, ...
+    """
+    cols = [str(c).strip() if (c is not None) else '' for c in df.columns]
+    cols = [c if c != '' else f'Col_{i+1}' for i, c in enumerate(cols)]
+    s = pd.Series(cols)
+    s = s.where(~s.duplicated(), s + '_' + (s.groupby(s).cumcount() + 1).astype(str))
+    df.columns = s
+    return df
+
+@st.cache_data(ttl=180)  # Cache se actualiza cada 3 minutos (180 segundos)
 def read_and_concatenate_sheets(key_sheet, sheet_names, add_sheet_column=True):
     """
     Función que lee múltiples hojas de un Google Sheet y las concatena en un solo DataFrame.
@@ -172,11 +186,14 @@ def read_and_concatenate_sheets(key_sheet, sheet_names, add_sheet_column=True):
                 else:
                     df = pd.DataFrame(data)
                 
+                # Limpieza de columnas
+                df = _sanitize_columns(df)
+                
                 # Añadir columna con el nombre de la hoja si se solicita
                 if add_sheet_column:
                     df['sheet_origen'] = sheet_name
                 
-                all_dataframes.append(df)
+                all_dataframes.append(df.reset_index(drop=True))
                 successful_sheets.append(sheet_name)
             else:
                 failed_sheets.append(f"{sheet_name}: Hoja vacía")
@@ -195,7 +212,7 @@ def read_and_concatenate_sheets(key_sheet, sheet_names, add_sheet_column=True):
     # Concatenar DataFrames si hay datos
     if all_dataframes:
         try:
-            concatenated_df = pd.concat(all_dataframes, ignore_index=True)
+            concatenated_df = pd.concat(all_dataframes, ignore_index=True, sort=False)
             st.info(f"📊 Total de filas concatenadas: {len(concatenated_df)}")
             return concatenated_df
         except Exception as e:
@@ -233,6 +250,7 @@ def read_and_concatenate_sheets_optimized(key_sheet, sheet_names, add_sheet_colu
         available_sheets = {ws.title: ws for ws in spreadsheet.worksheets()}
         
         with st.spinner(f"Leyendo {len(sheet_names)} hojas..."):
+
             for sheet_name in sheet_names:
                 try:
                     # Verificar si la hoja existe
@@ -243,23 +261,28 @@ def read_and_concatenate_sheets_optimized(key_sheet, sheet_names, add_sheet_colu
                     # Obtener datos de la hoja
                     worksheet = available_sheets[sheet_name]
                     data = worksheet.get_all_values()
-                    
+                   # st.write(sheet_name)
+                    #st.write(data)
                     # Convertir a DataFrame si hay datos
                     if data and len(data) > 0:
+                        #st.write(data)
                         # Usar la primera fila como headers
                         if len(data) > 1:
                             df = pd.DataFrame(data[1:], columns=data[0])
+                            
                         else:
                             df = pd.DataFrame(data)
-                        
+                        #st.write(df.shape)
                         # Limpiar DataFrame (eliminar filas completamente vacías)
                         df = df.dropna(how='all')
                         
                         if not df.empty:
+                            # Normalizar/Desduplicar columnas
+                            df = _sanitize_columns(df)
                             # Añadir columna con el nombre de la hoja si se solicita
                             if add_sheet_column:
                                 df['sheet_origen'] = sheet_name
-                            
+                            df = df.reset_index(drop=True)
                             all_dataframes.append(df)
                             successful_sheets.append(sheet_name)
                         else:
@@ -273,10 +296,15 @@ def read_and_concatenate_sheets_optimized(key_sheet, sheet_names, add_sheet_colu
         
         
         # Concatenar DataFrames si hay datos
+       
+        #st.write(all_dataframes)
+
+        
         if all_dataframes:
             try:
+                # Evitar conflictos por índices duplicados entre hojas
                 concatenated_df = pd.concat(all_dataframes, ignore_index=True)
-                #st.success(f"📊 Total de filas concatenadas: {len(concatenated_df)} | Hojas procesadas: {len(successful_sheets)}")
+                #st.dataframe(concatenated_df)
                 return concatenated_df
             except Exception as e:
                 st.error(f"Error al concatenar DataFrames: {str(e)}")
@@ -380,11 +408,13 @@ def _fetch_and_concatenate_data_optimized(key_sheet, sheet_names, add_sheet_colu
                     df = df.dropna(how='all')
                     
                     if not df.empty:
+                        # Normalizar/Desduplicar columnas
+                        df = _sanitize_columns(df)
                         # Añadir columna con el nombre de la hoja si se solicita
                         if add_sheet_column:
                             df['sheet_origen'] = sheet_name
                         
-                        all_dataframes.append(df)
+                        all_dataframes.append(df.reset_index(drop=True))
                         successful_sheets.append(sheet_name)
                     else:
                         failed_sheets.append(f"{sheet_name}: Hoja vacía después de limpiar")
@@ -398,7 +428,7 @@ def _fetch_and_concatenate_data_optimized(key_sheet, sheet_names, add_sheet_colu
         # Concatenar DataFrames si hay datos
         if all_dataframes:
             try:
-                concatenated_df = pd.concat(all_dataframes, ignore_index=True)
+                concatenated_df = pd.concat(all_dataframes, ignore_index=True, sort=False)
                 return concatenated_df
             except Exception as e:
                 st.error(f"Error al concatenar DataFrames: {str(e)}")
