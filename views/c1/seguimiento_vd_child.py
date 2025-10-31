@@ -202,7 +202,7 @@ def visitas_ninos_dashboard():
                 styles(2)
                 
                 # Cache the data loading operations
-                @st.cache_data(show_spinner="Cargando datos...",ttl=600)  # Cache for 5 minutes
+                #@st.cache_data(show_spinner="Cargando datos...",ttl=600)  # Cache for 5 minutes
                 def load_base_data():
                     
                     actvd_df = fetch_vd_childs()
@@ -212,17 +212,18 @@ def visitas_ninos_dashboard():
                     datos_ninos_df = pd.read_parquet('datos_niños.parquet', engine='pyarrow')
                     return actvd_df, carga_df, padron_df, datos_ninos_df
                 
-                #@st.cache_data(show_spinner="Cargando datos...")  # ,ttl=600
+                @st.cache_data(show_spinner="Cargando datos...")  # ,ttl=600
                 def load_seg_nominal_data(select_mes):
                     sn_month = {
                             "Jun": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
                             "Jul": "11nk2Z1DmVKaXthy_TRsYK8wYzQ_BW8sdcRSXGxuq4Zo",
                             "Ago": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
-                            "Set": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
+                            "Set": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                             "Oct": "1VUARWulWk039rov4fsyM8NJRNd-zWRHyKYhG9tHBefI",
                             "Nov": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                             "Dic": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                     }
+                    print(sn_month[select_mes])
                     return read_and_concatenate_sheets_optimized(
                         
                         key_sheet=sn_month[select_mes],
@@ -267,6 +268,8 @@ def visitas_ninos_dashboard():
                 datos_ninos_df = fix_data_childs(datos_ninos_df)
 
                 seg_nominal_df = load_seg_nominal_data(select_mes)
+                #st.write(seg_nominal_df.shape)
+                #st.dataframe(seg_nominal_df)
                 # Guardar contra fallos de carga/concatenación
                 if seg_nominal_df is None:
                     st.error("No se pudo cargar el Seguimiento Nominal. Revisa las hojas o intenta nuevamente.")
@@ -843,6 +846,229 @@ def visitas_ninos_dashboard():
                                                 height=370,
                                                 key="grid_anemia"
                                             )
+                        
+                        # Función para construir dataframe para cada rango de edad
+                        def build_rg_df_for(selection_label):
+                            if selection_label == "120-149 días":
+                                temp_df = dataframe_[dataframe_["Rango de Días Activo"]=="Rango de días 120-149 días"]
+                            elif selection_label == "180-209 días":
+                                temp_df = dataframe_[dataframe_["Rango de Días Activo"]=="Rango de días 180-209 días"]
+                            elif selection_label == "270-299 días":
+                                temp_df = dataframe_[dataframe_["Rango de Días Activo"]=="Rango de días 270-299 días"]
+                                # Asegura columna de Hb 09 meses si falta para evitar KeyError
+                                if "Resultado de Hemoglobina de 09 MESES" not in temp_df.columns:
+                                    temp_df = temp_df.copy()
+                                    temp_df["Resultado de Hemoglobina de 09 MESES"] = 0
+                            elif selection_label == "360-389 días":
+                                temp_df = dataframe_[dataframe_["Rango de Días Activo"]=="Rango de días 360-389 días"]
+                            elif selection_label == "6-12 meses":
+                                temp_df = dataframe_[dataframe_["Rango de Edad"]=="6-12 meses"]
+                            
+                            if selection_label == "270-299 días":
+                                temp_df_grouped = temp_df.groupby(["Establecimiento de Salud"]).agg(
+                                    Niños_Programados=("Número de Documento", "count"),
+                                    Niños_Encontrados=("Estado Niño", lambda x: (x.isin(["Visita Domiciliaria (6 a 12 Meses)", "Visita Domiciliaria (1 a 5 meses)"])).sum()),
+                                    Con_Suplementacion=("Tipo de SUPLEMENTO", lambda x: (x.isin([
+                                    'MMN', 'MICRONUTRIENTES', 'GOTAS', 'FERRIMAX',
+                                        'SULFATO FERROSO', 'MN', 'JARABE',
+                                        'FERRAMIN FORTE', 'POLIMALTOSADO', 'SI',
+                                        'FERRAMIN', '7 GOTAS', '8 GOTAS', '8 GOTITAS DE HIERRO',
+                                        'MULTIMICRONUTRIENTES', 'GOTA', 'MALTOFER', 'SULFATOFERROSO',
+                                        '1 MICRONUTRIENTE', 'M', 'FERRANIN FORTE',
+                                        '1 SOBRECITO DE HIERRO', 'FERANIN', 'HIERRO EN GOTAS',
+                                        '9 GOTITAS DE HIERRO', 'HIERRO POLIMALTOSA',
+                                        'MULTIVITAMINAS', '7 GOTITAS DE HIERRO',  'FERROCIN',
+                                        'GOTAS- SF','gotas', '6 GOTAS',
+                                        'HIERRO DE ZINC', 'FERROCIL', 'FERROMIL'
+                                    ])).sum()),
+                                    Con_Sesion_Demostrativa=("¿Fue parte de una Sesion demostrativa?", lambda x: (x.isin(["SI"])).sum()),
+                                    Con_Tamizaje_6_Meses=("Resultado de Hemoglobina de 06 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                    Con_Tamizaje_6_Meses_anemia=("Resultado de Hemoglobina de 06 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+                                    Con_Tamizaje_09_Meses=("Resultado de Hemoglobina de 09 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                    Con_Tamizaje_09_Meses_anemia=("Resultado de Hemoglobina de 09 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+                                ).reset_index()
+                                temp_df_grouped.columns = ["Establecimiento de Salud","Programados", "Encontrados","Con Suplementación","Con Sesion Demostrativa","Con Tamizaje 6 Meses","Con Anemia 6 Meses","Con Tamizaje 09 Meses","Con Anemia 09 Meses"]
+                                temp_df_grouped = temp_df_grouped.sort_values("Programados", ascending=False)
+                                total_row = pd.DataFrame({
+                                    "Establecimiento de Salud": ["TOTAL"],
+                                    "Programados": [temp_df_grouped["Programados"].sum()],
+                                    "Encontrados": [temp_df_grouped["Encontrados"].sum()],
+                                    "Con Suplementación": [temp_df_grouped["Con Suplementación"].sum()],
+                                    "Con Sesion Demostrativa": [temp_df_grouped["Con Sesion Demostrativa"].sum()],
+                                    "Con Tamizaje 6 Meses": [temp_df_grouped["Con Tamizaje 6 Meses"].sum()],
+                                    "Con Anemia 6 Meses": [temp_df_grouped["Con Anemia 6 Meses"].sum()],
+                                    "Con Tamizaje 09 Meses": [temp_df_grouped["Con Tamizaje 09 Meses"].sum()],
+                                    "Con Anemia 09 Meses": [temp_df_grouped["Con Anemia 09 Meses"].sum()],
+                                })
+                                temp_df_grouped = pd.concat([temp_df_grouped, total_row], ignore_index=True)
+                                temp_df_grouped["% Encontrados"] = ((temp_df_grouped["Encontrados"] / temp_df_grouped["Programados"]) * 100).round(1).astype(str) + "%"
+                                temp_df_grouped["% Tamizajes 09 meses"] = ((temp_df_grouped["Con Tamizaje 09 Meses"] / temp_df_grouped["Programados"]) * 100).round(1).astype(str) + "%"
+                                
+                            elif selection_label == "120-149 días" or selection_label == "180-209 días":
+                                temp_df_grouped = temp_df.groupby(["Establecimiento de Salud"]).agg(
+                                    Niños_Programados=("Número de Documento", "count"),
+                                    Niños_Encontrados=("Estado Niño", lambda x: (x.isin(["Visita Domiciliaria (6 a 12 Meses)", "Visita Domiciliaria (1 a 5 meses)"])).sum()),
+                                    Con_Suplementacion=("Tipo de SUPLEMENTO", lambda x: (x.isin([
+                                    'MMN', 'MICRONUTRIENTES', 'GOTAS', 'FERRIMAX',
+                                        'SULFATO FERROSO', 'MN', 'JARABE',
+                                        'FERRAMIN FORTE', 'POLIMALTOSADO', 'SI',
+                                        'FERRAMIN', '7 GOTAS', '8 GOTAS', '8 GOTITAS DE HIERRO',
+                                        'MULTIMICRONUTRIENTES', 'GOTA', 'MALTOFER', 'SULFATOFERROSO',
+                                        '1 MICRONUTRIENTE', 'M', 'FERRANIN FORTE',
+                                        '1 SOBRECITO DE HIERRO', 'FERANIN', 'HIERRO EN GOTAS',
+                                        '9 GOTITAS DE HIERRO', 'HIERRO POLIMALTOSA',
+                                        'MULTIVITAMINAS', '7 GOTITAS DE HIERRO',  'FERROCIN',
+                                        'GOTAS- SF','gotas', '6 GOTAS',
+                                        'HIERRO DE ZINC', 'FERROCIL', 'FERROMIL'
+                                    ])).sum()),
+                                    Con_Sesion_Demostrativa=("¿Fue parte de una Sesion demostrativa?", lambda x: (x.isin(["SI"])).sum()),
+                                    Con_Tamizaje_6_Meses=("Resultado de Hemoglobina de 06 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                    Con_Tamizaje_6_Meses_anemia=("Resultado de Hemoglobina de 06 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+                                ).reset_index()
+                                temp_df_grouped.columns = ["Establecimiento de Salud","Programados", "Encontrados","Con Suplementación","Con Sesion Demostrativa","Con Tamizaje 6 Meses","Con Anemia 6 Meses"]
+                                temp_df_grouped = temp_df_grouped.sort_values("Programados", ascending=False)
+                                total_row = pd.DataFrame({
+                                    "Establecimiento de Salud": ["TOTAL"],
+                                    "Programados": [temp_df_grouped["Programados"].sum()],
+                                    "Encontrados": [temp_df_grouped["Encontrados"].sum()],
+                                    "Con Suplementación": [temp_df_grouped["Con Suplementación"].sum()],
+                                    "Con Sesion Demostrativa": [temp_df_grouped["Con Sesion Demostrativa"].sum()],
+                                    "Con Tamizaje 6 Meses": [temp_df_grouped["Con Tamizaje 6 Meses"].sum()],
+                                    "Con Anemia 6 Meses": [temp_df_grouped["Con Anemia 6 Meses"].sum()],
+                                })
+                                temp_df_grouped = pd.concat([temp_df_grouped, total_row], ignore_index=True)
+                                temp_df_grouped["% Encontrados"] = ((temp_df_grouped["Encontrados"] / temp_df_grouped["Programados"]) * 100).round(1).astype(str) + "%"
+                                if selection_label == "180-209 días":
+                                    temp_df_grouped["% Tamizajes 6 meses"] = ((temp_df_grouped["Con Tamizaje 6 Meses"] / temp_df_grouped["Programados"]) * 100).round(1).astype(str) + "%"
+                                    
+                            else:  # 360-389 días o 6-12 meses
+                                temp_df_grouped = temp_df.groupby(["Establecimiento de Salud"]).agg(
+                                    Niños_Programados=("Número de Documento", "count"),
+                                    Niños_Encontrados=("Estado Niño", lambda x: (x.isin(["Visita Domiciliaria (6 a 12 Meses)", "Visita Domiciliaria (1 a 5 meses)"])).sum()),
+                                    Con_Suplementacion=("Tipo de SUPLEMENTO", lambda x: (x.isin([
+                                    'MMN', 'MICRONUTRIENTES', 'GOTAS', 'FERRIMAX',
+                                        'SULFATO FERROSO', 'MN', 'JARABE',
+                                        'FERRAMIN FORTE', 'POLIMALTOSADO', 'SI',
+                                        'FERRAMIN', '7 GOTAS', '8 GOTAS', '8 GOTITAS DE HIERRO',
+                                        'MULTIMICRONUTRIENTES', 'GOTA', 'MALTOFER', 'SULFATOFERROSO',
+                                        '1 MICRONUTRIENTE', 'M', 'FERRANIN FORTE',
+                                        '1 SOBRECITO DE HIERRO', 'FERANIN', 'HIERRO EN GOTAS',
+                                        '9 GOTITAS DE HIERRO', 'HIERRO POLIMALTOSA',
+                                        'MULTIVITAMINAS', '7 GOTITAS DE HIERRO',  'FERROCIN',
+                                        'GOTAS- SF','gotas', '6 GOTAS',
+                                        'HIERRO DE ZINC', 'FERROCIL', 'FERROMIL'
+                                    ])).sum()),
+                                    Con_Sesion_Demostrativa=("¿Fue parte de una Sesion demostrativa?", lambda x: (x.isin(["SI"])).sum()),
+                                    Con_Tamizaje_6_Meses=("Resultado de Hemoglobina de 06 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                    Con_Tamizaje_6_Meses_anemia=("Resultado de Hemoglobina de 06 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+                                    Con_Tamizaje_12_Meses=("Resultado de Hemoglobina de 12 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                    Con_Tamizaje_12_Meses_anemia=("Resultado de Hemoglobina de 12 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+                                ).reset_index()
+                                temp_df_grouped.columns = ["Establecimiento de Salud","Programados", "Encontrados","Con Suplementación","Con Sesion Demostrativa","Con Tamizaje 6 Meses","Con Anemia 6 Meses","Con Tamizaje 12 Meses","Con Anemia 12 Meses"]
+                                temp_df_grouped = temp_df_grouped.sort_values("Programados", ascending=False)
+                                total_row = pd.DataFrame({
+                                    "Establecimiento de Salud": ["TOTAL"],
+                                    "Programados": [temp_df_grouped["Programados"].sum()],
+                                    "Encontrados": [temp_df_grouped["Encontrados"].sum()],
+                                    "Con Suplementación": [temp_df_grouped["Con Suplementación"].sum()],
+                                    "Con Sesion Demostrativa": [temp_df_grouped["Con Sesion Demostrativa"].sum()],
+                                    "Con Tamizaje 6 Meses": [temp_df_grouped["Con Tamizaje 6 Meses"].sum()],
+                                    "Con Anemia 6 Meses": [temp_df_grouped["Con Anemia 6 Meses"].sum()],
+                                    "Con Tamizaje 12 Meses": [temp_df_grouped["Con Tamizaje 12 Meses"].sum()],
+                                    "Con Anemia 12 Meses": [temp_df_grouped["Con Anemia 12 Meses"].sum()],
+                                })
+                                temp_df_grouped = pd.concat([temp_df_grouped, total_row], ignore_index=True)
+                                temp_df_grouped["% Encontrados"] = ((temp_df_grouped["Encontrados"] / temp_df_grouped["Programados"]) * 100).round(1).astype(str) + "%"
+                                if selection_label == "360-389 días":
+                                    temp_df_grouped["% Tamizajes 12 meses"] = ((temp_df_grouped["Con Tamizaje 12 Meses"] / temp_df_grouped["Programados"]) * 100).round(1).astype(str) + "%"
+                                elif selection_label == "6-12 meses":
+                                    temp_df_grouped["% Tamizajes 6 meses"] = ((temp_df_grouped["Con Tamizaje 6 Meses"] / temp_df_grouped["Programados"]) * 100).round(1).astype(str) + "%"
+                                    temp_df_grouped["% Tamizajes 12 meses"] = ((temp_df_grouped["Con Tamizaje 12 Meses"] / temp_df_grouped["Programados"]) * 100).round(1).astype(str) + "%"
+                            
+                            return temp_df_grouped
+                        
+                        # Generar Excel con todas las hojas y formato profesional
+                        def generate_excel_all_ranges():
+                            from openpyxl.styles import PatternFill, Border, Side, Font, Alignment
+                            from openpyxl.utils.dataframe import dataframe_to_rows
+                            
+                            output = BytesIO()
+                            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                                age_ranges = ["120-149 días", "180-209 días", "270-299 días", "360-389 días", "6-12 meses"]
+                                
+                                for age_range in age_ranges:
+                                    df_range = build_rg_df_for(age_range)
+                                    # Limpiar nombre de hoja para Excel (remover caracteres especiales)
+                                    sheet_name = age_range.replace("-", "_").replace(" ", "_")
+                                    df_range.to_excel(writer, sheet_name=sheet_name, index=False)
+                                    
+                                    # Obtener la hoja de trabajo para aplicar formato
+                                    worksheet = writer.sheets[sheet_name]
+                                    
+                                    # Definir estilos
+                                    header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+                                    header_font = Font(color="FFFFFF", bold=True, size=11)
+                                    
+                                    total_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+                                    total_font = Font(bold=True, size=11)
+                                    
+                                    border = Border(
+                                        left=Side(style='thin'),
+                                        right=Side(style='thin'),
+                                        top=Side(style='thin'),
+                                        bottom=Side(style='thin')
+                                    )
+                                    
+                                    center_alignment = Alignment(horizontal='center', vertical='center')
+                                    left_alignment = Alignment(horizontal='left', vertical='center')
+                                    
+                                    # Aplicar formato a los headers (fila 1)
+                                    for col_num in range(1, len(df_range.columns) + 1):
+                                        cell = worksheet.cell(row=1, column=col_num)
+                                        cell.fill = header_fill
+                                        cell.font = header_font
+                                        cell.alignment = center_alignment
+                                        cell.border = border
+                                    
+                                    # Aplicar formato a las celdas de datos
+                                    for row_num in range(2, len(df_range) + 2):
+                                        for col_num in range(1, len(df_range.columns) + 1):
+                                            cell = worksheet.cell(row=row_num, column=col_num)
+                                            cell.border = border
+                                            
+                                            # Alineación: centrada para números, izquierda para texto
+                                            if col_num == 1:  # Columna de Establecimiento
+                                                cell.alignment = left_alignment
+                                            else:
+                                                cell.alignment = center_alignment
+                                            
+                                            # Formato especial para la fila TOTAL
+                                            if df_range.iloc[row_num-2, 0] == "TOTAL":
+                                                cell.fill = total_fill
+                                                cell.font = total_font
+                                    
+                                    # Ajustar ancho de columnas
+                                    for col_num, column in enumerate(df_range.columns, 1):
+                                        column_letter = get_column_letter(col_num)
+                                        if col_num == 1:  # Columna de Establecimiento
+                                            worksheet.column_dimensions[column_letter].width = 35
+                                        else:
+                                            worksheet.column_dimensions[column_letter].width = 15
+                                    
+                                    # Congelar la primera fila
+                                    worksheet.freeze_panes = 'A2'
+                            
+                            output.seek(0)
+                            return output.getvalue()
+                        
+                        # Botón de descarga
+                        excel_data = generate_excel_all_ranges()
+                        st.download_button(
+                            label="📥 Descargar Excel (todos los rangos)",
+                            data=excel_data,
+                            file_name=f"seguimiento_indicadores_SN_{select_mes}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
                     
                         #tamizaje_df = rg_dff.groupby(["ESTADO TAMIZAJE"])[["Tipo Documento(P)"]].count().reset_index()
                         #tamizaje_df.columns = ["ESTADO TAMIZAJE", "Niños"]
