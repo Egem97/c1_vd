@@ -14,15 +14,17 @@ def summary_tramo3_test():
     st.title("Resuemn Tramo III")
     st.subheader("Niños")
     
-    df_ene_child = pd.read_parquet(f"./data/1.2/indicador_childs_enero.parquet")
-    df_feb_child = pd.read_parquet(f"./data/1.2/indicador_childs_febrero.parquet")
-    df_mar_child = pd.read_excel(f"./data/1.2/niños_reporte_Mar_final_mes.xlsx")
-    df_abr_child = pd.read_excel(f"./data/1.2/niños_reporte_Abr_final_mes.xlsx")
-    df_may_child = pd.read_excel(f"./data/1.2/niños_reporte_May_final_mes.xlsx")
+    #df_ene_child = pd.read_parquet(f"./data/1.2/indicador_childs_enero.parquet")
+    #df_feb_child = pd.read_parquet(f"./data/1.2/indicador_childs_febrero.parquet")
+    #df_mar_child = pd.read_excel(f"./data/1.2/niños_reporte_Mar_final_mes.xlsx")
+    #df_abr_child = pd.read_excel(f"./data/1.2/niños_reporte_Abr_final_mes.xlsx")
+    #df_may_child = pd.read_excel(f"./data/1.2/niños_reporte_May_final_mes.xlsx")
     df_jun_child = pd.read_excel(f"./data/1.2/niños_reporte_Jun_final_mes.xlsx")
     df_jul_child = pd.read_excel(f"./data/1.2/niños_reporte_Jul_final_mes.xlsx")
     df_ago_child = pd.read_excel(f"./data/1.2/niños_reporte_Ago_final_mes.xlsx")
-    csummary_df = pd.concat([df_ene_child, df_feb_child, df_mar_child,df_abr_child,df_may_child,df_jun_child,df_jul_child,df_ago_child], ignore_index=True)
+    df_set_child = pd.read_excel(f"./data/1.2/niños_reporte_Set_final_mes.xlsx")
+    df_oct_child = pd.read_excel(f"./data/1.2/niños_reporte_Oct_final_mes.xlsx")
+    csummary_df = pd.concat([df_jun_child,df_jul_child,df_ago_child,df_set_child,df_oct_child], ignore_index=True)
     #csummary_df = csummary_df[csummary_df["Mes"].isin([6,7])]
     filtro_mes = st.multiselect("Filtrar por Mes", csummary_df["Mes"].unique(), default=[6,7])
     csummary_df = csummary_df[csummary_df["Mes"].isin(filtro_mes)]
@@ -43,7 +45,8 @@ def summary_tramo3_test():
     csummary_df["Mes_Nombre"] = csummary_df["Mes"].map(mes_compname)
     csummary_df["Con Telefono"] =csummary_df["Celular Madre"].replace({0: False})
     csummary_df["Con Telefono"] = csummary_df["Celular Madre"] != 0
-
+    print(csummary_df.columns)
+    st.dataframe(csummary_df)
     #test_df = csummary_df.groupby(["Mes","Mes_Nombre","Tipo Registro Padrón Nominal"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
     #test_df = pd.pivot_table(test_df, index=["Tipo Registro Padrón Nominal"], columns="Mes", values="Cantidad")
     #"st.dataframe(test_df)
@@ -100,10 +103,11 @@ def summary_tramo3_test():
         ~csummary_df["Estado Carga"].str.contains("año\(s\)", na=False), 
         "NO CORRESPONDE"
     )
-
+    
+    #st.dataframe(csummary_df)
     diff_df = csummary_df.groupby(["Mes","Mes_Nombre","Estado Carga"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
     diff_df = pd.pivot_table(diff_df, index=["Mes"], columns="Estado Carga", values="Cantidad")
-    st.dataframe(diff_df)
+    
     
     # Crear dataframe de registros que no cargaron de un mes al siguiente
     registros_no_cargados = []
@@ -171,7 +175,7 @@ def summary_tramo3_test():
     else:
         st.info("No se encontraron registros que dejaron de cargar entre meses consecutivos")
     
-    st.dataframe(csummary_df)
+    
     
     # Crear gráfico de porcentaje de Con Telefono
     telefono_percent_df = csummary_df.groupby(["Mes", "Con Telefono"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
@@ -248,9 +252,45 @@ def summary_tramo3_test():
     ctable_df["% Geo"] = round(ctable_df["Visitas MOVIL"] / ctable_df["Visitas Programadas"],3)*100
     ctable_df["% Indicador"] = round(ctable_df["Niños Encontrados"] / ctable_df["Niños Cargados"],3)*100
     ctable_df["Mes"] = ctable_df["Mes"].map(mes_compname)
+    
     ####porcentaje por dispositivo
     csummary_df2 =csummary_df.copy()
     csummary_df2 = csummary_df2[(csummary_df2["Estado Niño"].isin(["Visita Domiciliaria (1 a 5 meses)","Visita Domiciliaria (6 a 12 Meses)"]))]
+    st.dataframe(csummary_df2)
+
+    ###############
+    csummary_df = csummary_df[csummary_df["Rango de Edad"].isin(["6-12 meses"])]
+    ctw_df = csummary_df.groupby(["Mes"]).agg(
+        Niños_Programados=("Número de Documento", "count"),
+        Con_6meses=("Rango de Edad", lambda x: (x.isin(["6-12 meses"])).sum()),
+                                #Niños_Encontrados=("Estado Niño", lambda x: (x.isin(["Visita Domiciliaria (6 a 12 Meses)", "Visita Domiciliaria (1 a 5 meses)"])).sum()),
+                                #Niños_Consecutivos=("¿Es consecutivo?", lambda x: (x.isin(["Consecutivo"])).sum()),
+                                Con_Suplementacion=("Tipo de SUPLEMENTO", lambda x: (x.isin([
+                                'MMN', 'MICRONUTRIENTES', 'GOTAS', 'FERRIMAX',
+                                    'SULFATO FERROSO', 'MN', 'JARABE',
+                                    'FERRAMIN FORTE', 'POLIMALTOSADO', 'SI',
+                                    'FERRAMIN', '7 GOTAS', '8 GOTAS', '8 GOTITAS DE HIERRO',
+                                    'MULTIMICRONUTRIENTES', 'GOTA', 'MALTOFER', 'SULFATOFERROSO',
+                                    '1 MICRONUTRIENTE', 'M', 'FERRANIN FORTE',
+                                    '1 SOBRECITO DE HIERRO', 'FERANIN', 'HIERRO EN GOTAS',
+                                    '9 GOTITAS DE HIERRO', 'HIERRO POLIMALTOSA',
+                                    'MULTIVITAMINAS', '7 GOTITAS DE HIERRO',  'FERROCIN',
+                                    'GOTAS- SF','gotas', '6 GOTAS',
+                                    'HIERRO DE ZINC', 'FERROCIL', 'FERROMIL'
+                                ])).sum()),
+                                Con_Sesion_Demostrativa=("¿Fue parte de una Sesion demostrativa?", lambda x: (x.isin(["SI"])).sum()),
+                                Con_Tamizaje_6_Meses=("Resultado de Hemoglobina de 06 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                Con_Tamizaje_6_Meses_anemia=("Resultado de Hemoglobina de 06 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+                                
+                                
+                                Con_Tamizaje_12_Meses=("Resultado de Hemoglobina de 12 MESES", lambda x: (pd.to_numeric(x, errors='coerce') > 0).sum()),
+                                Con_Tamizaje_12_Meses_anemia=("Resultado de Hemoglobina de 12 MESES", lambda x: ((pd.to_numeric(x, errors='coerce') < 10.5) & (pd.to_numeric(x, errors='coerce') > 0)).sum()),
+                                
+        
+        ).reset_index()
+    st.write("write")
+    st.dataframe(ctw_df)
+    ###############
     #st.dataframe(csummary_df2)
     cdispositivo_df = csummary_df2.groupby(["Mes"]).agg({
         "Total de VD presencial Válidas WEB": "sum",

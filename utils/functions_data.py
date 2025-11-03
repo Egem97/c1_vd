@@ -50,7 +50,7 @@ def gestantes_unicas_visitados( dataframe = pd.DataFrame, col_name_doc = "", est
     
 def fix_data_childs(df = pd.DataFrame):
     periodo = df["Periodo"].unique()[0]
-    if  periodo == "2025-Jun" or periodo == "2025-Jul":
+    if  periodo == "2025-Jun" or periodo == "2025-Jul":#or periodo == "2025-Nov"
         #periodo_error = "2025-Jun"
         df_ = df.copy()
         df["Documento_c1"] = df_["Tipo_Doc"]
