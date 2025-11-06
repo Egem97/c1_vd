@@ -47,6 +47,7 @@ def summary_tramo3_test():
     csummary_df["Con Telefono"] = csummary_df["Celular Madre"] != 0
     print(csummary_df.columns)
     st.dataframe(csummary_df)
+    csummary_df.to_excel("csummary_df_all.xlsx", index=False)
     #test_df = csummary_df.groupby(["Mes","Mes_Nombre","Tipo Registro Padrón Nominal"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
     #test_df = pd.pivot_table(test_df, index=["Tipo Registro Padrón Nominal"], columns="Mes", values="Cantidad")
     #"st.dataframe(test_df)
