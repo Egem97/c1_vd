@@ -26,7 +26,7 @@ def load_seg_nominal_data(select_mes):
                             "Ago": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
                             "Set": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                             "Oct": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
-                            "Nov": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
+                            "Nov": "11akXki1lgtC5LCyjq-mEzfvIAIzWG3loJXO-50Bi2uw",
                             "Dic": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                     }
     return read_and_concatenate_sheets_optimized(
