@@ -39,6 +39,7 @@ def pages():
         #st.Page(page=seg_nominal_view, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal"),
         #st.Page(page=seguimiento_nominal_tamizajes, title="Nominal: Tamizajes", icon="🩸", url_path="/seguimiento-nominal-tamizajes"),
         #st.Page(page=pruebas_seg, title="Pruebas de Seguimiento", icon="🎯", url_path="/pruebas-seguimiento"),
+        st.Page(page=wwww, title="TWWWWW", icon="🎯", url_path="/wwwww"),
     ]
     page_dict["Padrón Nominal"] = [
         st.Page(page=dash_padron_modreg, title="Actualizaciones General", icon="💡", url_path="/actualizaciones-padron"),

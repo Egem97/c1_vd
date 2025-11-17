@@ -2053,4 +2053,110 @@ def c1_2025_avances():
     
     
     
+
+def wwww():
+    styles(2)
+    st.title("TWWWWW")
+    childs_df = pd.read_parquet(r"./data/backups/carga_nino.parquet")
+    childs_df = childs_df.sort_values(by=["Mes"])
+    #unique_childs25_df = all_c1_carga_df.groupby(["Número de Documento del niño"]).agg({"Mes": "sum","Mes_name": "sum","Establecimiento de Salud": "sum"}).reset_index()
+    #unique_childs25_df.columns = ["Documento", "Periodos","Periodos_name","Establecimiento de Salud"]
+    #unique_childs25_df["Periodos_name"] = unique_childs25_df["Periodos_name"].str[:-1] 
+    #unique_childs25_df['Es_Consecutivo'] = unique_childs25_df['Periodos'].apply(es_consecutivo)  
+    childs_df["Mes"] = childs_df["Mes"].astype(str) + "-"
     
+    childs_df = childs_df.groupby(["Número de Documento del niño"]).agg({"Mes": "sum"}).reset_index()
+    childs_df["Mes"] = childs_df["Mes"].str[:-1]
+    childs_df["Periodos"] = childs_df["Mes"].str.replace("-","")
+    childs_df["Periodos"] = childs_df["Periodos"].astype(int)
+    def es_consecutivo(numero):
+        s = str(numero)
+        
+        def get_sequences(text):
+            if not text:
+                return [[]]
+            sequences = []
+            # Months can be 1 or 2 digits (1-12)
+            # Check for 1-digit month
+            if len(text) >= 1:
+                num = int(text[:1])
+                if 1 <= num <= 12:
+                    for seq in get_sequences(text[1:]):
+                        sequences.append([num] + seq)
+            # Check for 2-digit month
+            if len(text) >= 2:
+                num = int(text[:2])
+                if 10 <= num <= 12:
+                    for seq in get_sequences(text[2:]):
+                        sequences.append([num] + seq)
+            return sequences
+
+        possible_sequences = get_sequences(s)
+        
+        for seq in possible_sequences:
+            if len(seq) > 1:
+                # Check for any consecutive pair in the sequence
+                for i in range(1, len(seq)):
+                    if seq[i] - seq[i-1] == 1:
+                        return "Consecutivo"
+                    
+        return "No Consecutivo"
+
+    childs_df['Es_Consecutivo'] = childs_df['Periodos'].apply(es_consecutivo)
+    childs_df = childs_df.rename(columns={"Número de Documento del niño":"DNI_PACIENTE"})
+    childs_df["DNI_PACIENTE"] = childs_df["DNI_PACIENTE"].astype(str)
+    st.write(childs_df.shape)
+    st.dataframe(childs_df)
+    diag_df = pd.read_parquet("Diagnosticos.parquet")
+    #print(diag_df.columns)
+    #print(diag_df.info())
+    #st.write(diag_df.shape)
+    today = pd.to_datetime('today')
+    diag_df['Edad_Actual_Dias'] = (today - pd.to_datetime(diag_df['FECHA_NAC'])).dt.days
+    diag_df = diag_df.sort_values(by=["Edad_Actual_Dias"],ascending=False)
+    def calculate_age_years_months(birth_date, diag_date):
+        birth_date = pd.to_datetime(birth_date)
+        diag_date = pd.to_datetime(diag_date)
+
+        total_months = (diag_date.year - birth_date.year) * 12 + (diag_date.month - birth_date.month)
+        
+        if diag_date.day < birth_date.day:
+            total_months -= 1
+
+        years = total_months // 12
+        months = total_months % 12
+        
+        return f"{years} años,{months} meses"
+
+    diag_df['Edad_Diagnostico'] = diag_df.apply(lambda row: calculate_age_years_months(row['FECHA_NAC'], row['Fecha_Diagnostico']), axis=1)
+    
+    diag_df["Diag_corto"] = diag_df["DIAGNOSTICO"]
+    diag_df["Diag_corto"] = diag_df["Diag_corto"].replace(
+        {"SUPLEMENTACIÓN CON HIERRO": "SH",
+        "SUPLEMENTACIÓN DE MULTIMICRONUTRIENTES":"SMU",
+        "Dosaje de Hemoglobina con hemoglobinómetro":"DHMO",
+        "Dosaje de Hemoglobina":"DH",
+        "ANEMIA POR DEFICIENCIA DE HIERRO SIN ESPECIFICACION":"ASH",
+        "ANEMIA DE TIPO NO ESPECIFICADO":"ANOES"
+        }
+    )
+    #st.dataframe(diag_df)
+    doc_unicos_diag = diag_df["DNI_PACIENTE"].unique()
+    ## agrupando
+    diag_df["Diag_corto"] = diag_df["Diag_corto"]+"-"
+    diag_df["Edad_Diagnostico"] = diag_df["Edad_Diagnostico"]+" -"
+    diag_df["FECHA_NAC"] = diag_df["FECHA_NAC"].astype(str)
+    diag_df_rs = diag_df.groupby(["DNI_PACIENTE","FECHA_NAC","Edad_Actual_Dias"])[["Diag_corto","Edad_Diagnostico"]].sum().reset_index()
+    diag_df_rs["DNI_PACIENTE"] = diag_df_rs["DNI_PACIENTE"].astype(str)
+    st.write(f"DOC_UNICOS:{len(doc_unicos_diag)}")
+    st.write(diag_df_rs.shape)
+    st.dataframe(diag_df_rs)
+
+    ### JOIN
+    childs_df = childs_df.merge(diag_df_rs, on="DNI_PACIENTE", how="left")
+    childs_df = childs_df[childs_df["Diag_corto"].notna()]
+    childs_df = childs_df[childs_df["Es_Consecutivo"]=="Consecutivo"]
+    st.write(childs_df.shape)
+    st.dataframe(childs_df)
+    #print(diag_df["DIAGNOSTICO"].unique())
+    #print(diag_df["ACTIVIDAD"].unique())
