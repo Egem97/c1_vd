@@ -189,7 +189,13 @@ def seguimiento_nominal_tamizajes():
     )
 
 def eliminar_duplicados_col(texto):
-        col = texto.split(" - ")
+        # Maneja None/NaN y cualquier tipo convirtiendo a string.
+        if pd.isna(texto):
+            return "-"
+        s = str(texto)
+        col = [c for c in s.split(" - ") if c.strip() != ""]
+        if not col:
+            return "-"
         col_unicos = sorted(set(col), key=col.index)
         return " - ".join(col_unicos)
 
@@ -2064,11 +2070,13 @@ def wwww():
     #unique_childs25_df["Periodos_name"] = unique_childs25_df["Periodos_name"].str[:-1] 
     #unique_childs25_df['Es_Consecutivo'] = unique_childs25_df['Periodos'].apply(es_consecutivo)  
     childs_df["Mes"] = childs_df["Mes"].astype(str) + "-"
+    childs_df["Establecimiento de Salud"] = childs_df["Establecimiento de Salud"]+ " - "
+    childs_df = childs_df.groupby(["Número de Documento del niño"]).agg({"Mes": "sum","Establecimiento de Salud": "sum"}).reset_index()
     
-    childs_df = childs_df.groupby(["Número de Documento del niño"]).agg({"Mes": "sum"}).reset_index()
     childs_df["Mes"] = childs_df["Mes"].str[:-1]
     childs_df["Periodos"] = childs_df["Mes"].str.replace("-","")
     childs_df["Periodos"] = childs_df["Periodos"].astype(int)
+    childs_df['Establecimiento de Salud'] = childs_df.apply(lambda x: tomar_ultimo_elemento(x['Establecimiento de Salud']),axis=1)
     def es_consecutivo(numero):
         s = str(numero)
         
@@ -2143,10 +2151,19 @@ def wwww():
     #st.dataframe(diag_df)
     doc_unicos_diag = diag_df["DNI_PACIENTE"].unique()
     ## agrupando
-    diag_df["Diag_corto"] = diag_df["Diag_corto"]+"-"
-    diag_df["Edad_Diagnostico"] = diag_df["Edad_Diagnostico"]+" -"
+    diag_df["Diag_corto"] = diag_df["Diag_corto"]+" - "
+    diag_df["Edad_Diagnostico"] = diag_df["Edad_Diagnostico"]+" - "
+    diag_df["Anemia"] = (diag_df["Diag_corto"].astype(str) + diag_df["Edad_Diagnostico"].astype(str)).where(
+        diag_df["Diag_corto"].str.contains("A", na=False),
+        ""
+    )
+    diag_df["Anemia"] = diag_df["Anemia"].str[:-3]
+    diag_df["Anemia"] = diag_df["Anemia"].str.replace("ASH","")
+    diag_df["Anemia"] = diag_df["Anemia"].str.replace("ANOES","")
+    
+    st.dataframe(diag_df)
     diag_df["FECHA_NAC"] = diag_df["FECHA_NAC"].astype(str)
-    diag_df_rs = diag_df.groupby(["DNI_PACIENTE","FECHA_NAC","Edad_Actual_Dias"])[["Diag_corto","Edad_Diagnostico"]].sum().reset_index()
+    diag_df_rs = diag_df.groupby(["DNI_PACIENTE","FECHA_NAC","Edad_Actual_Dias"])[["Diag_corto","Edad_Diagnostico","Anemia"]].sum().reset_index()
     diag_df_rs["DNI_PACIENTE"] = diag_df_rs["DNI_PACIENTE"].astype(str)
     st.write(f"DOC_UNICOS:{len(doc_unicos_diag)}")
     st.write(diag_df_rs.shape)
@@ -2154,9 +2171,72 @@ def wwww():
 
     ### JOIN
     childs_df = childs_df.merge(diag_df_rs, on="DNI_PACIENTE", how="left")
-    childs_df = childs_df[childs_df["Diag_corto"].notna()]
-    childs_df = childs_df[childs_df["Es_Consecutivo"]=="Consecutivo"]
+    # Rellenos por defecto para evaluar toda la población
+    childs_df["Diag_corto"] = childs_df["Diag_corto"].fillna("-")
+    childs_df["Edad_Diagnostico"] = childs_df["Edad_Diagnostico"].fillna("-")
+    childs_df["Anemia"] = childs_df["Anemia"].fillna("-")
+    ####FILKTROS (removido para evaluar toda la población)
+    #childs_df = childs_df[childs_df["Es_Consecutivo"]=="Consecutivo"]
+    #####################
+    childs_df['Edad_Diagnostico'] = childs_df.apply(lambda x: eliminar_duplicados_col(x['Edad_Diagnostico']),axis=1)
+    # Quitar solo un " - " al final si existe, sin truncar texto (p.ej. "meses")
+    childs_df['Edad_Diagnostico'] = childs_df['Edad_Diagnostico'].str.replace(r"\s-\s$", '', regex=True)
+    # Valor por defecto "-" si queda vacío
+    childs_df['Edad_Diagnostico'] = childs_df['Edad_Diagnostico'].where(childs_df['Edad_Diagnostico'].str.strip() != '', '-')
+    #childs_df["Edad_Diagnostico"] = childs_df["Edad_Diagnostico"].fillna("XXXXX")
+    childs_df['Anemia'] = childs_df.apply(lambda x: eliminar_duplicados_col(x['Anemia']),axis=1)
+    # Quitar solo un " - " al inicio si existe, sin truncar texto
+    childs_df["Anemia"] = childs_df["Anemia"].str.replace(r"^\s-\s", '', regex=True)
+    # Valor por defecto "-" si queda vacío
+    childs_df['Anemia'] = childs_df['Anemia'].where(childs_df['Anemia'].str.strip() != '', '-')
+    # Crear columnas únicas por cada edad de diagnóstico, contando presencia por fila
+    # Divide por " - " y genera columnas con 1/0 según aparición
+    # Unificar separador con regex para tolerar espacios variables
+    edades_list = childs_df['Edad_Diagnostico'].fillna('').str.split(r'\s*-\s*')
+    edades_exploded = edades_list.explode()
+    edades_exploded = edades_exploded.dropna()
+    edades_exploded = edades_exploded[edades_exploded.str.strip() != '']
+    edades_dummies = pd.crosstab(edades_exploded.index, edades_exploded)
+    childs_df = childs_df.join(edades_dummies)
+    # Si no hubo valores (None/""), rellena con 0 en columnas creadas
+    childs_df[edades_dummies.columns] = childs_df[edades_dummies.columns].fillna(0).astype(int)
+    # Crear columnas únicas por cada edad en Anemia, con prefijo "A - "
+    anemia_list = childs_df['Anemia'].fillna('').str.split(r'\s*-\s*')
+    anemia_exploded = anemia_list.explode()
+    anemia_exploded = anemia_exploded.dropna()
+    anemia_exploded = anemia_exploded[anemia_exploded.str.strip() != '']
+    anemia_dummies = pd.crosstab(anemia_exploded.index, anemia_exploded)
+    anemia_dummies = anemia_dummies.rename(columns=lambda c: f"A - {c}")
+    childs_df = childs_df.join(anemia_dummies)
+    # Rellenar con 0 en filas sin valores de Anemia
+    childs_df[anemia_dummies.columns] = childs_df[anemia_dummies.columns].fillna(0).astype(int)
+    childs_df["Atenciones antes 12 meses"] = childs_df[['0 años,6 meses', '0 años,7 meses','0 años,8 meses', '0 años,9 meses','0 años,10 meses','0 años,11 meses']].sum(axis=1)
+    def condi_val1(x):
+        if x >= 1:
+            return 1
+        else:
+            return 0
+    childs_df["1 años,0 meses_"] = childs_df["1 años,0 meses"].apply(condi_val1)
+    childs_df["Condicion 2 Atenciones"] = childs_df["Atenciones antes 12 meses"]+childs_df["1 años,0 meses_"]
+    
+    # Condición: >= 2 -> "Cumple", si no -> "No Cumple". NaN se asume 0
+    def condi2_(x,mes12):
+        if x >= 2 and mes12 == 1:
+            return "Cumple"
+        else:
+            return "No Cumple"
+    childs_df["Condicion 2 Atenciones_"] = childs_df.apply(lambda x: condi2_(x["Condicion 2 Atenciones"],x["1 años,0 meses_"]),axis=1)
+    childs_df = childs_df.drop(columns=["1 años,0 meses_"])
+    # Calcular edad máxima al 31/12/2025 en días basada en FECHA_NAC
+    fecha_corte_2025 = pd.Timestamp('2025-12-31')
+    nac_dt = pd.to_datetime(childs_df["FECHA_NAC"], errors="coerce")
+    childs_df["MAXIMA EDAD 2025"] = (fecha_corte_2025 - nac_dt).dt.days
+    # Manejo seguro: si falta fecha o es posterior al corte, colocar 0
+    childs_df["MAXIMA EDAD 2025"] = childs_df["MAXIMA EDAD 2025"].clip(lower=0).fillna(0).astype(int)
+    print(childs_df.columns)
     st.write(childs_df.shape)
     st.dataframe(childs_df)
+    childs_df.to_parquet("avances_tamizajes.parquet",index=False,engine = "pyarrow")
+    st.success("Archivo guardado con éxito")
     #print(diag_df["DIAGNOSTICO"].unique())
     #print(diag_df["ACTIVIDAD"].unique())
