@@ -34,7 +34,7 @@ def seguimiento_nominal_tamizajes():
             "Set": "1-jE3mNODE9UXj3dN9G9ae5WLl_Kyow96gWxcB0pOAxo",
             "Oct": "1VUARWulWk039rov4fsyM8NJRNd-zWRHyKYhG9tHBefI",
             "Nov": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
-            "Dic": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
+            "Dic": "1_xhmyCYQAUM6BjDv2mCl5vZ6xeY0lkxVHXgpESDgCFE",
         }
         return read_and_concatenate_sheets_optimized(
             key_sheet=sn_month[select_mes],
