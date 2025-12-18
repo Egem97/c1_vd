@@ -33,7 +33,7 @@ def pages():
         st.Page(page=gestantes_status_vd, title="Visitas a Gestantes", icon="🤰", url_path="/seguimiento-vd-gestantes"),
         #st.Page(page=resumen25, title="Avances C1 2025", icon="🎯", url_path="/avances-c1-2025"),
         #st.Page(page=generar_excel_seguimiento_nominal, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal"),
-        #st.Page(page=summary_tramo3_test, title="Tramo 3", icon="🎯", url_path="/tramo-3"),
+        #st.Page(page=summary_tramo3_test, title="Resumen 2025", icon="🎯", url_path="/resumen2025"),
         st.Page(page=geo_childs, title="Geo Niños", icon="📍", url_path="/visitas-childs"),
         st.Page(page=geo_gestantes, title="Geo Gestantes", icon="📍", url_path="/visitas-gestantes"),
         #st.Page(page=seg_nominal_view, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal"),

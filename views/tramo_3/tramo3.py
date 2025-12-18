@@ -24,9 +24,11 @@ def summary_tramo3_test():
     df_ago_child = pd.read_excel(f"./data/1.2/niños_reporte_Ago_final_mes.xlsx")
     df_set_child = pd.read_excel(f"./data/1.2/niños_reporte_Set_final_mes.xlsx")
     df_oct_child = pd.read_excel(f"./data/1.2/niños_reporte_Oct_final_mes.xlsx")
-    csummary_df = pd.concat([df_jun_child,df_jul_child,df_ago_child,df_set_child,df_oct_child], ignore_index=True)
+    df_nov_child = pd.read_excel(f"./data/1.2/niños_reporte_Nov_final_mes.xlsx")
+    df_dic_child = pd.read_excel(f"./data/1.2/niños_reporte_Dic_final_mes.xlsx")
+    csummary_df = pd.concat([df_jun_child,df_jul_child,df_ago_child,df_set_child,df_oct_child,df_nov_child,df_dic_child], ignore_index=True)
     #csummary_df = csummary_df[csummary_df["Mes"].isin([6,7])]
-    filtro_mes = st.multiselect("Filtrar por Mes", csummary_df["Mes"].unique(), default=[6,7])
+    filtro_mes = st.multiselect("Filtrar por Mes", csummary_df["Mes"].unique(), default=[6,7,8,9,10,11,12])
     csummary_df = csummary_df[csummary_df["Mes"].isin(filtro_mes)]
     csummary_df["Estado Visitas"] =csummary_df["Estado Visitas"].replace(
         {
@@ -46,8 +48,10 @@ def summary_tramo3_test():
     csummary_df["Con Telefono"] =csummary_df["Celular Madre"].replace({0: False})
     csummary_df["Con Telefono"] = csummary_df["Celular Madre"] != 0
     print(csummary_df.columns)
+
     st.dataframe(csummary_df)
-    csummary_df.to_excel("csummary_df_all.xlsx", index=False)
+    #csummary_df.to_excel("c1_childs_2025.xlsx", index=False)
+    #csummary_df.to_parquet("c1_childs_2025.parquet", engine="pyarrow")
     #test_df = csummary_df.groupby(["Mes","Mes_Nombre","Tipo Registro Padrón Nominal"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
     #test_df = pd.pivot_table(test_df, index=["Tipo Registro Padrón Nominal"], columns="Mes", values="Cantidad")
     #"st.dataframe(test_df)
@@ -416,19 +420,27 @@ def summary_tramo3_test():
     df_gestantes_jun = pd.read_excel(f"./data/1.3/vd_gestantes_Jun_2025_corte_final.xlsx")
     df_gestantes_jul = pd.read_excel(f"./data/1.3/vd_gestantes_Jul_2025_corte_final.xlsx")
     df_gestantes_ago = pd.read_excel(f"./data/1.3/vd_gestantes_Ago_2025_corte_final.xlsx")
-    csummary_gestantes = pd.concat([df_gestantes, df_gestantes_feb, df_gestantes_mar,df_gestantes_abr,df_gestantes_may,df_gestantes_jun,df_gestantes_jul,df_gestantes_ago], ignore_index=True)
-    filtro_mes = st.multiselect("Filtrar por Mes", csummary_gestantes["Mes"].unique(), default=[6,7])
+    df_gestantes_set = pd.read_excel(f"./data/1.3/vd_gestantes_Set_2025_corte_final.xlsx")
+    df_gestantes_oct = pd.read_excel(f"./data/1.3/vd_gestantes_Oct_2025_corte_final.xlsx")
+    df_gestantes_nov = pd.read_excel(f"./data/1.3/vd_gestantes_Nov_2025_corte_final.xlsx")
+    df_gestantes_dic = pd.read_excel(f"./data/1.3/vd_gestantes_Dic_2025_corte_final.xlsx")
+    csummary_gestantes = pd.concat([df_gestantes, df_gestantes_feb, df_gestantes_mar,df_gestantes_abr,df_gestantes_may,df_gestantes_jun,df_gestantes_jul,df_gestantes_ago,df_gestantes_set,df_gestantes_oct,df_gestantes_nov,df_gestantes_dic], ignore_index=True)
+    filtro_mes = st.multiselect("Filtrar por Mes", csummary_gestantes["Mes"].unique(), default=[6,7,8,9,10,11,12])
     csummary_gestantes = csummary_gestantes[csummary_gestantes["Mes"].isin(filtro_mes)]
     csummary_gestantes["Etapa"] = csummary_gestantes["Etapa"].replace({
         "Visita Domiciliaria (Adolescente)": "Visita Domiciliaria",
         "Visita Domiciliaria (Adulta)": "Visita Domiciliaria",
     })
+    
+    #csummary_gestantes.to_excel("c1_gestantes_2025.xlsx", index=False)
     rps_df = csummary_gestantes.groupby(["Mes","Establecimiento de Salud","Etapa"]).agg({"Año": "count"}).reset_index().rename(columns={"Año": "Cantidad"})
     rps_df = pd.pivot_table(rps_df, index=["Mes","Establecimiento de Salud"], columns="Etapa", values="Cantidad",fill_value=0)
     rps_df = rps_df.reset_index()
     rps_df["Mes"] = rps_df["Mes"].map(mes_compname)
+    #rps_df.to_excel("c1_gestantes_2025.xlsx", index=False)
+    #rps_df.to_parquet("c1_gestantes_2025.parquet", engine="pyarrow")
     rps_df = rps_df[["Mes","Establecimiento de Salud","Visita Domiciliaria","No Encontrado","Rechazado"]]
-    rps_df.to_excel("rps_df.xlsx", index=False)
+    #rps_df.to_excel("rps_df.xlsx", index=False)
     st.dataframe(rps_df)
 
     #csummary_gestantes.to_excel("csummary_gestantes.xlsx", index=False)
