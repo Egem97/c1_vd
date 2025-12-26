@@ -168,7 +168,7 @@ def summary_tramo3_test():
         st.subheader("Registros que no cargaron de un mes al siguiente")
         st.write(f"Total de registros no cargados: {len(df_no_cargados)}")
         st.dataframe(df_no_cargados)
-        df_no_cargados.to_excel("df_no_cargados.xlsx", index=False)
+        #df_no_cargados.to_excel("df_no_cargados.xlsx", index=False)
         # Crear resumen por mes
         resumen_no_cargados = df_no_cargados.groupby(["Mes_Nombre_Presente", "Mes_Nombre_Faltante"]).agg({
             "Número de Documento": "count"
