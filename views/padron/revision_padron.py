@@ -92,7 +92,8 @@ def revision_padron():
     num_general_microred = len(microred_df)
     
     # Calcular actualizaciones de microred
-    mask_actualizados = (microred_df["ENTIDAD"] == "MUNICIPIO") & (microred_df["USUARIO QUE MODIFICA"].isin(["18215881", "SERVICIO DNI ESTADO"]))
+    mask_actualizados = (microred_df["ENTIDAD"] == "MUNICIPIO") & (microred_df["USUARIO QUE MODIFICA"].isin(["18215881"])& (microred_df["FECHA DE MODIFICACIÓN DEL REGISTRO"]>="2026-01-01"))
+    #st.dataframe(microred_df[mask_actualizados], use_container_width=True)
     act_microred_df = (microred_df[mask_actualizados]
                       .groupby("EESS")["Tipo de Documento"]
                       .count()
@@ -133,7 +134,7 @@ def revision_padron():
     metric_col[3].metric("Otros EE. SS", others_eess, f"{round((others_eess/total)*100,2)}%", border=True)
     
     # Crear pestañas para visualizaciones
-    tab_1, tab_2, tab3 = st.tabs(["Población", "Actualización", "% de Actualizaciones"])
+    tab_1, tab_2= st.tabs(["Población","% de Actualizaciones"])
     
     with tab_1:
         fig_eess_count = px.bar(general_microred_df, 
@@ -150,22 +151,9 @@ def revision_padron():
                                 annotation_position="top left")
         st.plotly_chart(fig_eess_count)
         
-    with tab_2:
-        fig_eess_act = px.bar(act_microred_df,
-                             x="Establecimiento de Salud",
-                             y="Registros",
-                             text="Registros",
-                             orientation='v',
-                             title=f"Población Actualizada por Establecimiento de Salud({num_act_microred})")
-        fig_eess_act.update_traces(textfont_size=18, textangle=0, textposition="outside", cliponaxis=False)
-        fig_eess_act.update_layout(xaxis=dict(title=dict(text="")), font=dict(size=16))
-        fig_eess_act.add_hline(y=promedio_registros_act,
-                              line=dict(color="red", dash="dash"),
-                              annotation_text=f"Promedio: {promedio_registros_act:.0f}",
-                              annotation_position="top left")
-        st.plotly_chart(fig_eess_act)
+    
         
-    with tab3:
+    with tab_2:
         fig_comparativo = go.Figure(data=[
             go.Bar(name='Población',
                   x=general_dff["Establecimiento de Salud"],

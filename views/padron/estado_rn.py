@@ -95,9 +95,9 @@ def rn_month_insert():
     with head_col_1:
         st.title("Revisión RN")
     with head_col_2:
-        select_year  = st.selectbox("Año:", ["2025"], key="select1")
-        if select_year == "2025":
-            padron_df = padron_df[padron_df["Año Nacimiento"]==2025]
+        select_year  = st.selectbox("Año:", ["2026"], key="select1")
+        if select_year == "2026":
+            padron_df = padron_df[padron_df["Año Nacimiento"]==2026]
     lista_mes = padron_df["Mes"].unique()
     with head_col_3:
         select_mes  = st.multiselect("Mes:",options=lista_mes,key="select2",default=lista_mes)

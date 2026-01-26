@@ -25,22 +25,14 @@ def pages():
     ]
     
     # Dashboards de Seguimiento VD Niños
-    page_dict["Compromiso 1"] = [
-        st.Page(page=visitas_ninos_dashboard, title="Visitas a Niños", icon="👶", url_path="/seguimiento-vd-ninos"),
-        #st.Page(page=, title="Visitas a Niños", icon="👶", url_path="/vd-ninos"),
-        #st.Page(page=hb_data_c1, title="Hemoglobina", icon="🩸", url_path="/datos-hemoglobina"),
-        #st.Page(page=estadisticas_dashboard, title="Indicador Niños", icon="📈", url_path="/indicador-anemia-ninos"),
-        st.Page(page=gestantes_status_vd, title="Visitas a Gestantes", icon="🤰", url_path="/seguimiento-vd-gestantes"),
-        #st.Page(page=resumen25, title="Avances C1 2025", icon="🎯", url_path="/avances-c1-2025"),
-        #st.Page(page=generar_excel_seguimiento_nominal, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal"),
-        st.Page(page=summary_tramo3_test, title="Resumen 2025", icon="🎯", url_path="/resumen2025"),
-        st.Page(page=geo_childs, title="Geo Niños", icon="📍", url_path="/visitas-childs"),
-        st.Page(page=geo_gestantes, title="Geo Gestantes", icon="📍", url_path="/visitas-gestantes"),
-        #st.Page(page=seg_nominal_view, title="Seguimiento Nominal", icon="🎯", url_path="/seguimiento-nominal"),
-        #st.Page(page=seguimiento_nominal_tamizajes, title="Nominal: Tamizajes", icon="🩸", url_path="/seguimiento-nominal-tamizajes"),
-        #st.Page(page=pruebas_seg, title="Pruebas de Seguimiento", icon="🎯", url_path="/pruebas-seguimiento"),
-        st.Page(page=wwww, title="TWWWWW", icon="🎯", url_path="/wwwww"),
-    ]
+    #page_dict["Compromiso 1"] = [
+    #    st.Page(page=visitas_ninos_dashboard, title="Visitas a Niños", icon="👶", url_path="/seguimiento-vd-ninos"),
+    #    st.Page(page=gestantes_status_vd, title="Visitas a Gestantes", icon="🤰", url_path="/seguimiento-vd-gestantes"),
+    #    st.Page(page=summary_tramo3_test, title="Resumen 2025", icon="🎯", url_path="/resumen2025"),
+    #    st.Page(page=geo_childs, title="Geo Niños", icon="📍", url_path="/visitas-childs"),
+    #    st.Page(page=geo_gestantes, title="Geo Gestantes", icon="📍", url_path="/visitas-gestantes"),
+     #   st.Page(page=wwww, title="TWWWWW", icon="🎯", url_path="/wwwww"),
+    #]
     page_dict["Padrón Nominal"] = [
         st.Page(page=dash_padron_modreg, title="Actualizaciones General", icon="💡", url_path="/actualizaciones-padron"),
         st.Page(page=analisis_transitos, title="Transitos", icon="🚗", url_path="/transitos-padron"),

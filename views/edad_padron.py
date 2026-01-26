@@ -20,18 +20,18 @@ def edades_padron():
     df['FECHA DE MODIFICACIÓN DEL REGISTRO'] =pd.to_datetime(df['FECHA DE MODIFICACIÓN DEL REGISTRO'], format="%Y-%m-%d")#.dt.strftime('%Y-%m-%d')
     df['Año'] = df['FECHA DE MODIFICACIÓN DEL REGISTRO'].dt.year
     #df["Año"] = df["Año"].astype(str)
-    years = df["Año"].unique()
+    years = sorted(df["Año"].unique())
     #years.remove(None)
     
     fecha_maxima = df["FECHA DE MODIFICACIÓN DEL REGISTRO"].max().strftime("%Y-%m-%d")
     #fecha_minima = df["FECHA DE MODIFICACIÓN DEL REGISTRO"].min().strftime("%Y-%m-%d")
-    columnas_head = st.columns([4,3,3,3])
+    columnas_head = st.columns([5,3,2,3])
     with columnas_head[0]:
         st.title(":blue[Municipio Avances] :child:")
     with columnas_head[1]:
         st.subheader(f"Actualizado: {fecha_maxima}", divider=True)
     with columnas_head[2]:
-        select_year  = st.selectbox("Año Actualizaciones", years,index=len(years)-6)
+        select_year  = st.selectbox("Año Actualizaciones", years,index=len(years)-1)
         df = df[df["Año"]==select_year]
     with columnas_head[3]:
         usuario_act_list = df["USUARIO QUE MODIFICA"].unique()
