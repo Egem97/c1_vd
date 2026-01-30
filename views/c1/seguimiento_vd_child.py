@@ -2240,3 +2240,26 @@ def wwww():
     st.success("Archivo guardado con éxito")
     #print(diag_df["DIAGNOSTICO"].unique())
     #print(diag_df["ACTIVIDAD"].unique())
+
+
+
+
+def buscar_sector_childs():
+    styles(2)
+    st.title("Sectorizar")
+    childs_df = pd.read_parquet(r"./data/backups/carga_nino.parquet")
+    childs_df = childs_df[childs_df["Año"]==2025]
+    childs_df["Dirección"] = childs_df["Dirección"].str.strip()
+    childs_df["Dirección"] = childs_df["Dirección"].str.replace(r'[^\w\s]', '', regex=True)
+    print(childs_df.columns)
+    direccion_input = st.text_input("Dirección")
+    if direccion_input:
+        childs_df = childs_df[childs_df["Dirección"].str.contains(direccion_input, case=False, na=False)]
+    childs_df = childs_df.groupby(['Nombres del Actor Social','Dirección','Zona', 'Manzana', 'Sector','Establecimiento de Salud']).size().reset_index(name='count')
+    childs_df = childs_df[[
+        'Nombres del Actor Social','Dirección','Zona', 'Manzana', 'Sector','Establecimiento de Salud'
+    ]]
+    
+    st.subheader(f"Registros: {childs_df.shape[0]}")
+    st.dataframe(childs_df)
+    

@@ -107,7 +107,7 @@ def rn_month_insert():
     
     #############################################################################################################
     carga_childs_df["Año"] = carga_childs_df["Año"].astype(str)
-    carga_childs_df = carga_childs_df[carga_childs_df["Año"]=="2025"]
+    carga_childs_df = carga_childs_df[carga_childs_df["Año"]=="2026"]
     carga_childs_df["Mes_"] = carga_childs_df["Mes"].map(mes_compname)
     carga_childs_df["Periodo"] = carga_childs_df["Año"]+" - "+carga_childs_df["Mes_"]+" - "
     carga_childs_df = carga_childs_df.groupby(["Número de Documento del niño"])[["Periodo"]].sum().reset_index()
