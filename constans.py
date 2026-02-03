@@ -80,4 +80,4 @@ COLS_DATAFRAME_PADRON_CHILS =['Establecimiento de Salud', 'Actor Social',
 
 
 
-PORCENTAJE_GEOS_VD = 0.64
+PORCENTAJE_GEOS_VD = 0.85

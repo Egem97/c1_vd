@@ -228,6 +228,8 @@ def visitas_ninos_dashboard():
                             "Oct": "1VUARWulWk039rov4fsyM8NJRNd-zWRHyKYhG9tHBefI",
                             "Nov": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                             "Dic": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
+                            "Ene": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
+                            "Feb": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                     }
                     print(sn_month[select_mes])
                     return read_and_concatenate_sheets_optimized(
@@ -254,7 +256,7 @@ def visitas_ninos_dashboard():
                 
                 
                 #fecha_update = dt.strftime("%Y-%m-%d-%H-%M")
-                list_mes = [mes_short(x) for x in sorted(list(carga_df["Mes"].unique()))]
+                #list_mes = [mes_short(x) for x in sorted(list(carga_df["Mes"].unique()))]
                 
                 col_head1, col_head2, col_head3, col_head4 = st.columns([3,4,2,2])
                 with col_head1:
@@ -262,10 +264,10 @@ def visitas_ninos_dashboard():
                 with col_head2:
                     st.subheader(f"Actualizado: {fecha_update}", divider=True)
                 with col_head3:
-                    select_year  = st.selectbox("Año:", ["2025"], key="select1")
+                    select_year  = st.selectbox("Año:", ["2026"], key="select1")
                     
                 with col_head4:
-                    select_mes  = st.selectbox("Mes:",list_mes , key="select2",index=len(list_mes) - 1)
+                    select_mes  = st.selectbox("Mes:",['Feb'] , key="select2",index=0)
                 
                 #st.dataframe(datos_ninos_df)
                 datos_ninos_df = datos_ninos_df[datos_ninos_df["Periodo"]==f"{select_year}-{select_mes}"]
@@ -527,8 +529,8 @@ def visitas_ninos_dashboard():
                 st.session_state["dataframe_childs"] = dataframe_.copy()
 
                 #########################################################   
-                tab1,tab2 = st.tabs(["Seguimiento Visitas Georreferenciadas","Seguimiento Indicadores Anemia"])
-                with tab1:
+                tab1= st.tabs(["Seguimiento Visitas Georreferenciadas"])#,"Seguimiento Indicadores Anemia"
+                with tab1[0]:
                     st.subheader("📱Seguimiento Visitas Georreferenciadas")
                     vd_geo_percent_df = dataframe_[(dataframe_["Estado Visitas"]=="Visitas Completas")]#&(dataframe_["Celular Madre"]!=0)
                     num_ninos_result = vd_geo_percent_df.shape[0]
@@ -575,8 +577,8 @@ def visitas_ninos_dashboard():
                     proyectado_dff[["Niños Encontrados", "Visitas Realizadas MOVIL GEO"]] = proyectado_dff[["Niños Encontrados", "Visitas Realizadas MOVIL GEO"]].fillna(0)
 
                     # Cálculos vectorizados
-                    proyectado_dff["Valla Visitas GEO 64%"] = (proyectado_dff["Visitas Programadas"] * PORCENTAJE_GEOS_VD).round()
-                    proyectado_dff["Visitas Faltantes Valla GEO"] = proyectado_dff["Valla Visitas GEO 64%"] - proyectado_dff["Visitas Realizadas MOVIL GEO"]
+                    proyectado_dff["Valla Visitas GEO 85%"] = (proyectado_dff["Visitas Programadas"] * PORCENTAJE_GEOS_VD).round()
+                    proyectado_dff["Visitas Faltantes Valla GEO"] = proyectado_dff["Valla Visitas GEO 85%"] - proyectado_dff["Visitas Realizadas MOVIL GEO"]
 
                     # Visitas proyectadas y tolerancias
                     visitas_for_completar_df = dataframe_efec[dataframe_efec["Estado Visitas"] != "Visitas Completas"].copy()
@@ -595,7 +597,7 @@ def visitas_ninos_dashboard():
                         "Visitas Programadas": [proyectado_dff["Visitas Programadas"].sum()],
                         "Niños Encontrados": [proyectado_dff["Niños Encontrados"].sum()],
                         "Visitas Realizadas MOVIL GEO": [proyectado_dff["Visitas Realizadas MOVIL GEO"].sum()],
-                        "Valla Visitas GEO 64%": [proyectado_dff["Valla Visitas GEO 64%"].sum()],
+                        "Valla Visitas GEO 85%": [proyectado_dff["Valla Visitas GEO 85%"].sum()],
                         "Visitas Faltantes Valla GEO": [proyectado_dff["Visitas Faltantes Valla GEO"].sum()],
                         "Visitas GEO Proyectadas": [proyectado_dff["Visitas GEO Proyectadas"].sum()],
                         #"Tolerancia Visitas WEB": [proyectado_dff["Tolerancia Visitas WEB"].sum()],
@@ -614,8 +616,7 @@ def visitas_ninos_dashboard():
                     cols = [
                         'Establecimiento de Salud', 'Niños Programados', 'Visitas Programadas',
                         'Niños Encontrados', 'Visitas Realizadas MOVIL GEO', '% Actual GEO',
-                        'Valla Visitas GEO 64%', 'Visitas Faltantes Valla GEO', 'Visitas GEO Proyectadas',
-                        #'Tolerancia Visitas WEB', 'Tolerancia Niños WEB', 
+                        'Valla Visitas GEO 85%', 'Visitas Faltantes Valla GEO', 'Visitas GEO Proyectadas',
                         'Estado'
                     ]
                     proyectado_dff = proyectado_dff[cols]
@@ -644,7 +645,7 @@ def visitas_ninos_dashboard():
                                             height=370,
                                             key="grid_geo"
                                         )
-                    
+                """
                 with tab2:
                     
                     @st.fragment
@@ -1093,7 +1094,7 @@ def visitas_ninos_dashboard():
         
 
                     render_anemia_indicators()
-    
+                """
                 # Filtra duplicados de Celular Madre
                 df_con_num_cel = dataframe_[dataframe_["Celular Madre"] != 0].copy()
                 df_con_num_cel["Celular Madre"] = df_con_num_cel["Celular Madre"].astype(str)

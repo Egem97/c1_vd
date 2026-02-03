@@ -170,6 +170,9 @@ def rn_month_insert():
     tipo_seguro_df = dff.groupby(["TIPO DE SEGURO"])[["ACTUALIZADO"]].count().sort_values("ACTUALIZADO",ascending=False).reset_index()
     tipo_seguro_df.columns = ["Tipo de Seguro","Niños"]
     actualizado_df = dff.groupby(["ACTUALIZADO"])[["Documento"]].count().sort_values("Documento",ascending=False).reset_index()
+
+
+    st.dataframe(dff)
     actualizado_df.columns = ["Actualizado","Niños"]
     
     col_1,col_2 = st.columns([1,1])
