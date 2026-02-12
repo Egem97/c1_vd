@@ -27,7 +27,7 @@ def pages():
     # Dashboards de Seguimiento VD Niños
     page_dict["Compromiso 1"] = [
         st.Page(page=visitas_ninos_dashboard, title="Visitas a Niños", icon="👶", url_path="/seguimiento-vd-ninos"),
-        #st.Page(page=gestantes_status_vd, title="Visitas a Gestantes", icon="🤰", url_path="/seguimiento-vd-gestantes"),
+        st.Page(page=gestantes_status_vd, title="Visitas a Gestantes", icon="🤰", url_path="/seguimiento-vd-gestantes"),
         #st.Page(page=summary_tramo3_test, title="Resumen 2025", icon="🎯", url_path="/resumen2025"),
         #st.Page(page=geo_childs, title="Geo Niños", icon="📍", url_path="/visitas-childs"),
         #st.Page(page=geo_gestantes, title="Geo Gestantes", icon="📍", url_path="/visitas-gestantes"),

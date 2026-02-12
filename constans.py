@@ -12,7 +12,7 @@ COLUMNS_PADRON_C1_VD =[
             'EESS NACIMIENTO','EESS', 'FRECUENCIA DE ATENCION', 'EESS ADSCRIPCIÓN','TIPO DE DOCUMENTO DE LA MADRE',
             'NUMERO DE DOCUMENTO  DE LA MADRE','DATOS MADRE PADRON','TIPO DE DOCUMENTO DEL JEFE DE FAMILIA',
             'NUMERO DE DOCUMENTO DEL JEFE DE FAMILIA','DATOS JEFE PADRON','ENTIDAD','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA','NUMERO DE CELULAR', 'CELULAR_CORREO',
-            'TIPO DE SEGURO'
+            'TIPO DE SEGURO','PROGRAMAS SOCIALES TEXT', 'CUMPLE INDICADOR'
 ]
 
 REEMPLAZO_TIPO_SEGURO = {
@@ -28,7 +28,8 @@ COL_ORDER_VD_CHILD_C1 = [
      'MENOR VISITADO','¿MENOR ENCONTRADO?', 'DIRECCION PADRON','REFERENCIA DE DIRECCION','Dirección', 'TIPO DE DOCUMENTO DE LA MADRE','NUMERO DE DOCUMENTO  DE LA MADRE',
      'DNI de la madre','DATOS MADRE PADRON','NUMERO DE DOCUMENTO DEL JEFE DE FAMILIA','DATOS JEFE PADRON','Celular de la madre','NUMERO DE CELULAR','CELULAR2_PADRON',
      'EESS NACIMIENTO', 'EESS','FRECUENCIA DE ATENCION', 'EESS ADSCRIPCIÓN',
-     'EESS_C1', 'Fecha_ult_at_c1','Zona', 'Manzana', 'Sector','TIPO DE SEGURO','Tipo_file','ENTIDAD','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA','Estado_Visita_Ult','Estado Padrón Nominal', 'Mes', 'Año'
+     'EESS_C1', 'Fecha_ult_at_c1','Zona', 'Manzana', 'Sector','TIPO DE SEGURO','Tipo_file','ENTIDAD','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA','Estado_Visita_Ult','Estado Padrón Nominal', 'Mes', 'Año',
+     'PROGRAMAS SOCIALES TEXT', 'CUMPLE INDICADOR'
 ]
 
 COL_ORDER_VD_CHILD_C1_2 = ['Establecimiento de Salud','Actor Social', 'Tipo Documento','Tipo Documento(P)', 'Número de Documento',
@@ -41,7 +42,8 @@ COL_ORDER_VD_CHILD_C1_2 = ['Establecimiento de Salud','Actor Social', 'Tipo Docu
                 'Celular Madre', 'Celular(P)', 'Celular2(P)',
                 'EESS NACIMIENTO', 'EESS ULTIMA ATENCION(P)', 'FRECUENCIA DE ATENCION', 'EESS ADSCRIPCIÓN',
                 'EESS ULTIMA ATENCION', 'Fecha Ultima Atención', 'Zona', 'Manzana', 'Sector','Tipo de Seguro', 'Tipo Registro Padrón Nominal',
-                'Entidad Actualiza','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA', 'Estado Niño','Estado Padrón Nominal', 'Mes', 'Año'
+                'Entidad Actualiza','FECHA DE MODIFICACIÓN DEL REGISTRO','USUARIO QUE MODIFICA', 'Estado Niño','Estado Padrón Nominal', 'Mes', 'Año',
+                'PROGRAMAS SOCIALES TEXT', 'CUMPLE INDICADOR'
 ]
 
 COLS_DATAFRAME_DUPLICADOS_CHILDS =['Establecimiento de Salud', 'Actor Social',
@@ -63,7 +65,8 @@ COLS_DATAFRAME_RESUMIDO_CHILS =['Establecimiento de Salud', 'Actor Social',
        'Dirección Compromiso 1', 'Tipo Documento Madre(P)',
         'Número Doc Madre', 'Datos Madre(P)','Celular Madre',
        'Celular(P)', 'Celular2(P)','EESS ULTIMA ATENCION(P)','Tipo de Seguro', 'Tipo Registro Padrón Nominal',
-       'Estado Niño','Estado Visitas', 'Edad','Rango de Días Activo',"Actividad a Realizar","FECHA CUMPLE"
+       'Estado Niño','Estado Visitas', 'Edad','Rango de Días Activo',"Actividad a Realizar","FECHA CUMPLE",
+       'PROGRAMAS SOCIALES TEXT', 'CUMPLE INDICADOR'
 ]
 
 COLS_DATAFRAME_PADRON_CHILS =['Establecimiento de Salud', 'Actor Social', 
