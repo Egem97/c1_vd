@@ -555,10 +555,11 @@ def visitas_ninos_dashboard():
                     con_celular = (dataframe_["Celular Madre"]!=0).sum()
                     percent_reg_tel = safe_percent(con_celular, num_carga)
                     percent_total_vd_12 = safe_percent(num_ninos_result, num_carga)
-                    num_ninos_cumple = round((dataframe_["CUMPLE INDICADOR"]=="Cumple").sum()/num_carga,3)*100
+                    num_niños_padron = (dataframe_["CUMPLE INDICADOR"]=="Cumple").sum()
+                    num_ninos_cumple = round((num_niños_padron/num_carga),3)*100
                     ########################################################
                     metric_col[2].metric("Visitas Movil",num_vd_movil,f"VD Completas:{total_vd_movil_completas}({percent_vd_completas_movil}%)",border=True)
-                    metric_col[6].metric("% Niños Actualizados",num_ninos_cumple,f"Meta (64%): {total_meta_vd}",border=True)
+                    metric_col[6].metric("% Niños Actualizados",num_ninos_cumple,f"N° Act: {num_niños_padron}",border=True)
                     metric_col[3].metric("% VD Georreferenciadas",f"{percent_vd_movil_validate}%",f"VD Faltantes {total_faltante_vd_meta}",border=True)
                     metric_col[4].metric("% Registros Telefonicos",f"{percent_reg_tel}%",f"Sin celular : {num_carga-con_celular}",border=True)
                     metric_col[5].metric("% Niños Oportunos y Completos",f"{percent_total_vd_12}%",f"Positivos:{num_ninos_result}",border=True)

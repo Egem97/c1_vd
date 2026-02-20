@@ -17,8 +17,7 @@ def index():
     padron_df = fetch_padron()
     gestantes_vd_df = fetch_vd_gestantes()
     gestantes_carga_df = fetch_carga_gestantes()
-    st.dataframe(gestantes_vd_df)
-    st.dataframe(gestantes_carga_df)
+   
     # Filtrar datos actuales
     carga_df = carga_df[(carga_df["Año"] == fecha_actual.year) & (carga_df["Mes"] == fecha_actual.month)]
     gestantes_carga_df["Mes"] = gestantes_carga_df["Mes"].astype(int)
