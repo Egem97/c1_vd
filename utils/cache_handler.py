@@ -9,7 +9,7 @@ load_dotenv()
 
 CS_URL = os.getenv('CS_URL')
 
-DEELAY_DATA = 500
+DEELAY_DATA = 300
 
 
 @st.cache_data(ttl=DEELAY_DATA,show_spinner="Cargando datos vd niños...")

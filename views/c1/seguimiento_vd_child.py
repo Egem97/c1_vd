@@ -258,17 +258,19 @@ def visitas_ninos_dashboard():
                 #fecha_update = dt.strftime("%Y-%m-%d-%H-%M")
                 #list_mes = [mes_short(x) for x in sorted(list(carga_df["Mes"].unique()))]
                 
-                col_head1, col_head2, col_head3, col_head4 = st.columns([3,4,2,2])
+                col_head1, col_head2, col_head3, col_head4 = st.columns([3,3,1,2])
                 with col_head1:
                     st.title("Visitas a Niños")
                 with col_head2:
-                    st.subheader(f"Actualizado: {fecha_update}", divider=True)
+                    st.subheader(f"Act: {fecha_update[:-6]}", divider=True)
                 with col_head3:
                     select_year  = st.selectbox("Año:", ["2026"], key="select1")
                     
                 with col_head4:
                     select_mes  = st.selectbox("Mes:",['Feb'] , key="select2",index=0)
-                
+                #with col_head5:
+                #
+                #     select_rango  = st.selectbox("Rango:",['1-5 meses','6-11 meses'] , key="select7",index=None)
                 #st.dataframe(datos_ninos_df)
                 datos_ninos_df = datos_ninos_df[datos_ninos_df["Periodo"]==f"{select_year}-{select_mes}"]
                 #st.write(f"{select_year}-{select_mes}")
@@ -345,6 +347,9 @@ def visitas_ninos_dashboard():
                 #st.dataframe(datos_ninos_df)
                 carga_filt_df = carga_df[(carga_df['Año']==int(select_year))&(carga_df['Mes']==int(mestext_short(select_mes)))]
                 actvd_filt_df = actvd_df[(actvd_df['Año']==select_year)&(actvd_df['Mes']==select_mes)]
+                
+                
+
                 niños_unicos_vd = childs_unicos_visitados(actvd_filt_df,'Número de Documento de Niño',"ALL CHILDS W DUPLICADOS")
 
                 ## CALCULAR INDICADORES
@@ -550,12 +555,13 @@ def visitas_ninos_dashboard():
                     con_celular = (dataframe_["Celular Madre"]!=0).sum()
                     percent_reg_tel = safe_percent(con_celular, num_carga)
                     percent_total_vd_12 = safe_percent(num_ninos_result, num_carga)
+                    num_ninos_cumple = round((dataframe_["CUMPLE INDICADOR"]=="Cumple").sum()/num_carga,3)*100
                     ########################################################
                     metric_col[2].metric("Visitas Movil",num_vd_movil,f"VD Completas:{total_vd_movil_completas}({percent_vd_completas_movil}%)",border=True)
-                    metric_col[3].metric("Visitas Completas - Movil",total_vd_movil_completas,f"Meta (64%): {total_meta_vd}",border=True)
-                    metric_col[4].metric("% VD Georreferenciadas",f"{percent_vd_movil_validate}%",f"VD Faltantes {total_faltante_vd_meta}",border=True)
-                    metric_col[5].metric("% Registros Telefonicos",f"{percent_reg_tel}%",f"Sin celular : {num_carga-con_celular}",border=True)
-                    metric_col[6].metric("% Niños Oportunos y Completos",f"{percent_total_vd_12}%",f"Positivos:{num_ninos_result}",border=True)
+                    metric_col[6].metric("% Niños Actualizados",num_ninos_cumple,f"Meta (64%): {total_meta_vd}",border=True)
+                    metric_col[3].metric("% VD Georreferenciadas",f"{percent_vd_movil_validate}%",f"VD Faltantes {total_faltante_vd_meta}",border=True)
+                    metric_col[4].metric("% Registros Telefonicos",f"{percent_reg_tel}%",f"Sin celular : {num_carga-con_celular}",border=True)
+                    metric_col[5].metric("% Niños Oportunos y Completos",f"{percent_total_vd_12}%",f"Positivos:{num_ninos_result}",border=True)
                     
                     #########################################################################################################################
                     dataframe_efec = dataframe_[dataframe_["Estado Niño"].isin([
