@@ -32,13 +32,7 @@ def index():
     with col_c1:
         with st.container():
             st.subheader("🩸 Compromiso 1")
-            st.markdown(
-                """
-                **Mejora del estado nutricional y de salud.**
-                
-                Seguimiento de visitas domiciliarias a niños y gestantes para prevenir la anemia y asegurar el desarrollo infantil temprano.
-                """
-            )
+
             st.markdown("---")
             
             # Métricas Compromiso 1

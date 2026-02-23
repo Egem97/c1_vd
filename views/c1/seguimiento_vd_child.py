@@ -556,7 +556,7 @@ def visitas_ninos_dashboard():
                     percent_reg_tel = safe_percent(con_celular, num_carga)
                     percent_total_vd_12 = safe_percent(num_ninos_result, num_carga)
                     num_niños_padron = (dataframe_["CUMPLE INDICADOR"]=="Cumple").sum()
-                    num_ninos_cumple = round((num_niños_padron/num_carga),3)*100
+                    num_ninos_cumple = round((num_niños_padron/num_carga)*100,2)
                     ########################################################
                     metric_col[2].metric("Visitas Movil",num_vd_movil,f"VD Completas:{total_vd_movil_completas}({percent_vd_completas_movil}%)",border=True)
                     metric_col[6].metric("% Niños Actualizados",num_ninos_cumple,f"N° Act: {num_niños_padron}",border=True)

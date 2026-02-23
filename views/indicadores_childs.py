@@ -96,3 +96,174 @@ def indicadores_childs():
     columnas_fig_2 = st.columns(2)
     columnas_fig_2[0].plotly_chart(fig_etapa_visitas)
     columnas_fig_2[1].plotly_chart(fig_eess_count_as)
+
+
+def capacitaciones_c1():
+    st.subheader("Capacitaciones C1")
+    df = pd.read_excel("Reporte_capacitacion_nivel_nominal (1).xls", skiprows=8)
+    df = df[df["AS Activo/Inactivo"] == "Activo"]
+    df = df.drop(columns=[
+        'Ubigeo', 'Departamento', 'Provincia', 'Distrito', 'Nro de Documento AS',
+        'Código de EESS', 'AS Habilitado'
+    ], errors='ignore')
+    
+    col_evaluacion = [
+        'Protocolo VD y ST - Capacitado', 'Protocolo VD y ST - Aprobado',
+        'Anemia, prevención y Tratramiento - Capacitado',
+        'Anemia, prevención y Tratramiento - Aprobado',
+        'Lactancia materna exclusiva - Capacitado',
+        'Lactancia materna exclusiva - Aprobado',
+        'Alimentación complementaria - Capacitado',
+        'Alimentación complementaria - Aprobado',
+        'Lavado de manos - Capacitado', 'Lavado de manos - Aprobado',
+        'Cumpliendo con las vacunas - Capacitado',
+        'Cumpliendo con las vacunas - Aprobado',
+        'Control de crecimiento y desarrollo de mi niño(a) - Capacitado',
+        'Control de crecimiento y desarrollo de mi niño(a) - Aprobado',
+        'Otros - Capacitado', 'Otros - Aprobado', 'Apego Seguro - Capacitado',
+        'Apego Seguro - Aprobado', 'Previniendo el Coronavirus - Capacitado',
+        'Previniendo el Coronavirus - Aprobado', 'VD/Calidad - Capacitado',
+        'VD/Calidad - Aprobado', 'Aprendizaje a través del juego - Capacitado',
+        'Aprendizaje a través del juego - Aprobado',
+        'Atención Prenatal: Importancia - Capacitado',
+        'Atención Prenatal: Importancia - Aprobado',
+        'El Embarazo: Señales de peligro - Capacitado',
+        'El Embarazo: Señales de peligro - Aprobado',
+        'La Alimentación Saludable: Para la prevención de la anemia - Capacitado',
+        'La Alimentación Saludable: Para la prevención de la anemia - Aprobado',
+        'Anemia: Suplementación con hierro - Capacitado',
+        'Anemia: Suplementación con hierro - Aprobado',
+        'Plan de parto: Importancia - Capacitado',
+        'Plan de parto: Importancia - Aprobado',
+        'Parto Institucional: Importancia - Capacitado',
+        'Parto Institucional: Importancia - Aprobado',
+        'El Puerperio: Señales de peligro - Capacitado',
+        'El Puerperio: Señales de peligro - Aprobado',
+        'Derecho a la Identidad - Capacitado',
+        'Derecho a la Identidad - Aprobado'
+    ]
+    
+    # Identificar columnas que no son de evaluación para mantenerlas como identificadores
+    id_vars = [c for c in df.columns if c not in col_evaluacion]
+    
+    # Transformar columnas a filas (Melt)
+    df_melted = df.melt(
+        id_vars=id_vars,
+        value_vars=col_evaluacion,
+        var_name='Evaluacion',
+        value_name='Estado'
+    )
+    df_melted = df_melted[df_melted["Evaluacion"].str.contains("Aprobado")]
+    st.write("Dimensiones del dataframe transformado:", df_melted.shape)
+    
+    # Botón de descarga para la tabla de evaluaciones
+    excel_eval = convert_excel_df(df_melted)
+    st.download_button(
+        label="📥 Descargar Evaluaciones en Excel",
+        data=excel_eval,
+        file_name='Evaluaciones_Capacitaciones.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        key='btn_descarga_eval'
+    )
+    st.dataframe(df_melted)
+
+    # --- NUEVA SECCIÓN DE GRÁFICOS ---
+    # Filtrar solo los que tienen "SI" en la columna Estado
+    df_si = df_melted[df_melted["Estado"] == "SI"].copy()
+
+    if not df_si.empty:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # Cantidad de capacitados (SI) por Evaluación
+            df_count_eval = df_si.groupby("Evaluacion").size().reset_index(name="Cantidad")
+            df_count_eval = df_count_eval.sort_values("Cantidad", ascending=True)
+            
+            fig_eval = px.bar(
+                df_count_eval, 
+                x="Cantidad", 
+                y="Evaluacion", 
+                orientation='h',
+                title="Cantidad de 'SI' por Evaluación",
+                text="Cantidad"
+            )
+            st.plotly_chart(fig_eval, use_container_width=True)
+
+        with col2:
+            # Cantidad de evaluados (SI) por Establecimiento de Salud
+            df_count_eess = df_si.groupby("Establecimiento de Salud").size().reset_index(name="Cantidad")
+            df_count_eess = df_count_eess.sort_values("Cantidad", ascending=True)
+            
+            fig_eess = px.bar(
+                df_count_eess, 
+                x="Cantidad", 
+                y="Establecimiento de Salud", 
+                orientation='h',
+                title="Cantidad de 'SI' por Establecimiento",
+                text="Cantidad"
+            )
+            st.plotly_chart(fig_eess, use_container_width=True)
+    else:
+        st.warning("No hay registros con 'SI' para mostrar en los gráficos.")
+
+    # --- RESUMEN POR ESTABLECIMIENTO (Pivoteada) ---
+    st.markdown("---")
+    st.subheader("Resumen de Aprobados por Establecimiento de Salud")
+    
+    if not df_si.empty:
+        # Crear la tabla dinámica: Filas = EESS, Columnas = Evaluaciones, Valores = Conteo de registros (con Estado SI)
+        df_pivot = df_si.pivot_table(
+            index="Establecimiento de Salud", 
+            columns="Evaluacion", 
+            aggfunc="size", 
+            fill_value=0
+        ).reset_index()
+        
+        # Botón de descarga para el resumen
+        excel_resumen = convert_excel_df(df_pivot)
+        st.download_button(
+            label="📥 Descargar Resumen por EESS en Excel",
+            data=excel_resumen,
+            file_name='Resumen_Aprobados_por_EESS.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            key='btn_descarga_pivot'
+        )
+        st.dataframe(df_pivot)
+    else:
+        st.info("No hay datos aprobados para generar el resumen por establecimiento.")
+
+    # --- ACTORES SOCIALES SIN CAPACITACIONES ---
+
+    st.markdown("---")
+    st.subheader("Actores Sociales sin ninguna Capacitación")
+    
+    # Columnas que específicamente indican capacitación
+    cols_capacitado = [c for c in col_evaluacion if "Capacitado" in c]
+    
+    # Creamos una columna que cuente cuántos "SI" tiene el AS en capacitaciones
+    # Nota: Trabajamos sobre el 'df' original filtrado por AS Activo
+    df_check = df.copy()
+    df_check['Total_Capacitaciones'] = (df_check[cols_capacitado] == "SI").sum(axis=1)
+    
+    # Filtramos los que tienen 0 capacitaciones
+    as_sin_capacitacion = df_check[df_check['Total_Capacitaciones'] == 0][
+        ["Apellidos y Nombres del AS", "Establecimiento de Salud", "Total de Sesiones"]
+    ]
+    
+    if not as_sin_capacitacion.empty:
+        st.error(f"Se encontraron {len(as_sin_capacitacion)} Actores Sociales sin capacitaciones registradas.")
+        
+        # Botón de descarga para AS sin capacitación
+        excel_sin_cap = convert_excel_df(as_sin_capacitacion)
+        st.download_button(
+            label="📥 Descargar Lista AS sin Capacitación",
+            data=excel_sin_cap,
+            file_name='AS_Sin_Capacitacion.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            key='btn_descarga_sin_cap'
+        )
+        st.dataframe(as_sin_capacitacion)
+    else:
+        st.success("Todos los Actores Sociales activos tienen al menos una capacitación.")
+
+
