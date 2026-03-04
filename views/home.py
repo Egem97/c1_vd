@@ -75,4 +75,6 @@ def index():
             )
             st.info("💡 Mantener el padrón actualizado es clave para el cumplimiento de metas.")
   
+
+
     

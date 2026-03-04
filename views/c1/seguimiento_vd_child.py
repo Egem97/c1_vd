@@ -230,6 +230,9 @@ def visitas_ninos_dashboard():
                             "Dic": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                             "Ene": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                             "Feb": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
+                            "Mar": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
+                            "Abr": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
+                            "May": "1XgsYbeYeX9nwyz7jj2PHBYiGcxZcXb9HIiw757XLCcQ",
                     }
                     print(sn_month[select_mes])
                     return read_and_concatenate_sheets_optimized(
@@ -267,7 +270,7 @@ def visitas_ninos_dashboard():
                     select_year  = st.selectbox("Año:", ["2026"], key="select1")
                     
                 with col_head4:
-                    select_mes  = st.selectbox("Mes:",['Feb'] , key="select2",index=0)
+                    select_mes  = st.selectbox("Mes:",['Feb','Mar'] , key="select2",index=1)
                 #with col_head5:
                 #
                 #     select_rango  = st.selectbox("Rango:",['1-5 meses','6-11 meses'] , key="select7",index=None)

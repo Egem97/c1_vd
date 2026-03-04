@@ -30,7 +30,7 @@ def gestantes_status_vd():
             select_year  = st.selectbox("Año:", ["2026"], key="select1")
             
         with columns_row1[2]:
-            select_mes  = st.selectbox("Mes:", ["Feb"], key="select2",index=0)
+            select_mes  = st.selectbox("Mes:", ["Feb","Mar"], key="select2",index=1)
         with columns_row1[3]:
             select_eess  = st.multiselect("Establecimiento de Salud:", eess, key="select3",placeholder="Seleccione EESS")
             
@@ -45,7 +45,8 @@ def gestantes_status_vd():
         actvd_filt_df_last = vd_df[(vd_df['Año']==str(select_year))&(vd_df['Mes']==select_mes)]  
         archivos_parquet = [f for f in os.listdir(f'./data/puerperas/{select_mes}') if f.endswith(".parquet")]
         #################REPORTE DE ACTIVIDAD GESTANTES########################
-        
+        #st.dataframe(carga_filt_df)
+        #st.dataframe(actvd_filt_df_last)
         vd_movil_df = actvd_filt_df_last[actvd_filt_df_last["Dispositivo Intervención"]=="MOVIL"]
         vd_web_df = actvd_filt_df_last[actvd_filt_df_last["Dispositivo Intervención"]=="WEB"]
 
@@ -119,7 +120,7 @@ def gestantes_status_vd():
         #st.dataframe(vd_gest_completa_df)
         
         vd_completa_gestante_df = gestantes_join_df[gestantes_join_df["Estado Gestante"]=="Visita Completa"]
-
+        
         con_visita_cel = gestantes_join_df[(gestantes_join_df["Celular de la Madre"].notna())]
         #num_con_visita_cel = con_visita_cel.shape[0]
         percent_reg_tel = round((con_visita_cel.shape[0]/num_carga)*100,2)

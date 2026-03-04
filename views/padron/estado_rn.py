@@ -120,7 +120,7 @@ def rn_month_insert():
     
     #############################################################################################################
     #########################
-    vd_childs_df = vd_childs_df[vd_childs_df["Año"]=="2025"]
+    vd_childs_df = vd_childs_df[vd_childs_df["Año"]=="2026"]
     
     vd_childs_df["Etapa"] = vd_childs_df["Etapa"]+" - "
     
@@ -128,6 +128,8 @@ def rn_month_insert():
     vd_childs_df["Celular de la Madre"] = pd.to_numeric(vd_childs_df["Celular de la Madre"], errors='coerce').fillna(0).astype(int).astype(str)+" - "
     vd_childs_df = vd_childs_df.groupby(["Número de Documento de Niño","Celular de la Madre"])[["Etapa"]].sum().reset_index()
     vd_childs_df = vd_childs_df.groupby(["Número de Documento de Niño","Etapa"])[["Celular de la Madre"]].sum().reset_index()
+    st.write(vd_childs_df.shape)
+    st.dataframe(vd_childs_df)
     vd_childs_df["Etapa"] = vd_childs_df.apply(lambda x: eliminar_periodos_duplicados(x['Etapa']),axis=1)
     vd_childs_df.columns = ["Documento","C1 Niños Visitados","Celular Madre"]
     vd_childs_df["C1 Niños Visitados"] = vd_childs_df["C1 Niños Visitados"].str[:-2]
