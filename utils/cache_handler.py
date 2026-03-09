@@ -29,7 +29,7 @@ def fetch_vd_gestantes():
 
 @st.cache_data(ttl=DEELAY_DATA,show_spinner="Cargando datos gestantes...")
 def fetch_carga_gestantes():
-    return pd.read_parquet(f'https://{CS_URL}/GESTANTE_DETALLE_VD.parquet', engine='pyarrow')
+    return pd.read_parquet(f'https://{CS_URL}/GESTANTE_VISITAS_DOMICILIARIAS_DATA.parquet', engine='pyarrow')
     
 
 @st.cache_data(ttl=DEELAY_DATA,show_spinner="Cargando datos padron...")
