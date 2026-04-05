@@ -32,7 +32,7 @@ def pages():
         #st.Page(page=summary_tramo3_test, title="Resumen 2025", icon="🎯", url_path="/resumen2025"),
         st.Page(page=geo_childs, title="Geo Niños", icon="📍", url_path="/visitas-childs"),
         #st.Page(page=geo_gestantes, title="Geo Gestantes", icon="📍", url_path="/visitas-gestantes"),
-        #st.Page(page=wwww, title="TWWWWW", icon="🎯", url_path="/wwwww"),
+        st.Page(page=wwww, title="TWWWWW", icon="🎯", url_path="/wwwww"),
         st.Page(page=buscar_sector_childs, title="Buscar Sector Niños", icon="🎯", url_path="/buscar-sector-childs"),
     ]
     page_dict["Padrón Nominal"] = [

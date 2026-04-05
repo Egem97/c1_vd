@@ -270,7 +270,7 @@ def visitas_ninos_dashboard():
                     select_year  = st.selectbox("Año:", ["2026"], key="select1")
                     
                 with col_head4:
-                    select_mes  = st.selectbox("Mes:",['Feb','Mar'] , key="select2",index=1)
+                    select_mes  = st.selectbox("Mes:",['Feb','Mar','Abr'] , key="select2",index=2)
                 #with col_head5:
                 #
                 #     select_rango  = st.selectbox("Rango:",['1-5 meses','6-11 meses'] , key="select7",index=None)
@@ -2074,7 +2074,8 @@ def c1_2025_avances():
 def wwww():
     styles(2)
     st.title("TWWWWW")
-    childs_df = pd.read_parquet(r"./data/backups/carga_nino.parquet")
+    #childs_df = pd.read_parquet(r"./data/backups/carga_nino.parquet")
+    childs_df = fetch_carga_childs()
     childs_df = childs_df.sort_values(by=["Mes"])
     #unique_childs25_df = all_c1_carga_df.groupby(["Número de Documento del niño"]).agg({"Mes": "sum","Mes_name": "sum","Establecimiento de Salud": "sum"}).reset_index()
     #unique_childs25_df.columns = ["Documento", "Periodos","Periodos_name","Establecimiento de Salud"]
@@ -2087,6 +2088,7 @@ def wwww():
     childs_df["Mes"] = childs_df["Mes"].str[:-1]
     childs_df["Periodos"] = childs_df["Mes"].str.replace("-","")
     childs_df["Periodos"] = childs_df["Periodos"].astype(int)
+    st.dataframe(childs_df)
     childs_df['Establecimiento de Salud'] = childs_df.apply(lambda x: tomar_ultimo_elemento(x['Establecimiento de Salud']),axis=1)
     def es_consecutivo(numero):
         s = str(numero)
@@ -2239,7 +2241,7 @@ def wwww():
     childs_df["Condicion 2 Atenciones_"] = childs_df.apply(lambda x: condi2_(x["Condicion 2 Atenciones"],x["1 años,0 meses_"]),axis=1)
     childs_df = childs_df.drop(columns=["1 años,0 meses_"])
     # Calcular edad máxima al 31/12/2025 en días basada en FECHA_NAC
-    fecha_corte_2025 = pd.Timestamp('2025-12-31')
+    fecha_corte_2025 = pd.Timestamp('2026-12-31')
     nac_dt = pd.to_datetime(childs_df["FECHA_NAC"], errors="coerce")
     childs_df["MAXIMA EDAD 2025"] = (fecha_corte_2025 - nac_dt).dt.days
     # Manejo seguro: si falta fecha o es posterior al corte, colocar 0
@@ -2250,9 +2252,26 @@ def wwww():
     childs_df.to_parquet("avances_tamizajes.parquet",index=False,engine = "pyarrow")
     st.success("Archivo guardado con éxito")
     #print(diag_df["DIAGNOSTICO"].unique())
-    #print(diag_df["ACTIVIDAD"].unique())
-
-
+    #print(diag_df["ACTIVIDAD"].unique())   
+    names_df = pd.read_parquet("datos_niños.parquet")
+    names_df = names_df.rename(columns={"Documento_c1":"DNI_PACIENTE"})
+    names_df = names_df[["DNI_PACIENTE","Niño"]]
+    names_df = names_df.drop_duplicates(subset=["DNI_PACIENTE"],keep="first")
+    childs_df = childs_df.merge(names_df, on="DNI_PACIENTE", how="left")
+    st.dataframe(childs_df)
+    print(childs_df.columns)
+    childs_df = childs_df[['DNI_PACIENTE','Niño', 'Mes', 'Establecimiento de Salud', 'Periodos',
+       'Es_Consecutivo', 'FECHA_NAC', 'Edad_Actual_Dias', 'Diag_corto',
+       'Edad_Diagnostico', 'Anemia', '0 años,1 meses', '0 años,10 meses',
+       '0 años,11 meses', '0 años,4 meses', '0 años,6 meses', '0 años,7 meses',
+       '0 años,8 meses', '0 años,9 meses', '1 años,0 meses', '1 años,1 meses',
+       'A - 0 años,10 meses', 'A - 0 años,11 meses', 'A - 0 años,6 meses',
+       'A - 0 años,7 meses', 'A - 0 años,8 meses', 'A - 0 años,9 meses',
+       'A - 1 años,0 meses', 'A - 1 años,1 meses', 'Atenciones antes 12 meses',
+       'Condicion 2 Atenciones', 'Condicion 2 Atenciones_', 'MAXIMA EDAD 2025',
+       ]]
+    childs_df.to_excel("avances_anemicos_2026.xlsx",index=False,engine = "openpyxl")
+    st.success("Archivo guardado con éxito")
 
 
 def buscar_sector_childs():
