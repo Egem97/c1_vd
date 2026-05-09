@@ -270,7 +270,7 @@ def visitas_ninos_dashboard():
                     select_year  = st.selectbox("Año:", ["2026"], key="select1")
                     
                 with col_head4:
-                    select_mes  = st.selectbox("Mes:",['Feb','Mar','Abr'] , key="select2",index=2)
+                    select_mes  = st.selectbox("Mes:",['Feb','Mar','Abr','May'] , key="select2",index=3)
                 #with col_head5:
                 #
                 #     select_rango  = st.selectbox("Rango:",['1-5 meses','6-11 meses'] , key="select7",index=None)
@@ -366,7 +366,7 @@ def visitas_ninos_dashboard():
                 ###
                 
 
-                ###
+                #############################################
                 actvd_filt_df = actvd_filt_df.groupby(['Número de Documento de Niño','Actores Sociales','Etapa'])[['Año']].count().reset_index()
                 actvd_filt_df = actvd_filt_df.sort_values(by='Etapa', key=lambda x: x.isin(['No Encontrado', 'Rechazado']))
                 actvd_filt_df = actvd_filt_df.drop_duplicates(subset='Número de Documento de Niño', keep='first')
@@ -457,6 +457,7 @@ def visitas_ninos_dashboard():
                         (row['Edad en días (primer día del mes)'] <= 389 and row['Edad en días (último día del mes)'] >= 360)
                     ) else "NO", axis=1
                 )
+                ##
                 dataframe_['Rango de Días Activo'] = dataframe_.apply(combinar_rangos_dias, axis=1)
                 
                 # Crear columna FECHA CUMPLE

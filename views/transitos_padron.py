@@ -86,7 +86,7 @@ def analisis_transitos():
             st.plotly_chart(fig_year_count)
     with columnas_add[1]:
         select_mes  = st.selectbox("Compromiso 1 Tramo III Mes", MESES,index=len(MESES) - 1)
-        carga_filt_df = carga_df[(carga_df['Año']==2025)&(carga_df['Mes']==int(mestext_short(select_mes)))]
+        carga_filt_df = carga_df[(carga_df['Año']==2026)&(carga_df['Mes']==int(mestext_short(select_mes)))]
         carga_filt_df = carga_filt_df[["Número de Documento del niño","Establecimiento de Salud","Rango de Edad","Dirección"]]
         data_transitos = transitos_df[["Documento","DATOS NIÑO PADRON","FECHA DE MODIFICACIÓN DEL REGISTRO","USUARIO QUE MODIFICA","ENTIDAD",
                                        "EESS","DIRECCION PADRON","REFERENCIA DE DIRECCION",
