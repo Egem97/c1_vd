@@ -6,6 +6,13 @@ from dateutil.relativedelta import relativedelta
 
 @st.cache_data
 def convert_excel_df(df):
+    df = df.copy()
+    for col in df.select_dtypes(include=['datetimetz']).columns:
+        df[col] = df[col].dt.tz_localize(None)
+    for col in df.select_dtypes(include=['object']).columns:
+        sample = df[col].dropna()
+        if not sample.empty and isinstance(sample.iloc[0], pd.Timestamp) and sample.iloc[0].tzinfo is not None:
+            df[col] = pd.to_datetime(df[col], errors='coerce').dt.tz_localize(None)
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Datos')

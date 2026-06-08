@@ -29,7 +29,7 @@ def pages():
         st.Page(page=visitas_ninos_dashboard, title="Visitas a Niños", icon="👶", url_path="/seguimiento-vd-ninos"),
         st.Page(page=gestantes_status_vd, title="Visitas a Gestantes", icon="🤰", url_path="/seguimiento-vd-gestantes"),
         st.Page(page=capacitaciones_c1, title="Capacitaciones C1", icon="🎓", url_path="/capacitaciones-c1"),
-        #st.Page(page=summary_tramo3_test, title="Resumen 2025", icon="🎯", url_path="/resumen2025"),
+        st.Page(page=summary_tramo3_test, title="Resumen 2025", icon="🎯", url_path="/resumen2025"),
         st.Page(page=geo_childs, title="Geo Niños", icon="📍", url_path="/visitas-childs"),
         #st.Page(page=geo_gestantes, title="Geo Gestantes", icon="📍", url_path="/visitas-gestantes"),
         st.Page(page=wwww, title="TWWWWW", icon="🎯", url_path="/wwwww"),
