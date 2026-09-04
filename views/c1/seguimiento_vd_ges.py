@@ -30,7 +30,7 @@ def gestantes_status_vd():
             select_year  = st.selectbox("Año:", ["2026"], key="select1")
             
         with columns_row1[2]:
-            select_mes  = st.selectbox("Mes:", ["Feb","Mar",'Abr','May','Jun','Jul','Ago'], key="select2",index=6)
+            select_mes  = st.selectbox("Mes:", ["Feb","Mar",'Abr','May','Jun','Jul','Ago','Set'], key="select2",index=7)
         with columns_row1[3]:
             select_eess  = st.multiselect("Establecimiento de Salud:", eess, key="select3",placeholder="Seleccione EESS")
             

@@ -270,7 +270,7 @@ def visitas_ninos_dashboard():
                     select_year  = st.selectbox("Año:", ["2026"], key="select1")
                     
                 with col_head4:
-                    select_mes  = st.selectbox("Mes:",['Feb','Mar','Abr','May','Jun','Jul','Ago'] , key="select2",index=6)
+                    select_mes  = st.selectbox("Mes:",['Feb','Mar','Abr','May','Jun','Jul','Ago','Set'] , key="select2",index=7)
                 #with col_head5:
                 #
                 #     select_rango  = st.selectbox("Rango:",['1-5 meses','6-11 meses'] , key="select7",index=None)
