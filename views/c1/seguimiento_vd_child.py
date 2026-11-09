@@ -270,7 +270,7 @@ def visitas_ninos_dashboard():
                     select_year  = st.selectbox("Año:", ["2026"], key="select1")
                     
                 with col_head4:
-                    select_mes  = st.selectbox("Mes:",['Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct'] , key="select2",index=8)
+                    select_mes  = st.selectbox("Mes:",['Feb','Mar','Abr','May','Jun','Jul','Ago','Set','Oct','Nov'] , key="select2",index=9)
                 #with col_head5:
                 #
                 #     select_rango  = st.selectbox("Rango:",['1-5 meses','6-11 meses'] , key="select7",index=None)
@@ -350,8 +350,11 @@ def visitas_ninos_dashboard():
                 #st.dataframe(datos_ninos_df)
                 carga_filt_df = carga_df[(carga_df['Año']==int(select_year))&(carga_df['Mes']==int(mestext_short(select_mes)))]
                 actvd_filt_df = actvd_df[(actvd_df['Año']==select_year)&(actvd_df['Mes']==select_mes)]
-                
-                
+                # Guardar contra meses ausentes en VISITAS_DOMICILIARIAS_DATA (num_carga = 0 divide entre cero más abajo)
+                if carga_filt_df.empty:
+                    st.error(f"No hay carga de niños para {select_mes} {select_year} en VISITAS_DOMICILIARIAS_DATA. Revisa la actualización de datos o selecciona otro mes.")
+                    st.stop()
+
 
                 niños_unicos_vd = childs_unicos_visitados(actvd_filt_df,'Número de Documento de Niño',"ALL CHILDS W DUPLICADOS")
 
@@ -2152,32 +2155,50 @@ def wwww():
 
     diag_df['Edad_Diagnostico'] = diag_df.apply(lambda row: calculate_age_years_months(row['FECHA_NAC'], row['Fecha_Diagnostico']), axis=1)
     
-    diag_df["Diag_corto"] = diag_df["DIAGNOSTICO"]
-    diag_df["Diag_corto"] = diag_df["Diag_corto"].replace(
-        {"SUPLEMENTACIÓN CON HIERRO": "SH",
-        "SUPLEMENTACIÓN DE MULTIMICRONUTRIENTES":"SMU",
-        "Dosaje de Hemoglobina con hemoglobinómetro":"DHMO",
-        "Dosaje de Hemoglobina":"DH",
-        "ANEMIA POR DEFICIENCIA DE HIERRO SIN ESPECIFICACION":"ASH",
-        "ANEMIA DE TIPO NO ESPECIFICADO":"ANOES"
+    # Se abrevia por código (COD_Dx) y no por el texto de DIAGNOSTICO, que cambia de redacción entre cargas
+    diag_df["COD_Dx"] = diag_df["COD_Dx"].astype(str).str.strip()
+    diag_df["Diag_corto"] = diag_df["COD_Dx"].map(
+        {"99199.17": "SH",
+        "99199.19":"SMU",
+        "85018.01":"DHMO",
+        "85018":"DH",
+        "D509":"ASH",
+        "D649":"ANOES"
         }
-    )
+    ).fillna(diag_df["DIAGNOSTICO"])
+    # Anemia = diagnóstico CIE-10 (D509/D649). Los dosajes de hemoglobina son tamizaje, no diagnóstico
+    es_anemia = diag_df["COD_Dx"].isin(["D509","D649"])
+    es_dosaje = diag_df["COD_Dx"].isin(["85018","85018.01"])
+    diag_df = diag_df.sort_values(by=["Fecha_Diagnostico"])
+    def severidad_max(valores):
+        for sev in ["SEV","MOD","LEV"]:
+            if (valores == sev).any():
+                return sev
+        return "NO REGISTRA"
+    anemia_res = diag_df[es_anemia].groupby("DNI_PACIENTE").agg(
+        Anemia_Primera_Fecha=("Fecha_Diagnostico","min"),
+        Anemia_Ultima_Fecha=("Fecha_Diagnostico","max"),
+        Anemia_Primera_Edad=("Edad_Diagnostico","first"),
+        Anemia_N_Registros=("COD_Dx","size"),
+        Anemia_Severidad=("Valor_Lab",severidad_max),
+        Anemia_Recuperado=("Valor_Lab",lambda v: "SI" if (v == "PR").any() else "NO"),
+    ).reset_index()
+    dosaje_res = diag_df[es_dosaje].groupby("DNI_PACIENTE").agg(
+        N_Dosajes_Hb=("COD_Dx","size"),
+        Ultimo_Dosaje_Hb=("Fecha_Diagnostico","max"),
+    ).reset_index()
     #st.dataframe(diag_df)
     doc_unicos_diag = diag_df["DNI_PACIENTE"].unique()
     ## agrupando
     diag_df["Diag_corto"] = diag_df["Diag_corto"]+" - "
+    diag_df["Anemia"] = (" - " + diag_df["Edad_Diagnostico"].astype(str)).where(es_anemia, "")
     diag_df["Edad_Diagnostico"] = diag_df["Edad_Diagnostico"]+" - "
-    diag_df["Anemia"] = (diag_df["Diag_corto"].astype(str) + diag_df["Edad_Diagnostico"].astype(str)).where(
-        diag_df["Diag_corto"].str.contains("A", na=False),
-        ""
-    )
-    diag_df["Anemia"] = diag_df["Anemia"].str[:-3]
-    diag_df["Anemia"] = diag_df["Anemia"].str.replace("ASH","")
-    diag_df["Anemia"] = diag_df["Anemia"].str.replace("ANOES","")
-    
+
     st.dataframe(diag_df)
     diag_df["FECHA_NAC"] = diag_df["FECHA_NAC"].astype(str)
     diag_df_rs = diag_df.groupby(["DNI_PACIENTE","FECHA_NAC","Edad_Actual_Dias"])[["Diag_corto","Edad_Diagnostico","Anemia"]].sum().reset_index()
+    diag_df_rs = diag_df_rs.merge(anemia_res, on="DNI_PACIENTE", how="left")
+    diag_df_rs = diag_df_rs.merge(dosaje_res, on="DNI_PACIENTE", how="left")
     diag_df_rs["DNI_PACIENTE"] = diag_df_rs["DNI_PACIENTE"].astype(str)
     st.write(f"DOC_UNICOS:{len(doc_unicos_diag)}")
     st.write(diag_df_rs.shape)
@@ -2185,6 +2206,22 @@ def wwww():
 
     ### JOIN
     childs_df = childs_df.merge(diag_df_rs, on="DNI_PACIENTE", how="left")
+    childs_df["Anemia_N_Registros"] = childs_df["Anemia_N_Registros"].fillna(0).astype(int)
+    childs_df["N_Dosajes_Hb"] = childs_df["N_Dosajes_Hb"].fillna(0).astype(int)
+    # Estado por niño: sin dosaje no se puede afirmar que no tiene anemia
+    def estado_anemia(sin_registro, n_anemia, n_dosajes):
+        if sin_registro:
+            return "SIN REGISTRO"
+        elif n_anemia >= 1:
+            return "CON ANEMIA"
+        elif n_dosajes >= 1:
+            return "SIN ANEMIA"
+        else:
+            return "SIN TAMIZAJE"
+    childs_df["ANEMIA"] = childs_df.apply(lambda x: estado_anemia(pd.isna(x["Diag_corto"]),x["Anemia_N_Registros"],x["N_Dosajes_Hb"]),axis=1)
+    childs_df["Anemia_Severidad"] = childs_df["Anemia_Severidad"].fillna("-")
+    childs_df["Anemia_Recuperado"] = childs_df["Anemia_Recuperado"].fillna("-")
+    childs_df["Anemia_Primera_Edad"] = childs_df["Anemia_Primera_Edad"].fillna("-")
     # Rellenos por defecto para evaluar toda la población
     childs_df["Diag_corto"] = childs_df["Diag_corto"].fillna("-")
     childs_df["Edad_Diagnostico"] = childs_df["Edad_Diagnostico"].fillna("-")
@@ -2261,16 +2298,20 @@ def wwww():
     childs_df = childs_df.merge(names_df, on="DNI_PACIENTE", how="left")
     st.dataframe(childs_df)
     print(childs_df.columns)
-    childs_df = childs_df[['DNI_PACIENTE','Niño', 'Mes', 'Establecimiento de Salud', 'Periodos',
+    cols_excel = ['DNI_PACIENTE','Niño', 'Mes', 'Establecimiento de Salud', 'Periodos',
        'Es_Consecutivo', 'FECHA_NAC', 'Edad_Actual_Dias', 'Diag_corto',
-       'Edad_Diagnostico', 'Anemia', '0 años,1 meses', '0 años,10 meses',
+       'Edad_Diagnostico', 'ANEMIA', 'Anemia', 'Anemia_Primera_Fecha', 'Anemia_Primera_Edad',
+       'Anemia_Ultima_Fecha', 'Anemia_N_Registros', 'Anemia_Severidad', 'Anemia_Recuperado',
+       'N_Dosajes_Hb', 'Ultimo_Dosaje_Hb', '0 años,1 meses', '0 años,10 meses',
        '0 años,11 meses', '0 años,4 meses', '0 años,6 meses', '0 años,7 meses',
        '0 años,8 meses', '0 años,9 meses', '1 años,0 meses', '1 años,1 meses',
        'A - 0 años,10 meses', 'A - 0 años,11 meses', 'A - 0 años,6 meses',
        'A - 0 años,7 meses', 'A - 0 años,8 meses', 'A - 0 años,9 meses',
        'A - 1 años,0 meses', 'A - 1 años,1 meses', 'Atenciones antes 12 meses',
        'Condicion 2 Atenciones', 'Condicion 2 Atenciones_', 'MAXIMA EDAD 2025',
-       ]]
+       ]
+    # Las columnas "A - edad" solo existen si hubo algún diagnóstico de anemia a esa edad
+    childs_df = childs_df[[c for c in cols_excel if c in childs_df.columns]]
     childs_df.to_excel("avances_anemicos_2026.xlsx",index=False,engine = "openpyxl")
     st.success("Archivo guardado con éxito")
 
